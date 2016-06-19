@@ -1,29 +1,52 @@
 #!/usr/bin/env python
 """
-Forward
-x = cos(theta1) * [L1 + L2*cos(theta2) + L3*cos(theta2 + theta3 -180deg)]
-y = x * tan(theta1)
-z = [L2 * sin(theta2)] + [L3 * sin(theta2 + theta3 - 180deg)]
+
+Angles [gazebo]
+    hip angle
+        looking down on robot + is CCW
+        0 resting
+    thigh angle
+        looking at side with leg pointed right, + tilts down
+        0 resting
+        angles always +
+    calf angle
+        looking at side with leg pointed right, - tilts up
+        0 resting
+        angles always -
+Positions [gazebo] in leg space
+    x
+        looking at side with leg pointed right + is out (right)
+        never -
+        minimum is... (depends on z)
+    y
+        looking down on leg pointed right + is up, - is down
+        positive and negative
+    z
+        looking at side with leg pointed right, + is down
+        0 is in line with hip joint, below this is +
 """
 
 import numpy
 
 # meters
-htt = [0.279, 0]  # hip to thigh
-ttk = [0.143399, 1.364]  # thigh to knee
+htt = [0.2794, 0]  # hip to thigh
+ttk = [0.144, 1.36402]  # thigh to knee
 ktl = [0.0016, -0.8185]  # knee to upper linkage
 ltc = [0.203, 0]  # upper linkage to calf lower
+ctc = [0.2418, -1.14935]  # simulated calf links with prismatic joint
 cta = [-0.0171, -0.6656]  # calf lower to ankle
 
 hip_limits = (-0.70616022, 0.70616022)
-hip_link = 0.279  # coxa
-thigh_link = 1.37158  # femer
+hip_link = 0.2794  # coxa
+thigh_link = 1.3716  # femer
 thigh_limits = (0., 1.5708)
 thigh_rest_angle = 1.46605
 #numpy.pi / 2. - numpy.arctan2(1.364, 0.14399)
 #thigh_rest = 0.10517498504872225
 #calf_link = 1.828  # tibia, varies with load
-calf_link = 1.49589
+# calf_link should be 72 inches or 1.828 so simulation is off
+#calf_link = 1.49589
+calf_link = 1.828806
 calf_limits = (-2.3736, 0.)
 calf_rest_angle = -1.44512
 # 0.279, 0, 0  # hip to thigh
@@ -107,18 +130,26 @@ def compute_error():
                 x, y, z = forward(h, t, k)
                 ch, ct, ck = inverse(x, y, z)
                 if numpy.isfinite(ch) and numpy.isfinite(h):
-                    err.append(ch - h)
+                    e = abs(ch - h)
+                    ej = 0
                 else:
-                    err.append(100)
+                    e = 100
+                    ej = 0
                 if numpy.isfinite(ct) and numpy.isfinite(t):
-                    err.append(ct - t)
+                    if abs(ct - t) > e:
+                        e = abs(ct - t)
+                        ej = 1
                 else:
-                    err.append(100)
+                    e = 100
+                    ej = 1
                 if numpy.isfinite(ck) and numpy.isfinite(k):
-                    err.append(ck - k)
+                    if abs(ck - k) > e:
+                        e = abs(ck - k)
+                        ej = 2
                 else:
-                    err.append(100)
+                    e = 100
+                    ej = 2
+                err.append([h, t, k, x, y, z, ch, ct, ck, e, ej])
     err = numpy.array(err)
-    aerr = numpy.abs(err)
-    return aerr.mean(), aerr.max()
+    return err, err.mean(), err[:, 9].max()
     #return numpy.abs(err)
