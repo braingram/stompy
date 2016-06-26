@@ -29,33 +29,28 @@ Positions [gazebo] in leg space
 import numpy
 
 # meters
-htt = [0.2794, 0]  # hip to thigh
-ttk = [0.144, 1.36402]  # thigh to knee
+htt = [0.279, 0]  # hip to thigh
+ttk = [0.143, 1.364]  # thigh to knee
 ktl = [0.0016, -0.8185]  # knee to upper linkage
 ltc = [0.203, 0]  # upper linkage to calf lower
-ctc = [0.2418, -1.14935]  # simulated calf links with prismatic joint
-cta = [-0.0171, -0.6656]  # calf lower to ankle
+ctc = [0.203, -0.847]  # simulated calf links with prismatic joint
+cta = [0.02, -0.968]  # calf lower to ankle
+ct = [ctc[0] + cta[0], ctc[1] + cta[1]]
 
 hip_limits = (-0.70616022, 0.70616022)
-hip_link = 0.2794  # coxa
-thigh_link = 1.3716  # femer
-thigh_limits = (0., 1.5708)
-thigh_rest_angle = 1.46605
-#numpy.pi / 2. - numpy.arctan2(1.364, 0.14399)
-#thigh_rest = 0.10517498504872225
-#calf_link = 1.828  # tibia, varies with load
-# calf_link should be 72 inches or 1.828 so simulation is off
-#calf_link = 1.49589
-calf_link = 1.828806
-calf_limits = (-2.3736, 0.)
-calf_rest_angle = -1.44512
-# 0.279, 0, 0  # hip to thigh
-# 0.143399, 0, 1.364  # thigh to knee
+hip_link = 0.279  # coxa
 
-# 0.0016, 0, -0.8185  # knee to upper linkage
-# 0.203, 0, 0  # upper linkage to calf lower
-# -0.0171, 0, -0.6656  # calf lower to ankle
-#knee_limits = (-2.3736, 0.)
+#thigh_link = 1.372  # femer
+thigh_link = numpy.linalg.norm(ttk)  # femer
+thigh_limits = (0., 1.5708)
+#thigh_rest_angle = numpy.radians(84)
+thigh_rest_angle = numpy.arctan2(ttk[1], ttk[0])
+
+#calf_link = 1.829
+calf_link = numpy.linalg.norm(ct)
+calf_limits = (-2.3736, 0.)
+#calf_rest_angle = -numpy.radians(83)
+calf_rest_angle = numpy.arctan2(ct[1], ct[0])
 
 
 def in_limits(angle, limits):
@@ -69,6 +64,7 @@ def in_limits(angle, limits):
 def inverse(x, y, z):
     l = numpy.sqrt(x * x + y * y)
 
+    # TODO deal with -x
     hip_angle = numpy.arctan2(y, x)
 
     L = numpy.sqrt(z ** 2. + (l - hip_link) ** 2.)
@@ -128,6 +124,8 @@ def compute_error():
         for t in numpy.linspace(*tl):
             for k in numpy.linspace(*kl):
                 x, y, z = forward(h, t, k)
+                if x < 0.279:
+                    continue
                 ch, ct, ck = inverse(x, y, z)
                 if numpy.isfinite(ch) and numpy.isfinite(h):
                     e = abs(ch - h)

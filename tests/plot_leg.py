@@ -3,6 +3,7 @@
 import numpy
 import pylab
 
+from stompy.kinematics.leg import *
 
 # 0.279, 0, 0  # hip to thigh
 # 0.143399, 0, 1.364  # thigh to knee
@@ -11,15 +12,14 @@ import pylab
 # -0.0171, 0, -0.6656  # calf lower to ankle
 
 # x, z
-htt = [0.2794, 0]  # hip to thigh
-#ttk = [0.14399, 1.364]  # thigh to knee
-ttk = [0.144, 1.36402]  # thigh to knee
-ktl = [0.0016, -0.8185]  # knee to upper linkage
-ltc = [0.203, 0]  # upper linkage to calf lower
-ctc = [0.2418, -1.14935]  # simulated calf links with prismatic joint
-cta = [-0.0171, -0.6656]  # calf lower to ankle
+#htt = [0.2794, 0]  # hip to thigh
+#ttk = [0.144, 1.36402]  # thigh to knee
+#ktl = [0.0016, -0.8185]  # knee to upper linkage
+#ltc = [0.203, 0]  # upper linkage to calf lower
+#ctc = [0.2418, -1.14935]  # simulated calf links with prismatic joint
+#cta = [-0.0171, -0.6656]  # calf lower to ankle
 
-plot = False
+plot = True
 
 #links = numpy.array([htt, ttk, ktl, ltc, cta])
 links = numpy.array([htt, ttk, ctc, cta])
