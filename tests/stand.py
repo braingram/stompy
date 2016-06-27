@@ -19,8 +19,9 @@ import stompy.sensors.joints as joints
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('-z', '--z', default=1.0, type=float)
-    p.add_argument('-x', '--x', default=0.0, type=float)
+    p.add_argument('-z', '--sz', default=0.5, type=float)
+    p.add_argument('-Z', '--ez', default=1.1, type=float)
+    p.add_argument('-x', '--x', default=1.5, type=float)
     p.add_argument('-t', '--time', default=5., type=float)
     p.add_argument('-r', '--rate', default=10., type=float)
     args = p.parse_args()
@@ -44,6 +45,9 @@ def main():
                 lc(leg_name, joint_name), std_msgs.msg.Float64, queue_size=18)
 
     state = 0  # awaiting joints
+    target_axis = 2
+    moves = 0
+    target = args.sz
     sleep_time = 1. / args.rate
     while not rospy.is_shutdown():
         if state == 0:  # awaiting joints
@@ -57,7 +61,8 @@ def main():
                         joints.legs[leg_name]['calf'])
                     # setup path for foot
                     foot_paths[leg_name].start = foot
-                    ep = [foot[0], foot[1], args.z]
+                    ep = [foot[0], 0., foot[2]]
+                    ep[target_axis] = target
                     foot_paths[leg_name].end = ep
                     print(
                         "Preparing %s foot move from %s to %s" %
@@ -79,6 +84,20 @@ def main():
                 pub['hip'].publish(h)
                 pub['thigh'].publish(t)
                 pub['knee'].publish(k)
+            if state == 2:
+                for leg_name in ('fl', 'fr', 'ml', 'mr', 'rl', 'rr'):
+                    foot_paths[leg_name] = PathTracer(
+                        time=args.time, rate=args.rate)
+                if moves == 0:
+                    target_axis = 0
+                    target = args.x
+                    state = 0
+                    moves = 1
+                elif moves == 1:
+                    target_axis = 2
+                    target = args.ez
+                    state = 0
+                    moves = 2
         else:
             print("Done moving")
             break
