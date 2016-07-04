@@ -82,18 +82,29 @@ def verify(msg):
 
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument('-s', '--start', default="", type=str)
+    p = argparse.ArgumentParser(
+        "Move the leg from it's current location to some end point [end]\n"
+        "break up the movment into smaller linear moves with each sub-move\n"
+        "only moving a joint at moves delta radians")
+    #p.add_argument('-s', '--start', default="", type=str)
     #p.add_argument('-e', '--end', default="1.8,0.0,0.5", type=str)
-    p.add_argument('-e', '--end', default="0.0,0.0,0.1", type=str)
-    p.add_argument('-t', '--time', default=5., type=float)
+    p.add_argument(
+        '-e', '--end', default="0.0,0.0,0.1", type=str,
+        help="End point in x,y,z (escape - xs with a leading \\)")
+    #p.add_argument('-t', '--time', default=5., type=float)
     p.add_argument('-p', '--port', default='/dev/ttyACM0')
     p.add_argument('-b', '--baud', default=9600)
     #p.add_argument('-d', '--delta', default=numpy.radians(1))
     #p.add_argument('-c', '--close', default=numpy.radians(0.5))
-    p.add_argument('-d', '--delta', default=0.03)
-    p.add_argument('-c', '--close', default=0.02)
-    p.add_argument('-f', '--fake', default=False, action='store_true')
+    p.add_argument(
+        '-d', '--delta', default=0.03,
+        help="Maximum angle deviation (radians) between subtargets")
+    p.add_argument(
+        '-c', '--close', default=0.02,
+        help="Acceptable angle deviation before a subtarget is reached")
+    p.add_argument(
+        '-f', '--fake', default=False, action='store_true',
+        help="Don't read/write the serial port, fake movements")
     args = p.parse_args()
 
     #conn = serial.Serial(args.port, args.baud)
