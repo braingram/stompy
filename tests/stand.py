@@ -13,6 +13,7 @@ import std_msgs.msg
 
 
 import stompy.kinematics.leg as leg
+import stompy.kinematics.body as body
 from stompy.planners.trajectory import PathTracer
 import stompy.sensors.joints as joints
 
@@ -63,6 +64,14 @@ def main():
                     foot_paths[leg_name].start = foot
                     ep = [foot[0], 0., foot[2]]
                     ep[target_axis] = target
+                    h, t, k = leg.inverse(*ep)
+                    if not any(
+                            (
+                                leg.in_limits(h, leg.hip_limits),
+                                leg.in_limits(t, leg.thigh_limits),
+                                leg.in_limits(k, leg.knee_limits),
+                            )):
+                        raise Exception()
                     foot_paths[leg_name].end = ep
                     print(
                         "Preparing %s foot move from %s to %s" %
@@ -72,7 +81,7 @@ def main():
                 print("Awaiting joints")
         elif state == 1:  # moving feet
             # execute paths
-            state = 2
+            state = -1
             for leg_name in foot_paths:
                 path = foot_paths[leg_name]
                 pub = leg_publishers[leg_name]
@@ -84,7 +93,7 @@ def main():
                 pub['hip'].publish(h)
                 pub['thigh'].publish(t)
                 pub['knee'].publish(k)
-            if state == 2:
+            if state == -1:
                 for leg_name in ('fl', 'fr', 'ml', 'mr', 'rl', 'rr'):
                     foot_paths[leg_name] = PathTracer(
                         time=args.time, rate=args.rate)
@@ -92,12 +101,138 @@ def main():
                     target_axis = 0
                     target = args.x
                     state = 0
-                    moves = 1
                 elif moves == 1:
                     target_axis = 2
                     target = args.ez
                     state = 0
-                    moves = 2
+                    # moves = 7  # skip to leg lifts
+                elif moves == 2:
+                    # start body moves
+                    target_axis = 0
+                    target = 0.5
+                    state = 2
+                elif moves == 3:
+                    target_axis = 0
+                    target = -1.0
+                    state = 2
+                elif moves == 4:
+                    target_axis = 0
+                    target = 0.5
+                    state = 2
+                elif moves == 5:
+                    target_axis = 1
+                    target = 0.5
+                    state = 2
+                elif moves == 6:
+                    target_axis = 1
+                    target = -1.0
+                    state = 2
+                elif moves == 7:
+                    target_axis = 1
+                    target = 0.5
+                    state = 2
+                elif moves == 8:  # leg lifts
+                    target_axis = 'fl'
+                    target = 0.2
+                    state = 3
+                elif moves == 9:
+                    target_axis = 'fl'
+                    target = args.ez
+                    state = 3
+                elif moves == 10:
+                    target_axis = 'fr'
+                    target = 0.2
+                    state = 3
+                elif moves == 11:
+                    target_axis = 'fr'
+                    target = args.ez
+                    state = 3
+                elif moves == 12:
+                    target_axis = 'ml'
+                    target = 0.2
+                    state = 3
+                elif moves == 13:
+                    target_axis = 'ml'
+                    target = args.ez
+                    state = 3
+                elif moves == 14:
+                    target_axis = 'mr'
+                    target = 0.2
+                    state = 3
+                elif moves == 15:
+                    target_axis = 'mr'
+                    target = args.ez
+                    state = 3
+                elif moves == 16:
+                    target_axis = 'rl'
+                    target = 0.2
+                    state = 3
+                elif moves == 17:
+                    target_axis = 'rl'
+                    target = args.ez
+                    state = 3
+                elif moves == 18:
+                    target_axis = 'rr'
+                    target = 0.2
+                    state = 3
+                elif moves == 19:
+                    target_axis = 'rr'
+                    target = args.ez
+                    state = 3
+
+                moves += 1
+        elif state == 2:  # move body
+            if joints.joints is not None:
+                # setup paths using computed start points
+                for leg_name in joints.legs:
+                    # compute foot position
+                    foot = leg.forward(
+                        joints.legs[leg_name]['hip'],
+                        joints.legs[leg_name]['thigh'],
+                        joints.legs[leg_name]['calf'])
+                    # compute in body coordinates
+                    p = list(body.leg_to_body(leg_name, *foot))
+                    p[target_axis] += target
+                    f = body.body_to_leg(leg_name, *p)
+
+                    # setup path for foot
+                    foot_paths[leg_name].start = foot
+                    foot_paths[leg_name].end = f
+                    print(
+                        "Preparing %s foot move from %s to %s" %
+                        (leg_name, foot, ep))
+                state = 1  # moving feet
+            else:
+                print("Awaiting joints")
+        elif state == 3:  # lift leg
+            if joints.joints is not None:
+                # setup paths using computed start points
+                for leg_name in joints.legs:
+                    # compute foot position
+                    foot = leg.forward(
+                        joints.legs[leg_name]['hip'],
+                        joints.legs[leg_name]['thigh'],
+                        joints.legs[leg_name]['calf'])
+                    foot_paths[leg_name].start = foot
+                    if leg_name == target_axis:
+                        ep = [foot[0], foot[1], target]
+                    else:
+                        ep = foot
+                    h, t, k = leg.inverse(*ep)
+                    if not any(
+                            (
+                                leg.in_limits(h, leg.hip_limits),
+                                leg.in_limits(t, leg.thigh_limits),
+                                leg.in_limits(k, leg.knee_limits),
+                            )):
+                        raise Exception()
+                    foot_paths[leg_name].end = ep
+                    print(
+                        "Preparing %s foot move from %s to %s" %
+                        (leg_name, foot, ep))
+                state = 1  # moving feet
+            else:
+                print("Awaiting joints")
         else:
             print("Done moving")
             break

@@ -48,9 +48,9 @@ thigh_rest_angle = numpy.arctan2(ttk[1], ttk[0])
 
 #calf_link = 1.829
 calf_link = numpy.linalg.norm(ct)
-calf_limits = (-2.3736, 0.)
+knee_limits = (-2.3736, 0.)
 #calf_rest_angle = -numpy.radians(83)
-calf_rest_angle = numpy.arctan2(ct[1], ct[0])
+knee_rest_angle = numpy.arctan2(ct[1], ct[0])
 
 
 def in_limits(angle, limits):
@@ -86,7 +86,7 @@ def inverse(x, y, z):
 
     thigh_angle = alpha - numpy.pi / 2.
     thigh_angle = thigh_rest_angle - thigh_angle
-    base_beta = numpy.pi - thigh_rest_angle + calf_rest_angle
+    base_beta = numpy.pi - thigh_rest_angle + knee_rest_angle
     calf_angle = base_beta - beta
 
     return hip_angle, thigh_angle, calf_angle
@@ -105,7 +105,7 @@ def forward(hip_angle, thigh_angle, calf_angle):
     x += thigh_link * numpy.cos(a)
     z += thigh_link * numpy.sin(a)
 
-    a = calf_rest_angle - calf_angle - thigh_angle
+    a = knee_rest_angle - calf_angle - thigh_angle
     x += calf_link * numpy.cos(a)
     z += calf_link * numpy.sin(a)
 
@@ -113,6 +113,24 @@ def forward(hip_angle, thigh_angle, calf_angle):
     y = x * numpy.sin(hip_angle)
     x *= numpy.cos(hip_angle)
     return x, y, -z
+
+
+def compute_range_of_movements():
+    hl = hip_limits[0] + 0.01, hip_limits[1] - 0.01, 50
+    tl = thigh_limits[0] + 0.01, thigh_limits[1] - 0.01, 10
+    kl = calf_limits[0] + 0.01, calf_limits[1] - 0.01, 10
+    pts = []
+    for h in numpy.linspace(*hl):
+        for t in numpy.linspace(*tl):
+            for k in numpy.linspace(*kl):
+                x, y, z = forward(h, t, k)
+                if x < hip_link:
+                    continue
+                ch, ct, ck = inverse(x, y, z)
+                if max((abs(h - ch), abs(t - ct), abs(k - ck))) > 0.001:
+                    raise Exception
+                pts.append([h, t, k, x, y, z])
+    return pts
 
 
 def compute_error():
@@ -124,7 +142,7 @@ def compute_error():
         for t in numpy.linspace(*tl):
             for k in numpy.linspace(*kl):
                 x, y, z = forward(h, t, k)
-                if x < 0.279:
+                if x < hip_link:
                     continue
                 ch, ct, ck = inverse(x, y, z)
                 if numpy.isfinite(ch) and numpy.isfinite(h):

@@ -31,3 +31,20 @@ class PathTracer(object):
             return self.start + self.delta * i
         else:
             return None
+
+
+class DirectionTracer(object):
+    def __init__(self, start=None, delta=None):
+        self.start = start
+        self.delta = delta
+
+    def setup(self):
+        self.start = numpy.array(self.start)
+        self.delta = numpy.array(self.delta)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        self.start += self.delta
+        return self.start
