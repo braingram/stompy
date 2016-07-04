@@ -29,7 +29,7 @@ import stompy.kinematics.leg as leg
 #import stompy.sensors.joints as joints
 
 global fake_angles
-fake_angles = (0, numpy.radians(84), numpy.radians(13))
+fake_angles = (0, 84, 13)
 
 bfn = int(time.time())
 log_file = open("clm_%i.log" % bfn, "w")
@@ -51,15 +51,17 @@ def read_angles(conn):
             print("-> %s" % (l, ))
             a = map(float, l.strip().split('\t'))
     hip, thigh, knee = a
-    thigh = numpy.radians(84.) - thigh
-    knee = numpy.radians(13.) - knee
+    thigh = numpy.radians(84. - thigh)
+    knee = numpy.radians(13. - knee)
+    hip = numpy.radians(hip)
     return hip, thigh, knee
 
 
 def write_angles(conn, hip, thigh, knee):
     # invert thigh, +84 degrees
-    thigh = numpy.radians(84.) - thigh
-    knee = numpy.radians(13.) - knee
+    thigh = 84. - numpy.degrees(thigh)
+    knee = 13. - numpy.degrees(knee)
+    hip = numpy.degrees(hip)
     if conn is None:
         global fake_angles
         fake_angles = (hip, thigh, knee)
