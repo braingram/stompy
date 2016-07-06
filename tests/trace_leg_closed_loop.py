@@ -93,18 +93,21 @@ def main():
         help="End point in x,y,z (escape - xs with a leading \\)")
     #p.add_argument('-t', '--time', default=5., type=float)
     p.add_argument('-p', '--port', default='/dev/ttyACM0')
-    p.add_argument('-b', '--baud', default=9600)
+    p.add_argument('-b', '--baud', default=9600, type=int)
     #p.add_argument('-d', '--delta', default=numpy.radians(1))
     #p.add_argument('-c', '--close', default=numpy.radians(0.5))
     p.add_argument(
-        '-d', '--delta', default=0.03,
+        '-d', '--delta', default=0.03, type=float,
         help="Maximum angle deviation (radians) between subtargets")
     p.add_argument(
-        '-c', '--close', default=0.02,
+        '-c', '--close', default=0.02, type=float,
         help="Acceptable angle deviation before a subtarget is reached")
     p.add_argument(
         '-f', '--fake', default=False, action='store_true',
         help="Don't read/write the serial port, fake movements")
+    p.add_argument(
+        '-F', '--force', default=False, action='store_true',
+        help="Force all prompts to yes (DANGEROUS)")
     args = p.parse_args()
 
     #conn = serial.Serial(args.port, args.baud)
@@ -123,6 +126,9 @@ def main():
     hip, thigh, knee = a
     #na = (hip, thigh, knee + numpy.radians(4))
     #verify("new: %s" % (na, ))
+    if args.force:
+        def verify(msg):
+            print(msg)
     #write_angles(conn, *na)
     #sys.exit(0)
     # set starting point
