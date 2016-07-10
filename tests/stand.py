@@ -21,7 +21,7 @@ import stompy.sensors.joints as joints
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('-z', '--sz', default=0.5, type=float)
-    p.add_argument('-Z', '--ez', default=1.1, type=float)
+    p.add_argument('-Z', '--ez', default=1.2, type=float)
     p.add_argument('-x', '--x', default=1.5, type=float)
     p.add_argument('-t', '--time', default=5., type=float)
     p.add_argument('-r', '--rate', default=10., type=float)
