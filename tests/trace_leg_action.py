@@ -68,11 +68,6 @@ def main():
         lambda data, description=joints.stompyleg_leg_descriptions:
         joints.update_joints(data, description))
 
-    fl = rospy.Publisher(
-        '/stompyleg/fl/command',
-        trajectory_msgs.msg.JointTrajectory,
-        queue_size=10)
-
     c = actionlib.SimpleActionClient(
         '/stompyleg/fl/follow_joint_trajectory',
         control_msgs.msg.FollowJointTrajectoryAction)
