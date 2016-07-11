@@ -16,6 +16,8 @@ start movement...
 import argparse
 
 import rospy
+import actionlib
+import control_msgs.msg
 import sensor_msgs.msg
 import trajectory_msgs.msg
 
@@ -25,11 +27,16 @@ from stompy.planners.trajectory import PathTracer
 import stompy.sensors.joints as joints
 
 
-def path_to_trajectory(path, dt, leg_name, delay=0.5, prefix='stompyleg'):
-    msg = trajectory_msgs.msg.JointTrajectory()
-    msg.joint_names.append('%s__body_to_%s' % (prefix, leg_name))
-    msg.joint_names.append('%s__%s__hip_to_thigh' % (prefix, leg_name))
-    msg.joint_names.append('%s__%s__thigh_to_calf_upper' % (prefix, leg_name))
+def path_to_trajectory(
+        msg, path, dt, leg_name, delay=0.5, prefix='stompyleg'):
+    #msg = trajectory_msgs.msg.JointTrajectory()
+    msg = msg.action_goal.goal
+    msg.trajectory.joint_names.append(
+        '%s__body_to_%s' % (prefix, leg_name))
+    msg.trajectory.joint_names.append(
+        '%s__%s__hip_to_thigh' % (prefix, leg_name))
+    msg.trajectory.joint_names.append(
+        '%s__%s__thigh_to_calf_upper' % (prefix, leg_name))
     # throw out first point
     path.next()
     pt = path.next()
@@ -39,10 +46,11 @@ def path_to_trajectory(path, dt, leg_name, delay=0.5, prefix='stompyleg'):
         p = trajectory_msgs.msg.JointTrajectoryPoint()
         p.time_from_start = rospy.Duration(t)
         p.positions = list(a)
-        msg.points.append(p)
+        msg.trajectory.points.append(p)
         t += dt
         pt = path.next()
-    msg.header.stamp = rospy.Time.now() + rospy.Duration(delay)
+    msg.trajectory.header.stamp = (
+        rospy.Time.now() + rospy.Duration(delay))
     return msg
 
 
@@ -65,6 +73,11 @@ def main():
         trajectory_msgs.msg.JointTrajectory,
         queue_size=10)
 
+    c = actionlib.SimpleActionClient(
+        '/stompyleg/fl/follow_joint_trajectory',
+        control_msgs.msg.FollowJointTrajectoryAction)
+    c.wait_for_server()
+
     start = None
     if args.start != "":
         start = map(float, args.start.split(','))
@@ -83,9 +96,10 @@ def main():
                     joints.legs['fl']['thigh'],
                     joints.legs['fl']['calf'])
                 print("Found starting position: %s" % (path.start, ))
-                msg = path_to_trajectory(path, sleep_time, 'fl', 0.1)
-                print("Publish: %s" % msg)
-                fl.publish(msg)
+                g = control_msgs.msg.FollowJointTrajectoryAction()
+                g = path_to_trajectory(g, path, sleep_time, 'fl', 0.1)
+                print("Publish: %s" % g)
+                c.send_goal_and_wait(g)
                 break
         rospy.sleep(sleep_time)
 
