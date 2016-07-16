@@ -26,9 +26,11 @@ import stompy.kinematics.leg as leg
 from stompy.planners.trajectory import PathTracer
 import stompy.sensors.joints as joints
 
+prefix = 'stompy'
+
 
 def path_to_trajectory(
-        path, dt, leg_name, delay=0.5, prefix='stompyleg'):
+        path, dt, leg_name, delay=0.5, prefix=prefix):
     msg = control_msgs.msg.FollowJointTrajectoryGoal()
     msg.trajectory.joint_names.append(
         '%s__body_to_%s' % (prefix, leg_name))
@@ -64,14 +66,22 @@ def main():
     p.add_argument('-r', '--rate', default=10., type=float)
     args = p.parse_args()
 
-    rospy.init_node('stompyleg_trace', anonymous=True)
-    rospy.Subscriber(
-        "/stompyleg/joint_states", sensor_msgs.msg.JointState,
-        lambda data, description=joints.stompyleg_leg_descriptions:
-        joints.update_joints(data, description))
+    rospy.init_node('%s_trace' % prefix, anonymous=True)
+    if prefix == 'stompy':
+        rospy.Subscriber(
+            "/%s/joint_states" % prefix, sensor_msgs.msg.JointState,
+            lambda data, description=joints.stompy_leg_descriptions:
+            joints.update_joints(data, description))
+    elif prefix == 'stompyleg':
+        rospy.Subscriber(
+            "/%s/joint_states" % prefix, sensor_msgs.msg.JointState,
+            lambda data, description=joints.stompyleg_leg_descriptions:
+            joints.update_joints(data, description))
+    else:
+        raise Exception
 
     c = actionlib.SimpleActionClient(
-        '/stompyleg/fl/follow_joint_trajectory',
+        '/%s/fl/follow_joint_trajectory' % prefix,
         control_msgs.msg.FollowJointTrajectoryAction)
     c.wait_for_server()
 
@@ -79,29 +89,44 @@ def main():
     if args.start != "":
         start = map(float, args.start.split(','))
     end = map(float, args.end.split(','))
-    path = PathTracer(start=start, end=end, time=args.time, rate=args.rate)
+    pts = [
+        (1.8, 0, 0.5),
+        (1.2, 1., 0.8),
+        (1.4, -1., 0.2),
+    ]
+    pi = 0
     print("Target: %s" % end)
     sleep_time = 1. / args.rate
     print("Waiting for connection...")
     rospy.sleep(1.)
+    state = 0
     while not rospy.is_shutdown():
-        if path.start is None:
+        if state == 0:
             # (read out start position)
             if joints.joints is not None:
-                path.start = leg.forward(
+                start = leg.forward(
                     joints.legs['fl']['hip'],
                     joints.legs['fl']['thigh'],
                     joints.legs['fl']['calf'])
+                path = PathTracer(
+                    start=start, end=pts[pi], time=args.time, rate=args.rate)
                 print("Found starting position: %s" % (path.start, ))
+                print("Move to: %s" % (pts[pi], ))
                 g = path_to_trajectory(path, sleep_time, 'fl', 0.1)
-                print("Publish: %s" % g)
+                #print("Publish: %s" % g)
                 c.send_goal(g)
+                state = 1
         else:  # goal should have been sent
             if c.get_state() == 1:
                 pass
             elif c.get_state() == 3:
                 print("Done moving")
-                break
+                pi += 1
+                state = 0
+                if pi >= len(pts):
+                    pi = 0
+            else:
+                raise Exception("%s" % c.get_state())
         rospy.sleep(sleep_time)
 
 if __name__ == '__main__':
