@@ -1,16 +1,5 @@
 #!/usr/bin/env python
 """
-                start = leg.forward(
-                    joints.legs['fl']['hip'],
-                    joints.legs['fl']['thigh'],
-                    joints.legs['fl']['knee'])
-                path = PathTracer(
-                    start=start, end=pts[pi], time=args.time, rate=args.rate)
-                print("Found starting position: %s" % (path.start, ))
-                print("Move to: %s" % (pts[pi], ))
-                g = path_to_trajectory(path, sleep_time, 'fl', 0.1)
-                #print("Publish: %s" % g)
-                c.send_goal(g)
 """
 
 
@@ -23,15 +12,15 @@ from .. import planners
 
 
 default_distance = 0.01  # meters
-default_dt = 0.01
-default_delay = 0.1
+default_dt = 0.05
+default_delay = 0.01
 
 
 def line(
         leg_name, start, end,
         distance=default_distance, dt=default_dt, delay=default_delay):
     """
-    tolerances are not defined
+    tolerances aren't defined
     """
     pts = planners.trajectory.linear_by_distance(start, end, distance)
     msg = control_msgs.msg.FollowJointTrajectoryGoal()
