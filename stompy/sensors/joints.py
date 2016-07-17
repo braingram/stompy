@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 
-import warnings
+from .. import kinematics
 
-try:
-    import rospy
-    import sensor_msgs.msg
-except ImportError:
-    warnings.warn("Failed to import rospy")
 
 global joints
 joints = None
@@ -41,8 +36,10 @@ def update_joints(data, leg_descriptions=None):
         "/stompyleg/joint_states", sensor_msgs.msg.JointState, update_joints)
     """
     global joints
-    joints = dict(zip(data.name, data.position))
-    # parse
+    if joints is None:
+        joints = {}
+    joints.update(dict(zip(data.name, data.position)))
+    # TODO deal with different headers for different legs
     joints['header'] = data.header
     if leg_descriptions is None:
         return
@@ -53,11 +50,11 @@ def update_joints(data, leg_descriptions=None):
             if joint_key in joints:
                 if leg_name not in legs:
                     legs[leg_name] = {}
+                legs[leg_name]['header'] = data.header
                 legs[leg_name][joint_name] = joints[joint_key]
-
-
-def connect_to_joint_states():
-    rospy.Subscriber(
-        "/stompy/joint_states", sensor_msgs.msg.JointState,
-        lambda data, description=stompy_leg_descriptions:
-        update_joints(data, description))
+        # compute foot positions here
+        if leg_name in legs:
+            leg = legs[leg_name]
+            if 'hip' in leg and 'thigh' in leg and 'knee' in leg:
+                leg['foot'] = kinematics.leg.forward(
+                    leg['hip'], leg['thigh'], leg['knee'])
