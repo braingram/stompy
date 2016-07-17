@@ -3,6 +3,28 @@
 import numpy
 
 
+def linear_by_n(start, end, n):
+    start = numpy.array(start)
+    end = numpy.array(end)
+    return numpy.vstack(
+        [numpy.linspace(s, e, n) for (s, e) in zip(start, end)]
+    ).T
+
+
+def linear_by_distance(start, end, distance):
+    start = numpy.array(start)
+    end = numpy.array(end)
+    n = numpy.ceil(numpy.linalg.norm(end - start) / float(distance))
+    pts = linear_by_n(start, end, n)
+    if numpy.sum(numpy.abs(pts[-1] - end)) > 0.0001:
+        return numpy.vstack((pts, end))
+    return pts
+
+
+def linear_by_rate(start, end, time, rate):
+    return linear_by_n(start, end, time * rate)
+
+
 class PathTracer(object):
     def __init__(self, start=None, end=None, time=None, rate=None):
         self.start = start
