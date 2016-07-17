@@ -26,18 +26,16 @@ import stompy.kinematics.leg as leg
 from stompy.planners.trajectory import PathTracer
 import stompy.sensors.joints as joints
 
-prefix = 'stompy'
-
 
 def path_to_trajectory(
-        path, dt, leg_name, delay=0.5, prefix=prefix):
+        path, dt, leg_name, delay=0.5):
     msg = control_msgs.msg.FollowJointTrajectoryGoal()
     msg.trajectory.joint_names.append(
-        '%s__body_to_%s' % (prefix, leg_name))
+        'stompy__body_to_%s' % (leg_name))
     msg.trajectory.joint_names.append(
-        '%s__%s__hip_to_thigh' % (prefix, leg_name))
+        'stompy__%s__hip_to_thigh' % (leg_name))
     msg.trajectory.joint_names.append(
-        '%s__%s__thigh_to_calf_upper' % (prefix, leg_name))
+        'stompy__%s__thigh_to_calf_upper' % (leg_name))
     # throw out first point
     path.next()
     pt = path.next()
@@ -66,22 +64,14 @@ def main():
     p.add_argument('-r', '--rate', default=10., type=float)
     args = p.parse_args()
 
-    rospy.init_node('%s_trace' % prefix, anonymous=True)
-    if prefix == 'stompy':
-        rospy.Subscriber(
-            "/%s/joint_states" % prefix, sensor_msgs.msg.JointState,
-            lambda data, description=joints.stompy_leg_descriptions:
-            joints.update_joints(data, description))
-    elif prefix == 'stompyleg':
-        rospy.Subscriber(
-            "/%s/joint_states" % prefix, sensor_msgs.msg.JointState,
-            lambda data, description=joints.stompyleg_leg_descriptions:
-            joints.update_joints(data, description))
-    else:
-        raise Exception
+    rospy.init_node('stompy_trace', anonymous=True)
+    rospy.Subscriber(
+        "/stompy/joint_states", sensor_msgs.msg.JointState,
+        lambda data, description=joints.stompy_leg_descriptions:
+        joints.update_joints(data, description))
 
     c = actionlib.SimpleActionClient(
-        '/%s/fl/follow_joint_trajectory' % prefix,
+        '/stompy/fl/follow_joint_trajectory',
         control_msgs.msg.FollowJointTrajectoryAction)
     c.wait_for_server()
 

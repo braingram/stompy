@@ -15,26 +15,22 @@ global legs
 legs = {}
 
 
-def build_description(prefix, leg_name):
+def build_description(leg_name):
     return {
-        'hip': '%s__body_to_%s' % (prefix, leg_name),
-        'thigh': '%s__%s__hip_to_thigh' % (prefix, leg_name),
-        'knee': '%s__%s__thigh_to_calf_upper' % (prefix, leg_name),
-        'shock': '%s__%s__calf_upper_to_calf_lower' % (prefix, leg_name),
+        'hip': 'stompy__body_to_%s' % (leg_name),
+        'thigh': 'stompy__%s__hip_to_thigh' % (leg_name),
+        'knee': 'stompy__%s__thigh_to_calf_upper' % (leg_name),
+        'shock': 'stompy__%s__calf_upper_to_calf_lower' % (leg_name),
     }
 
 
-stompyleg_leg_descriptions = {
-    'fl': build_description('stompyleg', 'fl'),
-}
-
 stompy_leg_descriptions = {
-    'fl': build_description('stompy', 'fl'),
-    'fr': build_description('stompy', 'fr'),
-    'ml': build_description('stompy', 'ml'),
-    'mr': build_description('stompy', 'mr'),
-    'rl': build_description('stompy', 'rl'),
-    'rr': build_description('stompy', 'rr'),
+    'fl': build_description('fl'),
+    'fr': build_description('fr'),
+    'ml': build_description('ml'),
+    'mr': build_description('mr'),
+    'rl': build_description('rl'),
+    'rr': build_description('rr'),
 }
 
 
@@ -60,16 +56,8 @@ def update_joints(data, leg_descriptions=None):
                 legs[leg_name][joint_name] = joints[joint_key]
 
 
-def connect_to_joint_states(prefix='stompy'):
-    if prefix == 'stompy':
-        rospy.Subscriber(
-            "/stompy/joint_states", sensor_msgs.msg.JointState,
-            lambda data, description=stompy_leg_descriptions:
-            update_joints(data, description))
-    elif prefix == 'stompyleg':
-        rospy.Subscriber(
-            "/stompyleg/joint_states", sensor_msgs.msg.JointState,
-            lambda data, description=stompyleg_leg_descriptions:
-            update_joints(data, description))
-    else:
-        raise Exception("Unknown prefix: %s" % prefix)
+def connect_to_joint_states():
+    rospy.Subscriber(
+        "/stompy/joint_states", sensor_msgs.msg.JointState,
+        lambda data, description=stompy_leg_descriptions:
+        update_joints(data, description))

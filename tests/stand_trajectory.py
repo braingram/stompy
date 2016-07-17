@@ -23,16 +23,16 @@ import stompy.sensors.joints as joints
 
 
 def path_to_trajectory(
-        path, leg_name, start_time, prefix='stompy'):
+        path, leg_name, start_time):
     #msg = trajectory_msgs.msg.JointTrajectory()
     #msg = goal.action_goal.goal
     msg = control_msgs.msg.FollowJointTrajectoryGoal()
     msg.trajectory.joint_names.append(
-        '%s__body_to_%s' % (prefix, leg_name))
+        'stompy__body_to_%s' % (leg_name, ))
     msg.trajectory.joint_names.append(
-        '%s__%s__hip_to_thigh' % (prefix, leg_name))
+        'stompy__%s__hip_to_thigh' % (leg_name, ))
     msg.trajectory.joint_names.append(
-        '%s__%s__thigh_to_calf_upper' % (prefix, leg_name))
+        'stompy__%s__thigh_to_calf_upper' % (leg_name, ))
     # throw out first point, as the start is the current position here
     path.next()
     pt = path.next()
@@ -52,9 +52,9 @@ def path_to_trajectory(
     msg.trajectory.header.stamp = start_time
     #msg.header.stamp = rospy.Time.now() + rospy.Duration(delay)
     for n in (
-            '%s__body_to_%s' % (prefix, leg_name),
-            '%s__%s__hip_to_thigh' % (prefix, leg_name),
-            '%s__%s__thigh_to_calf_upper' % (prefix, leg_name)):
+            'stompy__body_to_%s' % (leg_name, ),
+            'stompy__%s__hip_to_thigh' % (leg_name, ),
+            'stompy__%s__thigh_to_calf_upper' % (leg_name, )):
         t = control_msgs.msg.JointTolerance()
         t.name = n
         t.position = 0.1
