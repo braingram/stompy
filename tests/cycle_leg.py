@@ -107,7 +107,7 @@ def main():
                 start = leg.forward(
                     joints.legs['fl']['hip'],
                     joints.legs['fl']['thigh'],
-                    joints.legs['fl']['calf'])
+                    joints.legs['fl']['knee'])
                 path = PathTracer(
                     start=start, end=pts[pi], time=args.time, rate=args.rate)
                 print("Found starting position: %s" % (path.start, ))

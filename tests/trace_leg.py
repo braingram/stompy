@@ -60,7 +60,7 @@ def main():
                 path.start = leg.forward(
                     joints.legs['fl']['hip'],
                     joints.legs['fl']['thigh'],
-                    joints.legs['fl']['calf'])
+                    joints.legs['fl']['knee'])
                 print("Found starting position: %s" % (path.start, ))
         else:
             # compute vector from start to end

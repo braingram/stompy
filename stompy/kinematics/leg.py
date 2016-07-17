@@ -33,9 +33,9 @@ htt = [0.279, 0]  # hip to thigh
 ttk = [0.143, 1.364]  # thigh to knee
 ktl = [0.0016, -0.8185]  # knee to upper linkage
 ltc = [0.203, 0]  # upper linkage to calf lower
-ctc = [0.203, -0.847]  # simulated calf links with prismatic joint
+ktc = [0.203, -0.847]  # simulated calf links with prismatic joint
 cta = [0.02, -0.968]  # calf lower to ankle
-ct = [ctc[0] + cta[0], ctc[1] + cta[1]]
+kt = [ktc[0] + cta[0], ktc[1] + cta[1]]
 
 hip_limits = (-0.70616022, 0.70616022)
 hip_link = 0.279  # coxa
@@ -47,10 +47,10 @@ thigh_limits = (0., 1.5708)
 thigh_rest_angle = numpy.arctan2(ttk[1], ttk[0])
 
 #calf_link = 1.829
-calf_link = numpy.linalg.norm(ct)
+knee_link = numpy.linalg.norm(kt)
 knee_limits = (-2.3736, 0.)
 #calf_rest_angle = -numpy.radians(83)
-knee_rest_angle = numpy.arctan2(ct[1], ct[0])
+knee_rest_angle = numpy.arctan2(kt[1], kt[0])
 
 
 def in_limits(angle, limits):
@@ -70,13 +70,13 @@ def inverse(x, y, z):
     L = numpy.sqrt(z ** 2. + (l - hip_link) ** 2.)
     a1 = numpy.arccos(z / L)
     a2 = numpy.arccos(
-        (calf_link ** 2. - thigh_link ** 2. - L ** 2.) /
+        (knee_link ** 2. - thigh_link ** 2. - L ** 2.) /
         (-2 * thigh_link * L))
     alpha = (a1 + a2)
 
     beta = numpy.arccos(
-        (L ** 2 - calf_link ** 2 - thigh_link ** 2) /
-        (-2 * calf_link * thigh_link))
+        (L ** 2 - knee_link ** 2 - thigh_link ** 2) /
+        (-2 * knee_link * thigh_link))
     #print 'point:', x, y, z
     #print 'a1', a1, numpy.degrees(a1)
     #print 'a2', a2, numpy.degrees(a2)
@@ -87,16 +87,16 @@ def inverse(x, y, z):
     thigh_angle = alpha - numpy.pi / 2.
     thigh_angle = thigh_rest_angle - thigh_angle
     base_beta = numpy.pi - thigh_rest_angle + knee_rest_angle
-    calf_angle = base_beta - beta
+    knee_angle = base_beta - beta
 
-    return hip_angle, thigh_angle, calf_angle
+    return hip_angle, thigh_angle, knee_angle
 
 
-def forward(hip_angle, thigh_angle, calf_angle):
+def forward(hip_angle, thigh_angle, knee_angle):
     x = hip_link
     y = 0
     z = 0
-    #print "angles:", hip_angle, thigh_angle, calf_angle
+    #print "angles:", hip_angle, thigh_angle, knee_angle
     #x += hip_link * numpy.cos(hip_angle)
     #y += hip_link * numpy.sin(hip_angle)
 
@@ -105,9 +105,9 @@ def forward(hip_angle, thigh_angle, calf_angle):
     x += thigh_link * numpy.cos(a)
     z += thigh_link * numpy.sin(a)
 
-    a = knee_rest_angle - calf_angle - thigh_angle
-    x += calf_link * numpy.cos(a)
-    z += calf_link * numpy.sin(a)
+    a = knee_rest_angle - knee_angle - thigh_angle
+    x += knee_link * numpy.cos(a)
+    z += knee_link * numpy.sin(a)
 
     # rotate about hip angle
     y = x * numpy.sin(hip_angle)
@@ -118,7 +118,7 @@ def forward(hip_angle, thigh_angle, calf_angle):
 def compute_range_of_movements():
     hl = hip_limits[0] + 0.01, hip_limits[1] - 0.01, 50
     tl = thigh_limits[0] + 0.01, thigh_limits[1] - 0.01, 10
-    kl = calf_limits[0] + 0.01, calf_limits[1] - 0.01, 10
+    kl = knee_limits[0] + 0.01, knee_limits[1] - 0.01, 10
     pts = []
     for h in numpy.linspace(*hl):
         for t in numpy.linspace(*tl):
@@ -136,7 +136,7 @@ def compute_range_of_movements():
 def compute_error():
     hl = hip_limits[0] + 0.01, hip_limits[1] - 0.01, 10
     tl = thigh_limits[0] + 0.01, thigh_limits[1] - 0.01, 10
-    kl = calf_limits[0] + 0.01, calf_limits[1] - 0.01, 10
+    kl = knee_limits[0] + 0.01, knee_limits[1] - 0.01, 10
     err = []
     for h in numpy.linspace(*hl):
         for t in numpy.linspace(*tl):

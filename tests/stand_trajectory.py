@@ -69,7 +69,7 @@ def main():
     p.add_argument('-z', '--sz', default=0.5, type=float)
     p.add_argument('-Z', '--ez', default=1.2, type=float)
     p.add_argument('-x', '--x', default=1.5, type=float)
-    p.add_argument('-t', '--time', default=5., type=float)
+    p.add_argument('-t', '--time', default=1., type=float)
     p.add_argument('-r', '--rate', default=10., type=float)
     args = p.parse_args()
 
@@ -136,7 +136,7 @@ def main():
                     foot = leg.forward(
                         joints.legs[leg_name]['hip'],
                         joints.legs[leg_name]['thigh'],
-                        joints.legs[leg_name]['calf'])
+                        joints.legs[leg_name]['knee'])
                     # setup path for foot
                     foot_paths[leg_name].start = foot
                     ep = [foot[0], 0., foot[2]]
@@ -155,7 +155,7 @@ def main():
                         numpy.array(ep) -
                         numpy.array(foot_paths[leg_name].start))
                     # limit speed to 0.01 m/s
-                    t = max(1., distance / 0.1)
+                    t = max(1., distance / 0.75)
                     foot_paths[leg_name].time = t
                     print(
                         "Preparing %s foot move from %s to %s" %
@@ -227,7 +227,7 @@ def main():
                 foot = leg.forward(
                     joints.legs[leg_name]['hip'],
                     joints.legs[leg_name]['thigh'],
-                    joints.legs[leg_name]['calf'])
+                    joints.legs[leg_name]['knee'])
                 # setup path for foot
                 foot_paths[leg_name].start = foot
                 ep = list(body.leg_to_body(leg_name, *foot))
@@ -270,7 +270,7 @@ def main():
                 foot = leg.forward(
                     joints.legs[leg_name]['hip'],
                     joints.legs[leg_name]['thigh'],
-                    joints.legs[leg_name]['calf'])
+                    joints.legs[leg_name]['knee'])
                 # setup path for foot
                 foot_paths[leg_name].start = foot
                 ep = [foot[0], foot[1], target]
@@ -288,7 +288,7 @@ def main():
                     numpy.array(ep) -
                     numpy.array(foot_paths[leg_name].start))
                 # limit speed to 0.01 m/s
-                t = max(1., distance / 0.1)
+                t = max(1., distance / 0.75)
                 foot_paths[leg_name].time = t
                 print(
                     "Preparing %s foot move from %s to %s" %

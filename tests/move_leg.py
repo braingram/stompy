@@ -72,8 +72,8 @@ def main():
             print("Hit thigh limit")
             at_limit = True
         if (
-                knee_angle < leg.calf_limits[0] or
-                knee_angle > leg.calf_limits[1]):
+                knee_angle < leg.knee_limits[0] or
+                knee_angle > leg.knee_limits[1]):
             print("Hit knee limit")
             at_limit = True
         if at_limit:

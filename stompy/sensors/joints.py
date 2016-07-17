@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+import warnings
+
+try:
+    import rospy
+    import sensor_msgs.msg
+except ImportError:
+    warnings.warn("Failed to import rospy")
+
 global joints
 joints = None
 
@@ -11,7 +19,7 @@ def build_description(prefix, leg_name):
     return {
         'hip': '%s__body_to_%s' % (prefix, leg_name),
         'thigh': '%s__%s__hip_to_thigh' % (prefix, leg_name),
-        'calf': '%s__%s__thigh_to_calf_upper' % (prefix, leg_name),
+        'knee': '%s__%s__thigh_to_calf_upper' % (prefix, leg_name),
         'shock': '%s__%s__calf_upper_to_calf_lower' % (prefix, leg_name),
     }
 
@@ -50,3 +58,18 @@ def update_joints(data, leg_descriptions=None):
                 if leg_name not in legs:
                     legs[leg_name] = {}
                 legs[leg_name][joint_name] = joints[joint_key]
+
+
+def connect_to_joint_states(prefix='stompy'):
+    if prefix == 'stompy':
+        rospy.Subscriber(
+            "/stompy/joint_states", sensor_msgs.msg.JointState,
+            lambda data, description=stompy_leg_descriptions:
+            update_joints(data, description))
+    elif prefix == 'stompyleg':
+        rospy.Subscriber(
+            "/stompyleg/joint_states", sensor_msgs.msg.JointState,
+            lambda data, description=stompyleg_leg_descriptions:
+            update_joints(data, description))
+    else:
+        raise Exception("Unknown prefix: %s" % prefix)

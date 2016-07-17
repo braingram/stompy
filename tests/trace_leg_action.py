@@ -91,7 +91,7 @@ def main():
                 path.start = leg.forward(
                     joints.legs['fl']['hip'],
                     joints.legs['fl']['thigh'],
-                    joints.legs['fl']['calf'])
+                    joints.legs['fl']['knee'])
                 print("Found starting position: %s" % (path.start, ))
                 g = path_to_trajectory(path, sleep_time, 'fl', 0.1)
                 print("Publish: %s" % g)

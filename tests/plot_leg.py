@@ -25,8 +25,8 @@ plot = True
 links = numpy.array([htt, ttk, ctc, cta])
 
 #calf_links = numpy.array([ktl, ltc, cta]).sum(0)
-calf_links = numpy.array([ctc, cta]).sum(0)
-simplified_links = numpy.array([htt, ttk, calf_links])
+knee_links = numpy.array([ktc, cta]).sum(0)
+simplified_links = numpy.array([htt, ttk, knee_links])
 
 
 if plot:

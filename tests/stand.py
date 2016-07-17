@@ -59,7 +59,7 @@ def main():
                     foot = leg.forward(
                         joints.legs[leg_name]['hip'],
                         joints.legs[leg_name]['thigh'],
-                        joints.legs[leg_name]['calf'])
+                        joints.legs[leg_name]['knee'])
                     # setup path for foot
                     foot_paths[leg_name].start = foot
                     ep = [foot[0], 0., foot[2]]
@@ -189,7 +189,7 @@ def main():
                     foot = leg.forward(
                         joints.legs[leg_name]['hip'],
                         joints.legs[leg_name]['thigh'],
-                        joints.legs[leg_name]['calf'])
+                        joints.legs[leg_name]['knee'])
                     # compute in body coordinates
                     p = list(body.leg_to_body(leg_name, *foot))
                     p[target_axis] += target
@@ -212,7 +212,7 @@ def main():
                     foot = leg.forward(
                         joints.legs[leg_name]['hip'],
                         joints.legs[leg_name]['thigh'],
-                        joints.legs[leg_name]['calf'])
+                        joints.legs[leg_name]['knee'])
                     foot_paths[leg_name].start = foot
                     if leg_name == target_axis:
                         ep = [foot[0], foot[1], target]
