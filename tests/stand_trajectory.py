@@ -20,6 +20,7 @@ import stompy.kinematics.leg as leg
 import stompy.kinematics.body as body
 from stompy.planners.trajectory import PathTracer
 import stompy.sensors.joints as joints
+from stompy import transforms
 
 
 def path_to_trajectory(
@@ -96,16 +97,18 @@ def main():
     leg_publishers.values()[0].wait_for_server()
 
     state = 0  # awaiting joints
+    tx = 0.25
+    ty = 0.25
+    tz = 0.25
+    ax = 15
+    ay = 15
+    az = 15
     moves = [
+        # stand
         (2, args.sz, 0),
         (0, args.x, 0),
         (2, args.ez, 0),
-        (0, 0.25, 3),
-        (0, -0.5, 3),
-        (0, 0.25, 3),
-        (1, 0.25, 3),
-        (1, -0.5, 3),
-        (1, 0.25, 3),
+        # leg lifts
         (0, args.sz, 4),
         (0, args.ez, 4),
         (1, args.sz, 4),
@@ -118,6 +121,26 @@ def main():
         (4, args.ez, 4),
         (5, args.sz, 4),
         (5, args.ez, 4),
+        # body translations
+        (0, tx, 3),
+        (0, -tx*2, 3),
+        (0, tx, 3),
+        (1, ty, 3),
+        (1, -ty*2, 3),
+        (1, ty, 3),
+        (2, tz, 3),
+        (2, -tz*2, 3),
+        (2, tz, 3),
+        # body rotations
+        (0, ax, 5),
+        (0, -ax*2, 5),
+        (0, ax, 5),
+        (1, ay, 5),
+        (1, -ay*2, 5),
+        (1, ay, 5),
+        (2, az, 5),
+        (2, -az*2, 5),
+        (2, az, 5),
     ]
     sleep_time = 1. / args.rate
     print("Waiting for connection...")
@@ -253,7 +276,7 @@ def main():
                     "Preparing %s foot move from %s to %s" %
                     (leg_name, foot, ep))
             state = 1
-        elif state == 4:  # body shift
+        elif state == 4:
             target_axis, target, new_state = moves.pop(0)
             if new_state != state:
                 state = new_state
@@ -294,7 +317,48 @@ def main():
                     "Preparing %s foot move from %s to %s" %
                     (leg_name, foot, ep))
             state = 1
-
+        elif state == 5:  # body rotations
+            target_axis, target, new_state = moves.pop(0)
+            if new_state != state:
+                state = new_state
+                moves.insert(0, (target_axis, target, new_state))
+                continue
+            angles = [0, 0, 0]
+            angles[target_axis] = target
+            rm = transforms.rotation_matrix_3d(
+                angles[0], angles[1], angles[2], degrees=True)
+            for leg_name in joints.legs:
+                # compute foot position
+                foot = leg.forward(
+                    joints.legs[leg_name]['hip'],
+                    joints.legs[leg_name]['thigh'],
+                    joints.legs[leg_name]['knee'])
+                # setup path for foot
+                foot_paths[leg_name].start = foot
+                ep = list(body.leg_to_body(leg_name, *foot))
+                # TODO make these not 'straight' lines
+                ep = transforms.transform_3d(ep[0], ep[1], ep[2], rm)
+                ep = body.body_to_leg(leg_name, *ep)
+                h, t, k = leg.inverse(*ep)
+                if not any(
+                        (
+                            leg.in_limits(h, leg.hip_limits),
+                            leg.in_limits(t, leg.thigh_limits),
+                            leg.in_limits(k, leg.knee_limits),
+                        )):
+                    raise Exception()
+                foot_paths[leg_name].end = ep
+                # compute distance, set time
+                #distance = numpy.linalg.norm(
+                #    numpy.array(ep) -
+                #    numpy.array(foot_paths[leg_name].start))
+                ## limit speed to 0.01 m/s
+                #t = max(1., distance / 0.1)
+                foot_paths[leg_name].time = args.time
+                print(
+                    "Preparing %s foot move from %s to %s" %
+                    (leg_name, foot, ep))
+            state = 1
         rospy.sleep(sleep_time)
 
 

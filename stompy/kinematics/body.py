@@ -9,38 +9,28 @@ left is y+, right is y-
 import numpy
 import pylab
 
-
-def translation_matrix(x, y):
-    return numpy.matrix(
-        [[1., 0., x], [0., 1., y], [0., 0., 1.]])
-
-
-def rotation_matrix(a, degrees=False):
-    if degrees:
-        a = numpy.radians(a)
-    sa = numpy.sin(a)
-    ca = numpy.cos(a)
-    return numpy.matrix(
-        [[ca, -sa, 0.], [sa, ca, 0.], [0., 0., 1.]])
-
-
-def affine_matrix(x, y, a, degrees=False):
-    #return rotation_matrix(a, degrees) * translation_matrix(x, y)
-    return translation_matrix(x, y) * rotation_matrix(a, degrees)
-
-
-def transform(x, y, m):
-    r = m * [[x], [y], [1.]]
-    return float(r[0]), float(r[1])
+from .. import transforms
 
 
 leg_to_body_transforms = {
-    'fl': affine_matrix(2.235, 0.584, 55, degrees=True),
-    'fr': affine_matrix(2.235, -0.584, -55, degrees=True),
-    'ml': affine_matrix(0., 0.686, 90, degrees=True),
-    'mr': affine_matrix(0., -0.686, -90, degrees=True),
-    'rl': affine_matrix(-2.235, 0.584, 125, degrees=True),
-    'rr': affine_matrix(-2.235, -0.584, -125, degrees=True),
+    'fl': transforms.affine_matrix_3d(
+        2.235, 0.584, 0, 0, 0, 55, degrees=True),
+    'fr': transforms.affine_matrix_3d(
+        2.235, -0.584, 0, 0, 0, -55, degrees=True),
+    'ml': transforms.affine_matrix_3d(
+        0., 0.686, 0, 0, 0, 90, degrees=True),
+    'mr': transforms.affine_matrix_3d(
+        0., -0.686, 0, 0, 0, -90, degrees=True),
+    'rl': transforms.affine_matrix_3d(
+        -2.235, 0.584, 0, 0, 0, 125, degrees=True),
+    'rr': transforms.affine_matrix_3d(
+        -2.235, -0.584, 0, 0, 0, -125, degrees=True),
+    #'fl': transforms.affine_matrix_2d(2.235, 0.584, 55, degrees=True),
+    #'fr': transforms.affine_matrix_2d(2.235, -0.584, -55, degrees=True),
+    #'ml': transforms.affine_matrix_2d(0., 0.686, 90, degrees=True),
+    #'mr': transforms.affine_matrix_2d(0., -0.686, -90, degrees=True),
+    #'rl': transforms.affine_matrix_2d(-2.235, 0.584, 125, degrees=True),
+    #'rr': transforms.affine_matrix_2d(-2.235, -0.584, -125, degrees=True),
 }
 
 
@@ -50,13 +40,13 @@ body_to_leg_transforms = {
 
 
 def leg_to_body(leg, x, y, z):
-    r = transform(x, y, leg_to_body_transforms[leg])
-    return r[0], r[1], z
+    r = transforms.transform_3d(x, y, z, leg_to_body_transforms[leg])
+    return r[0], r[1], r[2]
 
 
 def body_to_leg(leg, x, y, z):
-    r = transform(x, y, body_to_leg_transforms[leg])
-    return r[0], r[1], z
+    r = transforms.transform_3d(x, y, z, body_to_leg_transforms[leg])
+    return r[0], r[1], r[2]
 
 
 def plot_legs():
