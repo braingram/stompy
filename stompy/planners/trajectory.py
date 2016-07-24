@@ -2,6 +2,8 @@
 
 import numpy
 
+from .. import transforms
+
 
 def linear_by_n(start, end, n):
     start = numpy.array(start)
@@ -23,6 +25,17 @@ def linear_by_distance(start, end, distance):
 
 def linear_by_rate(start, end, time, rate):
     return linear_by_n(start, end, time * rate)
+
+
+def follow_transform(start, transform, n_steps):
+    """returns n_steps + 1 points"""
+    pts = []
+    pt = start
+    pts.append(pt)
+    for i in xrange(n_steps):
+        pt = transforms.transform_3d(transform, *pt)
+        pts.append(pt)
+    return pts
 
 
 class PathTracer(object):

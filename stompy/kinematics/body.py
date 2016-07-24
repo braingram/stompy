@@ -13,24 +13,24 @@ from .. import transforms
 
 
 leg_to_body_transforms = {
-    'fl': transforms.affine_matrix_3d(
+    'fl': transforms.affine_3d(
         2.235, 0.584, 0, 0, 0, 55, degrees=True),
-    'fr': transforms.affine_matrix_3d(
+    'fr': transforms.affine_3d(
         2.235, -0.584, 0, 0, 0, -55, degrees=True),
-    'ml': transforms.affine_matrix_3d(
+    'ml': transforms.affine_3d(
         0., 0.686, 0, 0, 0, 90, degrees=True),
-    'mr': transforms.affine_matrix_3d(
+    'mr': transforms.affine_3d(
         0., -0.686, 0, 0, 0, -90, degrees=True),
-    'rl': transforms.affine_matrix_3d(
+    'rl': transforms.affine_3d(
         -2.235, 0.584, 0, 0, 0, 125, degrees=True),
-    'rr': transforms.affine_matrix_3d(
+    'rr': transforms.affine_3d(
         -2.235, -0.584, 0, 0, 0, -125, degrees=True),
-    #'fl': transforms.affine_matrix_2d(2.235, 0.584, 55, degrees=True),
-    #'fr': transforms.affine_matrix_2d(2.235, -0.584, -55, degrees=True),
-    #'ml': transforms.affine_matrix_2d(0., 0.686, 90, degrees=True),
-    #'mr': transforms.affine_matrix_2d(0., -0.686, -90, degrees=True),
-    #'rl': transforms.affine_matrix_2d(-2.235, 0.584, 125, degrees=True),
-    #'rr': transforms.affine_matrix_2d(-2.235, -0.584, -125, degrees=True),
+    #'fl': transforms.affine_2d(2.235, 0.584, 55, degrees=True),
+    #'fr': transforms.affine_2d(2.235, -0.584, -55, degrees=True),
+    #'ml': transforms.affine_2d(0., 0.686, 90, degrees=True),
+    #'mr': transforms.affine_2d(0., -0.686, -90, degrees=True),
+    #'rl': transforms.affine_2d(-2.235, 0.584, 125, degrees=True),
+    #'rr': transforms.affine_2d(-2.235, -0.584, -125, degrees=True),
 }
 
 
@@ -40,12 +40,12 @@ body_to_leg_transforms = {
 
 
 def leg_to_body(leg, x, y, z):
-    r = transforms.transform_3d(x, y, z, leg_to_body_transforms[leg])
+    r = transforms.transform_3d(leg_to_body_transforms[leg], x, y, z)
     return r[0], r[1], r[2]
 
 
 def body_to_leg(leg, x, y, z):
-    r = transforms.transform_3d(x, y, z, body_to_leg_transforms[leg])
+    r = transforms.transform_3d(body_to_leg_transforms[leg], x, y, z)
     return r[0], r[1], r[2]
 
 
