@@ -88,3 +88,19 @@ def affine_3d(x, y, z, xa, ya, za, degrees=False):
 def transform_3d(m, x, y, z):
     r = m * [[x], [y], [z], [1.]]
     return float(r[0]), float(r[1]), float(r[2])
+
+
+def homogeneous_3d(pts):
+    """Expects input of [npts, dims]"""
+    return numpy.hstack((
+        pts, numpy.ones((pts.shape[0], 1)))).T
+
+
+def nonhomogeneous_3d(pts):
+    """Expects input of [dims, npts]"""
+    return numpy.array(pts[:3].T)
+
+
+def transform_3d_array(m, pts):
+    r = m * homogeneous_3d(pts)
+    return nonhomogeneous_3d(r)

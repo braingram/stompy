@@ -44,9 +44,17 @@ def leg_to_body(leg, x, y, z):
     return r[0], r[1], r[2]
 
 
+def leg_to_body_array(leg, pts):
+    return transforms.transform_3d_array(leg_to_body_transforms[leg], pts)
+
+
 def body_to_leg(leg, x, y, z):
     r = transforms.transform_3d(body_to_leg_transforms[leg], x, y, z)
     return r[0], r[1], r[2]
+
+
+def body_to_leg_array(leg, pts):
+    return transforms.transform_3d_array(body_to_leg_transforms[leg], pts)
 
 
 def plot_legs():

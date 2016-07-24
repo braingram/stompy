@@ -5,8 +5,8 @@ import actionlib
 
 import control_msgs.msg
 
+from .. import info
 
-default_legs = ['fl', 'fr', 'ml', 'mr', 'rl', 'rr']
 
 global publishers
 publishers = None
@@ -14,7 +14,7 @@ publishers = None
 
 def connect_to_leg_publishers(legs=None):
     if legs is None:
-        legs = default_legs
+        legs = info.legs
     global publishers
     publishers = {}
     for leg_name in legs:

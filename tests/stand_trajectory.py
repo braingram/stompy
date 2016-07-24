@@ -68,7 +68,7 @@ def path_to_trajectory(
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('-z', '--sz', default=0.5, type=float)
-    p.add_argument('-Z', '--ez', default=1.2, type=float)
+    p.add_argument('-Z', '--ez', default=0.8, type=float)
     p.add_argument('-x', '--x', default=1.5, type=float)
     p.add_argument('-t', '--time', default=1., type=float)
     p.add_argument('-r', '--rate', default=10., type=float)
@@ -100,37 +100,37 @@ def main():
     tx = 0.25
     ty = 0.25
     tz = 0.25
-    ax = 15
-    ay = 15
-    az = 15
+    ax = 10
+    ay = 10
+    az = 10
     moves = [
         # stand
         (2, args.sz, 0),
         (0, args.x, 0),
         (2, args.ez, 0),
         # leg lifts
-        (0, args.sz, 4),
-        (0, args.ez, 4),
-        (1, args.sz, 4),
-        (1, args.ez, 4),
-        (2, args.sz, 4),
-        (2, args.ez, 4),
-        (3, args.sz, 4),
-        (3, args.ez, 4),
-        (4, args.sz, 4),
-        (4, args.ez, 4),
-        (5, args.sz, 4),
-        (5, args.ez, 4),
+        #(0, args.sz, 4),
+        #(0, args.ez, 4),
+        #(1, args.sz, 4),
+        #(1, args.ez, 4),
+        #(2, args.sz, 4),
+        #(2, args.ez, 4),
+        #(3, args.sz, 4),
+        #(3, args.ez, 4),
+        #(4, args.sz, 4),
+        #(4, args.ez, 4),
+        #(5, args.sz, 4),
+        #(5, args.ez, 4),
         # body translations
-        (0, tx, 3),
-        (0, -tx*2, 3),
-        (0, tx, 3),
-        (1, ty, 3),
-        (1, -ty*2, 3),
-        (1, ty, 3),
-        (2, tz, 3),
-        (2, -tz*2, 3),
-        (2, tz, 3),
+        #(0, tx, 3),
+        #(0, -tx*2, 3),
+        #(0, tx, 3),
+        #(1, ty, 3),
+        #(1, -ty*2, 3),
+        #(1, ty, 3),
+        #(2, tz, 3),
+        #(2, -tz*2, 3),
+        #(2, tz, 3),
         # body rotations
         (0, ax, 5),
         (0, -ax*2, 5),
@@ -276,7 +276,7 @@ def main():
                     "Preparing %s foot move from %s to %s" %
                     (leg_name, foot, ep))
             state = 1
-        elif state == 4:
+        elif state == 4:  # leg lifts
             target_axis, target, new_state = moves.pop(0)
             if new_state != state:
                 state = new_state
@@ -325,7 +325,7 @@ def main():
                 continue
             angles = [0, 0, 0]
             angles[target_axis] = target
-            rm = transforms.rotation_matrix_3d(
+            rm = transforms.rotation_3d(
                 angles[0], angles[1], angles[2], degrees=True)
             for leg_name in joints.legs:
                 # compute foot position
@@ -337,7 +337,7 @@ def main():
                 foot_paths[leg_name].start = foot
                 ep = list(body.leg_to_body(leg_name, *foot))
                 # TODO make these not 'straight' lines
-                ep = transforms.transform_3d(ep[0], ep[1], ep[2], rm)
+                ep = transforms.transform_3d(rm, *ep)
                 ep = body.body_to_leg(leg_name, *ep)
                 h, t, k = leg.inverse(*ep)
                 if not any(

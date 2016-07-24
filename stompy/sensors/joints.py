@@ -15,7 +15,7 @@ def build_description(leg_name):
         'hip': 'stompy__body_to_%s' % (leg_name),
         'thigh': 'stompy__%s__hip_to_thigh' % (leg_name),
         'knee': 'stompy__%s__thigh_to_calf_upper' % (leg_name),
-        'shock': 'stompy__%s__calf_upper_to_calf_lower' % (leg_name),
+        'calf': 'stompy__%s__calf_upper_to_calf_lower' % (leg_name),
     }
 
 
@@ -58,3 +58,4 @@ def update_joints(data, leg_descriptions=None):
             if 'hip' in leg and 'thigh' in leg and 'knee' in leg:
                 leg['foot'] = kinematics.leg.forward(
                     leg['hip'], leg['thigh'], leg['knee'])
+        # TODO compute leg loads here
