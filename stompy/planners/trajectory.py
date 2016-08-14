@@ -83,3 +83,12 @@ class DirectionTracer(object):
     def next(self):
         self.start += self.delta
         return self.start
+
+
+class Trajectory(object):
+    def __init__(self, points, times):
+        pass
+
+    def update(self, time):
+        # update tracking current trajectory
+        pass

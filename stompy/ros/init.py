@@ -2,6 +2,7 @@
 
 import rospy
 
+from . import clock
 from . import joints
 from . import legs
 
@@ -12,3 +13,4 @@ def init(name=None):
     rospy.init_node(name, anonymous=True)
     joints.connect_to_joint_states()
     legs.connect_to_leg_publishers()
+    clock.connect()

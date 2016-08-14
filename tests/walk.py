@@ -16,7 +16,7 @@ def stand(ez=1.2):
     print("Standing")
     for leg in stompy.info.legs:
         # move down
-        ft = stompy.sensors.joints.legs[leg]['foot']
+        ft = stompy.sensors.legs.legs[leg]['foot']
         end = (ft[0], ft[1], ez)
         msg = stompy.ros.trajectories.line(leg, ft, end)
         stompy.ros.legs.publishers[leg].send_goal(msg)
@@ -41,7 +41,7 @@ def wait(legs=None):
     print("...done")
 
 
-def generate_leg_cycles():
+def generate_leg_cycles_straight():
     cycles = {}
     cycles['fl'] = stompy.kinematics.body.body_to_leg_array(
         'fl', stompy.gaits.wave.generate_cycle(
@@ -64,9 +64,35 @@ def generate_leg_cycles():
     return cycles
 
 
+def generate_leg_cycles(cx, cy, phi=1.0, **kwargs):
+    cycles = {}
+    ckwargs = {'dt': dt, 't': 6.}
+    ckwargs.update(kwargs)
+    phases = [0., 1/3., 2/3., 2/3., 1/3.,  0.]
+    cycles['fl'] = stompy.kinematics.body.body_to_leg_array(
+        'fl', stompy.gaits.wave.generate(
+            cx, cy, 3., 2.25, phi, phase=phases.pop(0), **ckwargs))
+    cycles['ml'] = stompy.kinematics.body.body_to_leg_array(
+        'ml', stompy.gaits.wave.generate(
+            cx, cy, 0, 2.75, phi, phase=phases.pop(0), **ckwargs))
+    cycles['rl'] = stompy.kinematics.body.body_to_leg_array(
+        'rl', stompy.gaits.wave.generate(
+            cx, cy, -3., 2.25, phi, phase=phases.pop(0), **ckwargs))
+    cycles['fr'] = stompy.kinematics.body.body_to_leg_array(
+        'fr', stompy.gaits.wave.generate(
+            cx, cy, 3., -2.25, phi, phase=phases.pop(0), **ckwargs))
+    cycles['mr'] = stompy.kinematics.body.body_to_leg_array(
+        'mr', stompy.gaits.wave.generate(
+            cx, cy, 0., -2.75, phi, phase=phases.pop(0), **ckwargs))
+    cycles['rr'] = stompy.kinematics.body.body_to_leg_array(
+        'rr', stompy.gaits.wave.generate(
+            cx, cy, -3., -2.25, phi, phase=phases.pop(0), **ckwargs))
+    return cycles
+
+
 def position_legs(cycles):
     for leg in cycles:
-        ft = stompy.sensors.joints.legs[leg]['foot']
+        ft = stompy.sensors.legs.legs[leg]['foot']
         c0 = cycles[leg][0]
         end = (c0[0], c0[1], ft[2])
         print("%s, %s, %s" % (leg, ft, end))
@@ -76,7 +102,7 @@ def position_legs(cycles):
 
 def lift_legs(cycles):
     for leg in cycles:
-        ft = stompy.sensors.joints.legs[leg]['foot']
+        ft = stompy.sensors.legs.legs[leg]['foot']
         end = cycles[leg][0]
         print("%s, %s, %s" % (leg, ft, end))
         msg = stompy.ros.trajectories.line(leg, ft, end, delay=0.1)
@@ -97,7 +123,8 @@ def main():
         rospy.sleep(0.05)
     # wait for everything to connect
     rospy.sleep(1.)
-    cycles = generate_leg_cycles()
+    #cycles = generate_leg_cycles(0, 1E3)
+    cycles = generate_leg_cycles(0, 1E3)
 #    stand()
 #    wait()
     position_legs(cycles)
@@ -105,9 +132,10 @@ def main():
     stand()
     wait()
     lift_legs(cycles)
+    wait()
     while not rospy.is_shutdown():
-        wait()
         send_cycles(cycles)
+        rospy.sleep(6.)
 
 
 if __name__ == '__main__':
