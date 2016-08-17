@@ -66,7 +66,7 @@ def generate_leg_cycles_straight():
 
 def generate_leg_cycles(cx, cy, phi=1.0, **kwargs):
     cycles = {}
-    ckwargs = {'dt': dt, 't': 6.}
+    ckwargs = {'dt': dt, 't': 10.}
     ckwargs.update(kwargs)
     phases = [0., 1/3., 2/3., 2/3., 1/3.,  0.]
     cycles['fl'] = stompy.kinematics.body.body_to_leg_array(
@@ -124,7 +124,7 @@ def main():
     # wait for everything to connect
     rospy.sleep(1.)
     #cycles = generate_leg_cycles(0, 1E3)
-    cycles = generate_leg_cycles(0, 1E3)
+    cycles = generate_leg_cycles(1.E3, 0.)
 #    stand()
 #    wait()
     position_legs(cycles)
@@ -135,7 +135,7 @@ def main():
     wait()
     while not rospy.is_shutdown():
         send_cycles(cycles)
-        rospy.sleep(6.)
+        rospy.sleep(10.)
 
 
 if __name__ == '__main__':

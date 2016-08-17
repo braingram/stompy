@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+"""
+Lower (while tracing xy)
+    wait until done [or by load]
+    compute stance (trace xy at current z)
+Stance (trace xy at z)
+    wait until done
+    compute raise
+Raise (while tracing xy)
+    wait until done
+    compute swing
+Swing (trace xy at z)
+    wait until done
+    compute lower
+
+
+XY can change at any time, when changed the current action
+will need to be recomputed and a modified swing will be needed
+to recenter the foot path (so fx, fy is optimal)
+
+Fancy things like load balancing and terrain adaptation are
+ignored for now.
+"""
 
 import numpy
 
