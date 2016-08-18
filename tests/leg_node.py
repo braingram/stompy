@@ -66,18 +66,56 @@ import stompy.ros
 global last_time
 last_time = 0
 
+global mode
+mode = 0
+
 
 def new_joystick_state(data):
     print data
+    global mode
+    # use axes to switch modes
+    if any(data.buttons):
+        print 'a'
+        for (i, v) in enumerate(data.buttons):
+            print 'b'
+            if v:
+                print 'c'
+                mode = i
+    print mode
     # define end point by axis
-    ft = stompy.sensors.joints.legs['fl']['foot']
+    move = False
+    for a in data.axes:
+        if abs(a) > 0.01:
+            move = True
+    if move is False:
+        return
+    move = False
+    for a in data.axes[:3]:
+        if abs(a) > 0.01:
+            move = True
+    if move is False:
+        return
     x, y, z = data.axes[0], data.axes[1], data.axes[2]
-    end = (ft[0] + x, ft[1] + y, ft[2] + z)
-    msg = stompy.ros.trajectories.line(
-        'fl',
-        ft,
-        end)
-    stompy.ros.legs.publishers['fl'].send_goal(msg)
+    speed = data.axes[3]
+    if 3 < mode < 10:  # leg
+        leg = ('fl', 'ml', 'rl', 'fr', 'mr', 'rr')[mode-4]
+        print leg
+        ft = stompy.sensors.joints.legs[leg]['foot']
+        end = (ft[0] + x * speed, ft[1] + y * speed, ft[2] + z * speed)
+        msg = stompy.ros.trajectories.line(
+            leg,
+            ft,
+            end)
+        stompy.ros.legs.publishers[leg].send_goal(msg)
+    if mode > 9:  # body
+        for leg in ('fl', 'ml', 'rl', 'fr', 'mr', 'rr'):
+            ft = stompy.sensors.joints.legs[leg]['foot']
+            end = (ft[0] + x * speed, ft[1] + y * speed, ft[2] + z * speed)
+            msg = stompy.ros.trajectories.line(
+                leg,
+                ft,
+                end)
+            stompy.ros.legs.publishers[leg].send_goal(msg)
 
 
 def main():
