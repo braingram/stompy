@@ -22,6 +22,9 @@ case 3
  - accel cruise then decel
 
 don't enforce max accel
+
+for polynomial paths
+http://www.springer.com/cda/content/document/cda_downloaddocument/9783540856283-c1.pdf?SGWID=0-0-45-615213-p173839603
 """
 
 import numpy
