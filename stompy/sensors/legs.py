@@ -14,10 +14,10 @@ callbacks = callbacker.Callbacker()
 
 def build_description(leg_name):
     return {
-        'hip': 'stompy__body_to_%s' % (leg_name),
-        'thigh': 'stompy__%s__hip_to_thigh' % (leg_name),
-        'knee': 'stompy__%s__thigh_to_calf_upper' % (leg_name),
-        'calf': 'stompy__%s__calf_upper_to_calf_lower' % (leg_name),
+        'hip': '%s_hip' % (leg_name),
+        'thigh': '%s_thigh' % (leg_name),
+        'knee': '%s_knee' % (leg_name),
+        'calf': '%s_calf' % (leg_name),
     }
 
 

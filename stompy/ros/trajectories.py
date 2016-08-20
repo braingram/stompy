@@ -25,11 +25,11 @@ def timestamp(msg, delay=default_delay):
 def from_points(leg_name, points, dt=default_dt, delay=default_delay):
     msg = control_msgs.msg.FollowJointTrajectoryGoal()
     msg.trajectory.joint_names.append(
-        'stompy__body_to_%s' % (leg_name))
+        '%s_hip' % (leg_name))
     msg.trajectory.joint_names.append(
-        'stompy__%s__hip_to_thigh' % (leg_name))
+        '%s_thigh' % (leg_name))
     msg.trajectory.joint_names.append(
-        'stompy__%s__thigh_to_calf_upper' % (leg_name))
+        '%s_knee' % (leg_name))
     # skip first point
     t = dt
     for pt in points:
