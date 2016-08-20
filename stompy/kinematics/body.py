@@ -7,7 +7,7 @@ left is y+, right is y-
 """
 
 import numpy
-import pylab
+#import pylab
 
 from .. import transforms
 
@@ -58,6 +58,8 @@ def body_to_leg_array(leg, pts):
 
 
 def plot_legs():
+    # TODO move out to vis module
+    import pylab
     p0 = (0., 0., 0.)
     p1 = (1., 0., 0.)
     for leg in leg_to_body_transforms:
