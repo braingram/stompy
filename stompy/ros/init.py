@@ -14,12 +14,3 @@ def init(name=None):
     joints.connect_to_joint_states()
     legs.connect_to_leg_publishers()
     clock.connect()
-
-
-def init_leg(name=None):
-    if name is None:
-        name = 'fr'
-    rospy.init_node(name, anonymous=True)
-    # connect to master
-    # setup joint publishers
-    # setup trajectory action server
