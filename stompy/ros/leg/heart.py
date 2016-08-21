@@ -18,18 +18,23 @@ last_heartbeat = None
 maximum_heartbeat = 1.0
 
 
-def connect_to_teensy():
-    teensy.mgr.on('heartbeat', new_teensy_heartbeat)
-
-
 def connect_to_ros():
     global beat
+    print("heart connecting to ros")
     beat = heartbeat.heart.ClientHeart(info.name, 'head')
 
 
+def connect_to_teensy():
+    print("heart connecting to teensy")
+    teensy.mgr.on('heartbeat', new_teensy_heartbeat)
+    if beat is not None:
+        # callback, when ros gets hb, send to teensy
+        beat.attach(lambda hb: send_teensy_heartbeat)
+
+
 def connect():
-    connect_to_teensy()
     connect_to_ros()
+    connect_to_teensy()
 
 
 def new_teensy_heartbeat():

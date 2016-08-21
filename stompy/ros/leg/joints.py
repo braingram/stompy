@@ -23,23 +23,27 @@ pub = None
 
 def connect_to_ros():
     global pub
+    print("joints connecting to ros")
     pub = rospy.Publisher(
         '/stompy/joint_states', sensor_msgs.msg.JointState,
         queue_size=10)
 
 
 def connect_to_teensy():
+    print("joints connecting to teensy")
     teensy.mgr.on('joints', new_joints)
 
 
 def connect():
-    connect_to_teensy()
     connect_to_ros()
+    connect_to_teensy()
 
 
-def new_joints(self, time, hip, thigh, knee, calf):
+def new_joints(time, hip, thigh, knee, calf):
     # TODO convert teensy time to ros?
-    self.send_joints(None, hip=hip, thigh=thigh, knee=knee, calf=calf)
+    send_joints(
+        None, hip=hip.value, thigh=thigh.value,
+        knee=knee.value, calf=calf.value)
 
 
 def send_joints(time=None, **joints):

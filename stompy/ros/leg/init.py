@@ -12,14 +12,19 @@ from . import joints
 def init_leg(name=None):
     if name is None:
         name = info.name
+    else:
+        info.name = name
     leg.teensy.connect()
+    print("making ros node")
     rospy.init_node(name, anonymous=True)
     heart.connect()
     joints.connect()
     # setup trajectory action server
+    print("node entering loop")
     while not rospy.is_shutdown():
-        heart.send_teensy_heartbeat()
-        rospy.sleep(0.5)
+        leg.teensy.com.handle_stream()
+        print("heart: %s" % heart.beat.check())
+        rospy.sleep(0.01)
 
 
 def fake_joints(name=None):
