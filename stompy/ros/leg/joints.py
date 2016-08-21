@@ -3,8 +3,11 @@
 import rospy
 import sensor_msgs.msg
 
+from . import info
+from ...leg import teensy
 
-global_defaults = {
+
+defaults = {
     'hip': 0.,
     'thigh': 0.,
     'knee': 0.,
@@ -14,29 +17,41 @@ global_defaults = {
     'pad': 0.,
 }
 
+global pub
+pub = None
 
-class JointStatePublisher(object):
-    def __init__(self, name, defaults=None, connect=True):
-        self.name = name
-        if defaults is None:
-            self.defaults = global_defaults
-        else:
-            self.defaults = defaults
-        self.pub = None
-        if connect:
-            self.connect()
 
-    def connect(self, queue_size=10):
-        self.pub = rospy.Publisher(
-            '/stompy/joint_states', sensor_msgs.msg.JointState,
-            queue_size=queue_size)
+def connect_to_ros():
+    global pub
+    pub = rospy.Publisher(
+        '/stompy/joint_states', sensor_msgs.msg.JointState,
+        queue_size=10)
 
-    def publish(self, **joints):
-        msg = sensor_msgs.msg.JointState()
-        js = self.defaults.copy()
-        js.update(joints)
-        for j in js:
-            msg.name.append('%s_%s' % (self.name, j))
-            msg.position.append(js[j])
+
+def connect_to_teensy():
+    teensy.mgr.on('joints', new_joints)
+
+
+def connect():
+    connect_to_teensy()
+    connect_to_ros()
+
+
+def new_joints(self, time, hip, thigh, knee, calf):
+    # TODO convert teensy time to ros?
+    self.send_joints(None, hip=hip, thigh=thigh, knee=knee, calf=calf)
+
+
+def send_joints(time=None, **joints):
+    msg = sensor_msgs.msg.JointState()
+    js = defaults.copy()
+    js.update(joints)
+    for j in js:
+        msg.name.append('%s_%s' % (info.name, j))
+        msg.position.append(js[j])
+    if time is None:
         msg.header.stamp = rospy.Time.now()
-        self.pub.publish(msg)
+    else:
+        # TODO convert time from teensy?
+        raise NotImplementedError
+    pub.publish(msg)
