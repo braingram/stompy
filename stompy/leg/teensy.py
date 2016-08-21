@@ -18,6 +18,7 @@ commands = {
     1: {
         'name': 'estop',
         'args': (ctypes.c_byte, ),
+        'result': (ctypes.c_byte, ),
     },
     2: {
         'name': 'enable',

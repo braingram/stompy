@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 import rospy
 
 import heartbeat.heart
@@ -17,6 +19,9 @@ last_heartbeat = None
 
 maximum_heartbeat = 1.0
 
+global foo
+foo = 0
+
 
 def connect_to_ros():
     global beat
@@ -28,8 +33,9 @@ def connect_to_teensy():
     print("heart connecting to teensy")
     teensy.mgr.on('heartbeat', new_teensy_heartbeat)
     if beat is not None:
+        print("attaching ros heartbeat to teensy")
         # callback, when ros gets hb, send to teensy
-        beat.attach(lambda hb: send_teensy_heartbeat)
+        beat.attach(lambda hb: send_teensy_heartbeat())
 
 
 def connect():
@@ -39,6 +45,7 @@ def connect():
 
 def new_teensy_heartbeat():
     global last_heartbeat
+    print("received teensy heartbeat: %.4f" % (time.time() - foo))
     last_heartbeat = rospy.Time.now()
 
 
@@ -52,6 +59,9 @@ def check_teensy_heartbeat():
 
 
 def send_teensy_heartbeat():
+    global foo
+    foo = time.time()
+    print("sending teensy heartbeat: %.4f" % foo)
     teensy.mgr.trigger('heartbeat')
 
 

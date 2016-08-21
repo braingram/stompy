@@ -4,6 +4,7 @@ import rospy
 
 from ... import leg
 
+from . import estop
 from . import heart
 from . import info
 from . import joints
@@ -19,12 +20,13 @@ def init_leg(name=None):
     rospy.init_node(name, anonymous=True)
     heart.connect()
     joints.connect()
+    estop.connect()
     # setup trajectory action server
     print("node entering loop")
     while not rospy.is_shutdown():
         leg.teensy.com.handle_stream()
-        print("heart: %s" % heart.beat.check())
-        rospy.sleep(0.01)
+        # print("heart: %s" % heart.beat.check())
+        rospy.sleep(0.001)
 
 
 def fake_joints(name=None):
