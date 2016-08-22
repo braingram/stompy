@@ -2,6 +2,7 @@
 
 import ctypes
 import time
+import threading
 
 import serial
 
@@ -29,12 +30,13 @@ commands = {
     },
 }
 
-global conn, com, text, cmd, mgr
+global conn, com, text, cmd, mgr, lock
 conn = None
 com = None
 text = None
 cmd = None
 mgr = None
+lock = threading.Lock()
 
 
 def connect(port='/dev/ttyACM0', baud=115200):
@@ -47,11 +49,6 @@ def connect(port='/dev/ttyACM0', baud=115200):
     com.register_protocol(1, cmd)
     mgr = pycomando.protocols.command.EventManager(cmd, commands)
     return mgr
-
-
-def update(timestamp=None):
-    if timestamp is None:
-        timestamp = time.time()
 
 
 def test_dropped_sbc_heartbeat():

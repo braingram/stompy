@@ -7,6 +7,10 @@
 #define CMD_ENABLE 2 // -> <bool enable>
 #define CMD_HEARTBEAT 3 // ->
 
+
+
+bool enable_node = false;
+
 Comando com = Comando(Serial);
 TextProtocol text = TextProtocol(com);
 CommandProtocol cmd = CommandProtocol(com);
@@ -23,10 +27,12 @@ void setup() {
 }
 
 void loop() {
-  read_sensors();
-  send_sensors();
-  check_heartbeat();
-  // update movements
+  if (enable_node) {
+    read_sensors();
+    send_sensors();
+    // update movements
+  };
   com.handle_stream();
-  delay(10);  // something reasonable
+  check_heartbeat();
+  //delay(10);  // something reasonable
 }

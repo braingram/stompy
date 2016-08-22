@@ -19,9 +19,6 @@ last_heartbeat = None
 
 maximum_heartbeat = 1.0
 
-global foo
-foo = 0
-
 
 def connect_to_ros():
     global beat
@@ -45,7 +42,7 @@ def connect():
 
 def new_teensy_heartbeat():
     global last_heartbeat
-    print("received teensy heartbeat: %.4f" % (time.time() - foo))
+    print("received teensy heartbeat: %.4f" % time.time())
     last_heartbeat = rospy.Time.now()
 
 
@@ -59,10 +56,7 @@ def check_teensy_heartbeat():
 
 
 def send_teensy_heartbeat():
-    global foo
-    foo = time.time()
-    print("sending teensy heartbeat: %.4f" % foo)
+    print("sending teensy heartbeat: %.4f" % time.time())
+    teensy.lock.acquire(True)
     teensy.mgr.trigger('heartbeat')
-
-
-# TODO check
+    teensy.lock.release()

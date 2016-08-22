@@ -1,5 +1,5 @@
 // if movements are allowed
-bool movement_enable = false;
+//bool movement_enable = false;
 
 void on_enable(CommandProtocol *cmd){
   bool enable = true;
@@ -10,5 +10,6 @@ void on_enable(CommandProtocol *cmd){
 }
 
 void on_enable(bool enable) {
-  movement_enable = enable;
+  //movement_enable = enable;
+  enable_node = enable;
 }
