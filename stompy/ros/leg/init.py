@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 import rospy
 
 from ... import leg
@@ -23,9 +25,23 @@ def init_leg(name=None):
     estop.connect()
     # setup trajectory action server
     print("node entering loop")
+    st = time.time()
+    enabled = False
     while not rospy.is_shutdown():
+        lt = time.time()
         leg.teensy.com.handle_stream()
-        # print("heart: %s" % heart.beat.check())
+        if not enabled:
+            print("Sending enable: %s" % lt)
+            leg.teensy.lock.acquire(True)
+            leg.teensy.mgr.trigger('enable', True)
+            leg.teensy.lock.release()
+            enabled = True
+        if lt - st > 3.:
+            leg.teensy.lock.acquire(True)
+            print("status: %s" % leg.teensy.mgr.blocking_trigger('status')[0])
+            print("heart: %s" % heart.beat.check())
+            leg.teensy.lock.release()
+            st = lt
         rospy.sleep(0.001)
 
 
