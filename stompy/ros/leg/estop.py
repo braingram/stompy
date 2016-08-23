@@ -12,9 +12,9 @@ pub = None
 
 def on_estop(msg):
     severity = msg.data
-    leg.teensy.acquire(True)
+    leg.teensy.lock.acquire(True)
     leg.teensy.mgr.trigger('estop', severity)
-    leg.teensy.release()
+    leg.teensy.lock.release()
     # TODO other estop callbacks
 
 

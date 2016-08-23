@@ -41,6 +41,7 @@ def connect():
 
 def new_joints(time, hip, thigh, knee, calf):
     # TODO convert teensy time to ros?
+    print("new joints from teensy: %s" % time.value)
     send_joints(
         None, hip=hip.value, thigh=thigh.value,
         knee=knee.value, calf=calf.value)

@@ -28,6 +28,10 @@ commands = {
     3: {
         'name': 'heartbeat',
     },
+    4: {
+        'name': 'status',
+        'result': (ctypes.c_bool, ),
+    },
 }
 
 global conn, com, text, cmd, mgr, lock
