@@ -6,6 +6,7 @@
 #define CMD_ESTOP 1 // <byte severity> -> <byte severity>
 #define CMD_ENABLE 2 // -> <bool enable>
 #define CMD_HEARTBEAT 3 // ->
+#define CMD_STATUS 4 // -> <bool enable>
 
 
 
@@ -24,15 +25,22 @@ void setup() {
   cmd.register_callback(CMD_ESTOP, on_estop);
   cmd.register_callback(CMD_ENABLE, on_enable);
   cmd.register_callback(CMD_HEARTBEAT, on_heartbeat);
+  cmd.register_callback(CMD_STATUS, on_status);
 }
 
 void loop() {
+  com.handle_stream();
   if (enable_node) {
+    check_heartbeat();
     read_sensors();
     send_sensors();
     // update movements
   };
-  com.handle_stream();
-  check_heartbeat();
   //delay(10);  // something reasonable
+}
+
+void on_status(CommandProtocol *cmd) {
+  cmd->start_command(CMD_STATUS);
+  cmd->add_arg(enable_node);
+  cmd->finish_command();
 }
