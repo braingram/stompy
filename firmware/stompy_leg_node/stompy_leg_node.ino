@@ -7,6 +7,7 @@
 #define CMD_ENABLE 2 // -> <bool enable>
 #define CMD_HEARTBEAT 3 // ->
 #define CMD_STATUS 4 // -> <bool enable>
+#define CMD_GET_TIME 5 // -> <unsigned long teensy_time>
 
 
 
@@ -26,9 +27,11 @@ void setup() {
   cmd.register_callback(CMD_ENABLE, on_enable);
   cmd.register_callback(CMD_HEARTBEAT, on_heartbeat);
   cmd.register_callback(CMD_STATUS, on_status);
+  cmd.register_callback(CMD_GET_TIME, get_time);
 }
 
 void loop() {
+  // TODO convert this to a state machine
   com.handle_stream();
   if (enable_node) {
     check_heartbeat();
