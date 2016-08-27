@@ -17,6 +17,7 @@ default_delay = 0.01
 
 
 def timestamp(msg, delay=default_delay):
+    # sets start time of movement
     msg.trajectory.header.stamp = (
         rospy.Time.now() + rospy.Duration(delay))
     return msg
