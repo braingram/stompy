@@ -32,6 +32,7 @@ class JointTrajectoryActionServer(object):
             rospy.sleep(start_time - rospy.Time.now())
             if self._as.is_preempt_requested():
                 self._as.set_preempted()
+                print("preempted...")
                 return
 
         # send points to teensy, monitor movement
@@ -40,6 +41,7 @@ class JointTrajectoryActionServer(object):
             if self._as.is_preempt_requested():
                 self._as.set_preempted()
                 success = False
+                print("preempted...")
                 break
             print("Moving %s to %s" % (names, pt.positions))
             st = pt.time_from_start - (rospy.Time.now() - start_time)
