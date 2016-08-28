@@ -48,7 +48,7 @@ def init_leg(name=None):
             leg.teensy.mgr.trigger('enable', True)
             leg.teensy.lock.release()
             enabled = True
-        if lt - st > 3.:
+        if lt - st > rospy.Duration(3.):
             leg.teensy.lock.acquire(True)
             print("status: %s" % leg.teensy.mgr.blocking_trigger('status')[0])
             print("heart: %s" % heart.beat.check())
