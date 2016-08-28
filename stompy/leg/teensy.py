@@ -32,6 +32,10 @@ commands = {
         'name': 'status',
         'result': (ctypes.c_bool, ),
     },
+    5: {
+        'name': 'get_time',
+        'result': (ctypes.c_uint, ),
+    },
 }
 
 global conn, com, text, cmd, mgr, lock
