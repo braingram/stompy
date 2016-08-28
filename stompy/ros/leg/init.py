@@ -17,8 +17,8 @@ def measure_clock_offset():
        (rt.to_sec() + offset) / 1000.
     """
     t1 = rospy.Time.now().to_sec()
-    t1p = leg.teensy.mgr.blocking_trigger('time') / 1000.
-    t2 = leg.teensy.mgr.blocking_trigger('time') / 1000.
+    t1p = leg.teensy.mgr.blocking_trigger('get_time')[0].value / 1000.
+    t2 = leg.teensy.mgr.blocking_trigger('get_time')[0].value / 1000.
     t2p = rospy.Time.now().to_sec()
     offset = (t1p - t1 - t2p + t2) / 2.
     return offset
@@ -39,6 +39,7 @@ def init_leg(name=None):
     print("node entering loop")
     st = rospy.Time.now()
     enabled = False
+    offset = None
     while not rospy.is_shutdown():
         lt = rospy.Time.now()
         leg.teensy.com.handle_stream()
@@ -52,7 +53,10 @@ def init_leg(name=None):
             leg.teensy.lock.acquire(True)
             print("status: %s" % leg.teensy.mgr.blocking_trigger('status')[0])
             print("heart: %s" % heart.beat.check())
-            print("offset: %s" % measure_clock_offset())
+            new_offset = measure_clock_offset()
+            if offset is not None:
+                print("offset: %0.4f, delta: %s" % (new_offset, offset - new_offset))
+            offset = new_offset
             leg.teensy.lock.release()
             st = lt
         rospy.sleep(0.001)
