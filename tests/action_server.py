@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+"""
+This server should implement something like this:
+http://wiki.ros.org/joint_trajectory_controller/UnderstandingTrajectoryReplacement
+
+It needs to:
+    - if an empty trajectory arrives, the goal is canceled
+    - if a trajectory with a blank timestamp arrives, start it now
+    - if a new trajectory (b) arrives during a trajectory (a), merge it:
+        - if b start time is now, drop all later points from a
+        - if start time is in future, drop all points after b start time
+        - if b start time is in past:
+          drop all later points for a, and earlier points for b
+
+Also, it will need to buffer points sent to the teensy allowing:
+    - sufficient data for the teensy for future waypoints
+    - preemption of already buffered (sent) points
+    - clearing/cancelation of trajectories
+
+Finally, it will need to produce at a minimum a result and check for
+various tolerances during movement. Ideally, it will also provide feedback
+during movements (although the gazebo controller does not).
+"""
 
 import actionlib
 import control_msgs.msg
