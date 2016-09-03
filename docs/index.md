@@ -3,6 +3,8 @@ layout: default
 title: blah
 ---
 
-blarg
-
 Can I [link](other)?
+[link](stompy/other)
+[link](other/)
+[link](/other/)
+[link](other/)
