@@ -5,4 +5,4 @@ title: blah
 
 blarg
 
-Can I [link](/other)?
+Can I [link](other)?
