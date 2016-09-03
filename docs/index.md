@@ -1,3 +1,9 @@
+---
+layout: default
+title: test
+---
+
+
 Hello World
 ===
 
