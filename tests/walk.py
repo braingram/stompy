@@ -70,22 +70,22 @@ def generate_leg_cycles(cx, cy, phi=1.0, **kwargs):
     ckwargs.update(kwargs)
     phases = [0., 1/3., 2/3., 2/3., 1/3.,  0.]
     cycles['fl'] = stompy.kinematics.body.body_to_leg_array(
-        'fl', stompy.gaits.wave.generate(
+        'fl', stompy.gaits.wave.generate_paths(
             cx, cy, 3., 2.25, phi, phase=phases.pop(0), **ckwargs))
     cycles['ml'] = stompy.kinematics.body.body_to_leg_array(
-        'ml', stompy.gaits.wave.generate(
+        'ml', stompy.gaits.wave.generate_paths(
             cx, cy, 0, 2.75, phi, phase=phases.pop(0), **ckwargs))
     cycles['rl'] = stompy.kinematics.body.body_to_leg_array(
-        'rl', stompy.gaits.wave.generate(
+        'rl', stompy.gaits.wave.generate_paths(
             cx, cy, -3., 2.25, phi, phase=phases.pop(0), **ckwargs))
     cycles['fr'] = stompy.kinematics.body.body_to_leg_array(
-        'fr', stompy.gaits.wave.generate(
+        'fr', stompy.gaits.wave.generate_paths(
             cx, cy, 3., -2.25, phi, phase=phases.pop(0), **ckwargs))
     cycles['mr'] = stompy.kinematics.body.body_to_leg_array(
-        'mr', stompy.gaits.wave.generate(
+        'mr', stompy.gaits.wave.generate_paths(
             cx, cy, 0., -2.75, phi, phase=phases.pop(0), **ckwargs))
     cycles['rr'] = stompy.kinematics.body.body_to_leg_array(
-        'rr', stompy.gaits.wave.generate(
+        'rr', stompy.gaits.wave.generate_paths(
             cx, cy, -3., -2.25, phi, phase=phases.pop(0), **ckwargs))
     return cycles
 
@@ -123,8 +123,8 @@ def main():
         rospy.sleep(0.05)
     # wait for everything to connect
     rospy.sleep(1.)
-    #cycles = generate_leg_cycles(0, 1E3)
-    cycles = generate_leg_cycles(1.E3, 0.)
+    cycles = generate_leg_cycles(0, 1E3)
+    #cycles = generate_leg_cycles(1.E3, 0.)
 #    stand()
 #    wait()
     position_legs(cycles)

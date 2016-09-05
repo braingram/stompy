@@ -3,6 +3,66 @@
 import numpy
 
 
+def polynomial_3(t, s, e, v_s=0., v_e=0.):
+    """
+    Arguments
+    ===
+    t : time of movement in seconds
+    s : starting position
+    e : ending position
+    v_s : starting velocity
+    v_e : ending velocity
+
+    Returns
+    ===
+    function: accepts 1 argument, dt
+    """
+    a0 = s
+    a1 = v_s
+    a2 = (
+        (-3 * (s - e) - (2 * v_s + v_e) * t) /
+        (t * t))
+    a3 = (
+        (2 * (s - e) + (v_s + v_e) * t) /
+        (t * t * t))
+    return lambda dt: a0 + a1 * dt + a2 * dt ** 2. + a3 * dt ** 3.
+
+
+def polynomial_5(t, s, e, v_s=0., v_e=0., a_s=0., a_e=0.):
+    """
+    Arguments
+    ===
+    t : time of movement in seconds
+    s : starting position
+    e : ending position
+    v_s : starting velocity
+    v_e : ending velocity
+    a_s : starting acceleration
+    a_e : ending acceleration
+
+    Returns
+    ===
+    function: accepts 1 argument, dt
+    """
+    a0 = s
+    a1 = v_s
+    a2 = a_s * 0.5
+    a3 = (
+        (20 * (e - s) - (8 * v_e + 12 * v_s) * t - (3 * a_e - a_s) * t ** 2.) /
+        (2. * t ** 3.))
+    a4 = (
+        (
+            -30 * (e - s) + (14 * v_e + 16 * v_s) * t +
+            (3 * a_e - 2 * a_s) * t ** 2.) /
+        (2. * t ** 4.))
+    a5 = (
+        (12 * (e - s) - 6 * (v_e + v_s) * t + (a_e - a_s) * t ** 2.) /
+        (2 * t ** 5.))
+    return lambda dt: (
+        a0 + a1 * dt + a2 * dt ** 2. + a3 * dt ** 3. +
+        a4 * dt ** 4. + a5 * dt ** 5.)
+
+
 def point_on_circle(cx, cy, radius, angle):
     return (
         cx + radius * numpy.cos(angle),
@@ -37,9 +97,7 @@ def arc(cx, cy, fx, fy, length, fr=0.5):
 
     sa = fa - la * fr
 
-    def point(r):
-        return point_on_circle(cx, cy, radius, r * la + sa)
-    return point
+    return lambda r: point_on_circle(cx, cy, radius, r * la + sa)
 
 
 def line(fx, fy, angle, length, fr=0.5):
@@ -61,15 +119,12 @@ def line(fx, fy, angle, length, fr=0.5):
     dy = numpy.sin(angle) * length
     sx = fx - dx * fr
     sy = fy - dy * fr
-    print dx, dy, sx, sy
 
-    def point(r):
-        return sx + dx * r, sy + dy * r
-    return point
+    return lambda r: (sx + dx * r, sy + dy * r)
 
 
 class Path(object):
-    def __init__(self, fx, fy):
+    def __init__(self, fx, fy, easing=False):
         """
         Args:
             fx, fy: optimal foot x,y coordinate
@@ -77,33 +132,33 @@ class Path(object):
         self.fx = fx
         self.fy = fy
         self.xy = None
+        # used for transitioning, skip for now
         self._next_xy = None
-
-    def arc(self, cx, cy, length, fx=None, fy=None, fr=None):
-        if fr is not None:
-            assert fx is not None
-            assert fy is not None
-            self._next_xy = (self.arc, cx, cy, length)
+        if easing:
+            self.set_easing()
         else:
-            fr = 0.5
+            self.easing = lambda dt: dt
+
+    def set_easing(self, v_s=0., v_e=0., a_s=0., a_e=0.):
+        self.easing = polynomial_5(1., 0., 1., v_s, v_e, a_s, a_e)
+
+    def arc(self, cx, cy, length, fx=None, fy=None, fr=0.5):
+        if fx is None:
             fx = self.fx
+        if fy is None:
             fy = self.fy
-            self._next_xy = None
+        # TODO check for 0 radius
         self.xy = arc(cx, cy, fx, fy, length, fr)
 
-    def line(self, angle, length, fx=None, fy=None, fr=None):
-        if fr is not None:
-            assert fx is not None
-            assert fy is not None
-            self._next_xy = (self.line, angle, length)
-        else:
-            fr = 0.5
+    def line(self, angle, length, fx=None, fy=None, fr=0.5):
+        if fx is None:
             fx = self.fx
+        if fy is None:
             fy = self.fy
-            self._next_xy = None
         self.xy = line(fx, fy, angle, length, fr)
 
     def next_xy(self):
+        raise NotImplementedError
         if self._next_xy is None:
             return
         f = self._next_xy[0]
@@ -112,4 +167,4 @@ class Path(object):
         self._next_xy = None
 
     def __call__(self, r):
-        return self.xy(r)
+        return self.xy(self.easing(r))

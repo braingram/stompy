@@ -24,12 +24,105 @@ ignored for now.
 
 import numpy
 
+from . import computer
+
 
 def point_on_circle(cx, cy, radius, angle):
     return (
         cx + radius * numpy.cos(angle),
         cy + radius * numpy.sin(angle),
     )
+
+
+def generate_paths(
+        cx, cy, fx, fy, length,
+        hz=0.8, lz=1.2,
+        t=10., dt=0.1, phase=0.,
+        st=0.85, pt=0.1):
+
+    if length < 0:
+        reverse = True
+        length = -length
+    else:
+        reverse = False
+    # do everything with a 0-1 cycle (set by phase)
+    # place, stance, lift, swing
+
+    # place: 0 -> (st * pt)
+    place_p = (0, st * pt)
+    to_place_p = lambda p: p / place_p[1]
+    # stance: (st * pt) -> (st * (1 - pt))
+    stance_p = (place_p[1], (st * (1. - pt)))
+    to_stance_p = lambda p: (p - stance_p[0]) / (stance_p[1] - stance_p[0])
+    # lift: (st * (1 - pt)) -> st
+    lift_p = (stance_p[1], st)
+    to_lift_p = lambda p: (p - lift_p[0]) / (lift_p[1] - lift_p[0])
+    # swing: st -> 1
+    swing_p = (lift_p[1], 1)
+    to_swing_p = lambda p: (p - swing_p[0]) / (swing_p[1] - swing_p[0])
+    # handle reverse by setting xy
+    if reverse:
+        to_xyp = lambda p: 1. - p / st
+    else:
+        to_xyp = lambda p: p / st
+
+    # TODO identify current state by phase, setup to match that point
+    if phase < stance_p[0]:  # in place
+        xyfr = to_xyp(phase)
+    elif phase < lift_p[0]:  # in stance
+        xyfr = to_xyp(phase)
+    elif phase < swing_p[0]:  # in lift
+        xyfr = to_xyp(phase)
+    else:  # in swing
+        xyfr = 1 - to_swing_p(phase)
+
+    # setup xy path
+    xyp = computer.Path(fx, fy)
+    xyp.arc(cx, cy, length, fr=xyfr)
+    # setup z easing
+    zp = computer.Path(hz, 0, easing=False)
+    zp.line(0, lz - hz, fr=0.)  # just use column 0 for z
+
+    ts = numpy.arange(0, t, dt)
+    n = ts.size
+    phases = numpy.linspace(0, 1., ts.size)
+
+    # TODO skip ahead to current phase
+    pts = []
+    for i in xrange(n):
+        t = ts[i]
+        p = phases[i]
+        if p < stance_p[0]:  # place
+            # place: z down (smoothed), xy start following trajectory
+            lp = to_place_p(p)
+            xy = xyp(to_xyp(p))
+            z = zp(lp)[0]
+            state = 0
+        elif p < lift_p[0]:  # stance
+            # stance: no z, continue following xy
+            lp = to_stance_p(p)
+            xy = xyp(to_xyp(p))
+            z = zp(1.)[0]
+            state = 1
+        elif p < swing_p[0]:  # lift
+            # lift: z up (smoothed), end following xy
+            lp = to_lift_p(p)
+            xy = xyp(to_xyp(p))
+            z = zp(1. - lp)[0]
+            state = 2
+        else:  # swing
+            # swing: no z, follow complete xy backwards at max speed
+            lp = to_swing_p(p)
+            xy = xyp(1-lp)
+            z = zp(0.)[0]
+            state = 3
+        #pts.append((xy[0], xy[1], z, p, state, t))
+        pts.append((xy[0], xy[1], z))
+
+    # adjust for current phase
+
+    # set current phase
+    return set_cycle_phase(pts, phase)
 
 
 def generate(
@@ -90,11 +183,9 @@ def generate(
     # dx/dy_stance
     # dx/dy_swing
     state = 0
-    p = 0.
     #pts.append((x, y, z, state, p))
     pts.append((x, y, z))
     for (i, t) in enumerate(ts):
-        p = (i + 1) / (len(ts) + 1.)
         if state == 0:  # stance
             angle += da_stance
             if t < place_t:

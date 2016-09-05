@@ -5,6 +5,66 @@ import numpy
 from .. import transforms
 
 
+def polynomial_3(t, s, e, v_s=0., v_e=0.):
+    """
+    Arguments
+    ===
+    t : time of movement in seconds
+    s : starting position
+    e : ending position
+    v_s : starting velocity
+    v_e : ending velocity
+
+    Returns
+    ===
+    function: accepts 1 argument, dt
+    """
+    a0 = s
+    a1 = v_s
+    a2 = (
+        (-3 * (s - e) - (2 * v_s + v_e) * t) /
+        (t * t))
+    a3 = (
+        (2 * (s - e) + (v_s + v_e) * t) /
+        (t * t * t))
+    return lambda dt: a0 + a1 * dt + a2 * dt ** 2. + a3 * dt ** 3.
+
+
+def polynomial_5(t, s, e, v_s=0., v_e=0., a_s=0., a_e=0.):
+    """
+    Arguments
+    ===
+    t : time of movement in seconds
+    s : starting position
+    e : ending position
+    v_s : starting velocity
+    v_e : ending velocity
+    a_s : starting acceleration
+    a_e : ending acceleration
+
+    Returns
+    ===
+    function: accepts 1 argument, dt
+    """
+    a0 = s
+    a1 = v_s
+    a2 = a_s * 0.5
+    a3 = (
+        (20 * (e - s) - (8 * v_e + 12 * v_s) * t - (3 * a_e - a_s) * t ** 2.) /
+        (2. * t ** 3.))
+    a4 = (
+        (
+            -30 * (e - s) + (14 * v_e + 16 * v_s) * t +
+            (3 * a_e - 2 * a_s) * t ** 2.) /
+        (2. * t ** 4.))
+    a5 = (
+        (12 * (e - s) - 6 * (v_e + v_s) * t + (a_e - a_s) * t ** 2.) /
+        (2 * t ** 5.))
+    return lambda dt: (
+        a0 + a1 * dt + a2 * dt ** 2. + a3 * dt ** 3. +
+        a4 * dt ** 4. + a5 * dt ** 5.)
+
+
 def linear_by_n(start, end, n):
     start = numpy.array(start)
     end = numpy.array(end)
