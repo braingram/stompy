@@ -37,10 +37,10 @@ class PositionLegs(smach.State):
             input_keys=['load', 'leg_positions', 'leg_loads', 'lift_z'])
 
     def execute(self, userdata):
-        #if userdata.load > 4000:
-        #    # TODO position legs from standing
-        #    print("stompy is loaded: %s" % userdata.load)
-        #    return "error"
+        if userdata.load > 4000:
+            loaded = True
+        else:
+            loaded = False
         # positon legs one at a time
         # start with least loaded leg
         leg_loads = {}
@@ -90,14 +90,45 @@ class PositionLegs(smach.State):
                 target_position, delay=0.1)
             publisher.send_goal(msg)
             rospy.sleep(0.5)
+            leg_loaded = False
             while True:
                 state = publisher.get_state()
                 if state == actionlib.GoalStatus.SUCCEEDED:
+                    break
+                if stompy.sensors.legs.legs[leg]['load'] >= target_load:
+                    # cancel action
+                    publisher.cancel_goal()
+                    leg_loaded = True
                     break
                 if state != actionlib.GoalStatus.ACTIVE:
                     print(leg, state)
                     return "error"
                 rospy.sleep(0.1)
+            dz = 0.5
+            while loaded and not leg_loaded:
+                lower_target = (
+                    target_position[0], target_position[1],
+                    target_position[2] + dz)
+                msg = stompy.ros.trajectories.line(
+                    leg, stompy.sensors.legs.legs[leg]['foot'],
+                    lower_target, delay=0.1)
+                publisher.send_goal(msg)
+                rospy.sleep(0.5)
+                while True:
+                    state = publisher.get_state()
+                    if state == actionlib.GoalStatus.SUCCEEDED:
+                        break
+                    if stompy.sensors.legs.legs[leg]['load'] >= target_load:
+                        # cancel action
+                        publisher.cancel_goal()
+                        leg_loaded = True
+                        break
+                    if state != actionlib.GoalStatus.ACTIVE:
+                        print(leg, state)
+                        return "error"
+                    rospy.sleep(0.1)
+                dz += 0.5
+
         return 'ready'
 
 
@@ -142,9 +173,10 @@ if __name__ == '__main__':
         'ml': (1.5, 0., 0.5),
         'rl': (1.5, 0., 0.5),
     }
+    leg_load = 5600 / 6.
     sm.userdata.leg_loads = {
-        'fr': 1000, 'mr': 1000, 'rr': 1000,
-        'fl': 1000, 'ml': 1000, 'rl': 1000,
+        'fr': leg_load, 'mr': leg_load, 'rr': leg_load,
+        'fl': leg_load, 'ml': leg_load, 'rl': leg_load,
     }
     with sm:
         smach.StateMachine.add(
@@ -157,3 +189,4 @@ if __name__ == '__main__':
             'Stand', Stand())
 
     outcome = sm.execute()
+    print("State machine ended with: %s" % outcome)
