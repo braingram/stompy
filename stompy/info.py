@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-legs = ('fl', 'fr', 'ml', 'mr', 'rl', 'rr')
+# order matches ip addresses
+legs = ('fl', 'ml', 'rl', 'rr', 'mr', 'fr')
 
 left_legs = ('fl', 'ml', 'rl')
 right_legs = ('fr', 'mr', 'rr')

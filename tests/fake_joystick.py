@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys
+import time
+
 import pygame
 
 import rospy
@@ -10,8 +12,9 @@ pygame.init()
 
 w, h = (320, 320)
 delay = 100  # ms
+z_timeout = 0.3
 # left/right, forward/back, ...?
-axes = [0, 1, None, None, None, None]
+axes = [0, 1, 2, None, None, None]
 buttons = [
     pygame.K_1,  # trigger
     pygame.K_2,  # back thumb
@@ -51,12 +54,16 @@ from_screen = lambda x, y: (
     -(float(y) / h * 2. - 1.),
 )
 
+global pos
+
 center = (0, 0)
-pos = center
+pos = [center[0], center[1], 0.]
 button_states = [0 for _ in buttons]
+last_z_time = time.time()
 
 
 def publish_joystick():
+    global pos
     # build message
     msg = sensor_msgs.msg.Joy()
     for a in axes:
@@ -77,15 +84,23 @@ while True:
             sys.exit()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button in (1, 3):  # left, right
-                pos = from_screen(*event.pos)
+                pos[:2] = from_screen(*event.pos)
                 modified = True
+            elif event.button == 4:  # wheel up
+                pos[2] = 1.
+                last_z_time = time.time()
+                modified = True
+            elif event.button == 5:  # wheel down
+                modified = True
+                last_z_time = time.time()
+                pos[2] = -1.
         elif event.type == pygame.MOUSEMOTION:
             if event.buttons[0] or event.buttons[2]:
-                pos = from_screen(*event.pos)
+                pos[:2] = from_screen(*event.pos)
                 modified = True
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # left
-                pos = center
+                pos[:2] = center
                 modified = True
         elif event.type == pygame.KEYDOWN:
             if event.key in buttons:
@@ -98,8 +113,11 @@ while True:
         else:
             print event
             pass
+    if pos[2] != 0. and time.time() - last_z_time > z_timeout:
+        pos[2] = 0.
+        modified = True
     screen.fill((0, 0, 0))
-    pygame.draw.circle(screen, (255, 255, 255), to_screen(*pos), 5)
+    pygame.draw.circle(screen, (255, 255, 255), to_screen(*pos[:2]), 5)
     # publish joystick message
     if modified:
         publish_joystick()
