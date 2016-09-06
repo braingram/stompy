@@ -153,7 +153,18 @@ class MoveBody(smach.State):
                         stompy.kinematics.body.body_to_leg(leg, *bend))
                     leg_msgs[leg] = msg
             else:  # 33, rotate
-                pass
+                rm = stompy.transforms.rotation_3d(
+                    data.axes[0], data.axes[1], data.axes[2], degrees=True)
+                for leg in stompy.info.legs:
+                    ft = stompy.sensors.legs.legs[leg]['foot']
+                    bft = stompy.kinematics.body.leg_to_body(leg, *ft)
+                    # follow transform
+                    bpts = stompy.planners.trajectory.follow_transform(
+                        bft, rm, 10)
+                    pts = stompy.kinematics.body.body_to_leg_array(leg, bpts)
+                    msg = stompy.ros.trajectories.from_points(
+                        leg, pts)
+                    leg_msgs[leg] = msg
             # send trajectories
             for leg in leg_msgs:
                 stompy.ros.legs.publishers[leg].send_goal(leg_msgs[leg])

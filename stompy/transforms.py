@@ -92,6 +92,7 @@ def transform_3d(m, x, y, z):
 
 def homogeneous_3d(pts):
     """Expects input of [npts, dims]"""
+    pts = numpy.array(pts)
     return numpy.hstack((
         pts, numpy.ones((pts.shape[0], 1)))).T
 
