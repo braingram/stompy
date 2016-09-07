@@ -18,9 +18,29 @@ default_delay = 0.01
 
 def timestamp(msg, delay=default_delay):
     # sets start time of movement
+    if delay is None:
+        return msg
     msg.trajectory.header.stamp = (
         rospy.Time.now() + rospy.Duration(delay))
     return msg
+
+
+def from_angles(leg_name, angles, dt=default_dt, delay=default_delay):
+    msg = control_msgs.msg.FollowJointTrajectoryGoal()
+    msg.trajectory.joint_names.append(
+        '%s_hip' % (leg_name))
+    msg.trajectory.joint_names.append(
+        '%s_thigh' % (leg_name))
+    msg.trajectory.joint_names.append(
+        '%s_knee' % (leg_name))
+    t = dt
+    for angle in angles:
+        p = trajectory_msgs.msg.JointTrajectoryPoint()
+        p.time_from_start = rospy.Duration(t)
+        p.positions = list(angle)
+        msg.trajectory.points.append(p)
+        t += dt
+    return timestamp(msg, delay)
 
 
 def from_points(leg_name, points, dt=default_dt, delay=default_delay):
@@ -31,7 +51,6 @@ def from_points(leg_name, points, dt=default_dt, delay=default_delay):
         '%s_thigh' % (leg_name))
     msg.trajectory.joint_names.append(
         '%s_knee' % (leg_name))
-    # skip first point
     t = dt
     for pt in points:
         a = kinematics.leg.inverse(pt[0], pt[1], pt[2])

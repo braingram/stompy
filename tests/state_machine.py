@@ -12,21 +12,21 @@ import stompy.ros
 class Startup(smach.State):
     def __init__(self):
         smach.State.__init__(
-            self, outcomes=['ready', ],
+            self, outcomes=['ready', ])
             # input_keys=[],
-            output_keys=['load', ],)
+            #output_keys=['load', ],)
 
     def execute(self, userdata):
         # wait for joint data
         while stompy.sensors.joints.joints is None:
             rospy.sleep(0.05)
         rospy.sleep(1.)
-        # check if on dollies
-        load = 0.
-        for leg in stompy.info.legs:
-            load += stompy.sensors.legs.legs[leg]['load']
-        # return if loaded/not-loaded
-        userdata.load = load
+        ## check if on dollies
+        #load = 0.
+        #for leg in stompy.info.legs:
+        #    load += stompy.sensors.legs.legs[leg]['load']
+        ## return if loaded/not-loaded
+        #userdata.load = load
         # select action by mode
         while stompy.ros.joystick.mode is None:
             print("Waiting on joystick input...")
@@ -37,8 +37,8 @@ class Startup(smach.State):
 class ModeTransition(smach.State):
     def __init__(self):
         smach.State.__init__(
-            self, outcomes=['moveleg', 'movebody', 'error'])
-            #self, outcomes=['moveleg', 'positionlegs', 'movebody', 'error'])
+            self, outcomes=[
+                'moveleg', 'movebody', 'positionlegs', 'error'])
 
     def execute(self, userdata):
         mode = stompy.ros.joystick.mode
@@ -46,8 +46,8 @@ class ModeTransition(smach.State):
             return 'moveleg'
         if mode in (32, 33):
             return 'movebody'
-        #if mode == (34, ):
-        #    return 'positionlegs'
+        if mode == 34:
+            return 'positionlegs'
         return 'error'
 
 
@@ -94,13 +94,20 @@ class MoveLeg(smach.State):
                         ft[0] + data.axes[0],
                         ft[1] + data.axes[1],
                         ft[2] + data.axes[2])
-                    msg = stompy.ros.trajectories.line(
-                        leg, ft, end)
+                    #pts = stompy.planners.trajectory.linear_by_distance(
+                    #    ft, end, 0.01)
+                    msg = stompy.ros.trajectories.from_points(
+                        leg, [end, ], delay=0.0, dt=1.0)
+                    #msg = stompy.ros.trajectories.line(
+                    #    leg, ft, end)
                 else:  # angles
-                    # TODO
-                    #joints = stompy.sensors.joints.joints[leg]
-                    print("No joint mode yet...")
-                    return
+                    leg_angles = stompy.sensors.legs.legs[leg]
+                    end = (
+                        leg_angles['hip'] + data.axes[0],
+                        leg_angles['thigh'] + data.axes[1],
+                        leg_angles['knee'] + data.axes[2])
+                    msg = stompy.ros.trajectories.from_angles(
+                        leg, [end, ], delay=0.0, dt=1.0)
                 stompy.ros.legs.publishers[leg].send_goal(msg)
                 state['leg'] = leg
 
@@ -148,9 +155,18 @@ class MoveBody(smach.State):
                         bft[0] + data.axes[0],
                         bft[1] + data.axes[1],
                         bft[2] + data.axes[2])
-                    msg = stompy.ros.trajectories.line(
-                        leg, ft,
-                        stompy.kinematics.body.body_to_leg(leg, *bend))
+                    lend = stompy.kinematics.body.body_to_leg(leg, *bend)
+                    msg = stompy.ros.trajectories.from_points(
+                        leg, [lend, ], delay=0., dt=5.0)
+                    #pts = stompy.planners.trajectory.linear_by_distance(
+                    #    ft, stompy.kinematics.body.body_to_leg(leg, *bend),
+                    #    0.01)
+                    #msg = stompy.ros.trajectories.from_points(
+                    #    leg, pts[1:], delay=0.1)
+                    #msg = stompy.ros.trajectories.line(
+                    #    leg, ft,
+                    #    stompy.kinematics.body.body_to_leg(leg, *bend),
+                    #    delay=0.1)
                     leg_msgs[leg] = msg
             else:  # 33, rotate
                 rm = stompy.transforms.rotation_3d(
@@ -162,8 +178,10 @@ class MoveBody(smach.State):
                     bpts = stompy.planners.trajectory.follow_transform(
                         bft, rm, 10)
                     pts = stompy.kinematics.body.body_to_leg_array(leg, bpts)
+                    #msg = stompy.ros.trajectories.from_points(
+                    #    leg, pts[1:], delay=0.1)
                     msg = stompy.ros.trajectories.from_points(
-                        leg, pts)
+                        leg, [pts[-1], ], delay=0.0, dt=5.0)
                     leg_msgs[leg] = msg
             # send trajectories
             for leg in leg_msgs:
@@ -187,13 +205,18 @@ class PositionLegs(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, outcomes=['ready', 'error'],
-            input_keys=['load', 'leg_positions', 'leg_loads', 'lift_z'])
+            input_keys=['leg_positions', 'leg_loads', 'lift_z'])
 
     def execute(self, userdata):
-        if userdata.load > 4000:
+        load = 0.
+        for leg in stompy.info.legs:
+            load += stompy.sensors.legs.legs[leg]['load']
+        if load > 4000:
             loaded = True
+            pt_distance = 0.01
         else:
             loaded = False
+            pt_distance = 0.04
         # positon legs one at a time
         # start with least loaded leg
         leg_loads = {}
@@ -210,7 +233,8 @@ class PositionLegs(smach.State):
             # lift leg (high_z)
             start = stompy.sensors.legs.legs[leg]['foot']
             end = (start[0], start[1], high_z)
-            msg = stompy.ros.trajectories.line(leg, start, end, delay=0.1)
+            msg = stompy.ros.trajectories.line(
+                leg, start, end, distance=pt_distance, delay=0.0)
             publisher = stompy.ros.legs.publishers[leg]
             publisher.send_goal(msg)
             rospy.sleep(0.5)
@@ -226,7 +250,7 @@ class PositionLegs(smach.State):
             end = (target_position[0], target_position[1], high_z)
             msg = stompy.ros.trajectories.line(
                 leg, stompy.sensors.legs.legs[leg]['foot'],
-                end, delay=0.1)
+                end, distance=pt_distance, delay=0.0)
             publisher.send_goal(msg)
             rospy.sleep(0.5)
             while True:
@@ -240,7 +264,7 @@ class PositionLegs(smach.State):
             # lower to position (z or load)
             msg = stompy.ros.trajectories.line(
                 leg, stompy.sensors.legs.legs[leg]['foot'],
-                target_position, delay=0.1)
+                target_position, distance=pt_distance, delay=0.0)
             publisher.send_goal(msg)
             rospy.sleep(0.5)
             leg_loaded = False
@@ -264,7 +288,7 @@ class PositionLegs(smach.State):
                     target_position[2] + dz)
                 msg = stompy.ros.trajectories.line(
                     leg, stompy.sensors.legs.legs[leg]['foot'],
-                    lower_target, delay=0.1)
+                    lower_target, delay=0.0)
                 publisher.send_goal(msg)
                 rospy.sleep(0.5)
                 while True:
@@ -312,6 +336,19 @@ class Stand(smach.State):
         return "ready"
 
 
+class Wait(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self, outcomes=["error", "newmode"])
+
+    def execute(self, userdata):
+        while True:
+            if stompy.ros.joystick.mode != 34:
+                return "newmode"
+            rospy.sleep(0.1)
+        return "error"
+
+
 if __name__ == '__main__':
     stompy.ros.init.init()
     # setup state machine
@@ -337,18 +374,24 @@ if __name__ == '__main__':
             transitions={'ready': 'ModeTransition'})
         smach.StateMachine.add(
             'ModeTransition', ModeTransition(),
-            transitions={'moveleg': 'MoveLeg', 'movebody': 'MoveBody'})
+            transitions={
+                'moveleg': 'MoveLeg', 'movebody': 'MoveBody',
+                'positionlegs': 'PositionLegs'})
         smach.StateMachine.add(
             'MoveLeg', MoveLeg(),
             transitions={'newmode': 'ModeTransition'})
         smach.StateMachine.add(
             'MoveBody', MoveBody(),
             transitions={'newmode': 'ModeTransition'})
-        #smach.StateMachine.add(
-        #    'PositionLegs', PositionLegs(),
-        #    transitions={'ready': 'Stand'})
-        #smach.StateMachine.add(
-        #    'Stand', Stand())
+        smach.StateMachine.add(
+            'PositionLegs', PositionLegs(),
+            transitions={'ready': 'Stand'})
+        smach.StateMachine.add(
+            'Stand', Stand(),
+            transitions={'ready': 'Wait'})
+        smach.StateMachine.add(
+            'Wait', Wait(),
+            transitions={'newmode': 'ModeTransition'})
 
     outcome = sm.execute()
     print("State machine ended with: %s" % outcome)
