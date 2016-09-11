@@ -25,6 +25,7 @@ from .. import planners
 from . import legs
 from .. import sensors
 from . import trajectories
+from .. import transforms
 
 
 JOINT_FRAME = 0
@@ -69,7 +70,7 @@ class Plan(object):
                         self.leg, [ps, ],
                         delay=ptt)
                     if valid_point_positions(pt):
-                        print(trajectory)
+                        #print(trajectory)
                         self.send_trajectory(trajectory, JOINT_FRAME)
                 else:
                     print("no mini trajectory")
@@ -80,32 +81,41 @@ class Plan(object):
     def set_line(self, target, frame, duration, timestamp=None):
         start, start_time = self.find_start(timestamp, frame)
         pts = planners.trajectory.linear_by_rate(
-            start, target, duration, 100.)
+            start, target, duration, 10.)
         # build trajectory
+        trajectory = trajectories.from_angles(self.leg, pts, 0.1, timestamp)
+        self.set_trajectory(trajectory, frame)
 
-    def set_arc(self, target, frame, duration):
-        # TODO
-        pass
+    def set_arc_velocity(
+            self, rotation_point, angles, frame,
+            timestamp=None, degrees=False):
+        """
+        angles are in radians (or degrees) per second
+        """
+        transform = transforms.rotate_about_point_3d(
+            rotation_point[0], rotation_point[1], rotation_point[2],
+            angles[0], angles[1], angles[2], degrees=degrees)
+        self.set_transform(transform, frame, timestamp=timestamp)
 
-    def set_velocity(self, velocity, frame):
+    def set_velocity(self, velocity, frame, timestamp=None):
         print("velocity: %s, frame: %s" % (velocity, frame))
         # units are meters per second
         # or radians per second
         self.frame = frame
         self.velocity = velocity
         self.mode = VELOCITY_MODE
-        trajectory = self.compute_trajectory()
+        trajectory = self.compute_trajectory(timestamp=timestamp)
         #print("trajectory: %s" % (trajectory, ))
         if (
                 (self.last_publish is None) or
                 (rospy.Time.now() - self.last_publish > rospy.Duration(0.05))):
             self.send_trajectory(trajectory)
 
-    def set_transform(self, transform, frame):
+    def set_transform(self, transform, frame, timestamp=None):
         self.frame = frame
         self.transform = transform
         self.mode = TRANSFORM_MODE
-        trajectory = self.compute_trajectory()
+        trajectory = self.compute_trajectory(timestamp=timestamp)
         if (
                 (self.last_publish is None) or
                 (rospy.Time.now() - self.last_publish > rospy.Duration(0.05))):
@@ -131,7 +141,7 @@ class Plan(object):
             npt = kinematics.leg.forward(*npt)
         elif frame == BODY_FRAME:
             # npt to npt (in body) + velocity
-            nptt = kinematics.body.leg_to_body(
+            npt = kinematics.body.leg_to_body(
                 self.leg, *kinematics.leg.forward(*npt))
         return npt, nptt
 
@@ -221,12 +231,13 @@ class Plan(object):
             '%s_thigh' % (self.leg, ),
             '%s_knee' % (self.leg, )]
         # TODO check limits
-        for p in trajectory.trajectory.points:
+        for (i, p) in enumerate(trajectory.trajectory.points):
             if not kinematics.leg.check_limits(p.positions):
                 # TODO make this more better
                 print("!!!!Trajectory would send angles out of limits")
-                print(p.positions)
-                return
+                print('%s: %s' % (i, p.positions))
+                # TODO print which ones is out of range
+                #return
         legs.publishers[self.leg].send_goal(trajectory)
         if trajectory.trajectory.header.stamp.is_zero():
             #print("timestamping trajectory")
@@ -242,6 +253,7 @@ class Plan(object):
         if self.mode == STOP_MODE:
             pass  # do nothing
         elif self.mode == TRAJECTORY_MODE:
+            # check if trajectory is done?
             pass  # trajectory should have already been sent
         elif self.mode in (VELOCITY_MODE, TRANSFORM_MODE):
             # check to see if the trajectory is close to done

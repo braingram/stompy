@@ -85,6 +85,7 @@ class MoveLeg(smach.State):
                 stompy.ros.planner.plans[leg].set_stop()
                 if 'leg' in state:
                     del state['leg']
+                return
             else:
                 # append new trajectory to old?
                 if move_type == 'foot':
@@ -137,6 +138,7 @@ class MoveBody(smach.State):
                     break
             if not movement:
                 stompy.ros.planner.set_stop()
+                return
             if mode == 32:  # translate
                 vector = [
                     data.axes[0] / 10.,
@@ -180,11 +182,9 @@ class PositionLegs(smach.State):
         for leg in stompy.info.legs:
             load += stompy.sensors.legs.legs[leg]['load']
         if load > 4000:
-            loaded = True
-            pt_distance = 0.01
+            pt_distance = 0.1
         else:
-            loaded = False
-            pt_distance = 0.04
+            pt_distance = 0.4
         # positon legs one at a time
         # start with least loaded leg
         leg_loads = {}
@@ -192,95 +192,59 @@ class PositionLegs(smach.State):
             leg_loads[leg] = stompy.sensors.legs.legs[leg]['load']
         legs_by_load = sorted(leg_loads, key=lambda k: leg_loads[k])
 
-        high_z = userdata.lift_z
+        lift_z = userdata.lift_z
         for leg in legs_by_load:
             print("leg: %s" % leg)
             if leg not in userdata.leg_positions[leg]:
                 pass
             target_position = userdata.leg_positions[leg]
             target_load = userdata.leg_loads[leg]
-            # lift leg (high_z)
-            start = stompy.sensors.legs.legs[leg]['foot']
-            end = (start[0], start[1], high_z)
-            msg = stompy.ros.trajectories.line(
-                leg, start, end, distance=pt_distance, delay=0.1)
-            publisher = stompy.ros.legs.publishers[leg]
-            print("lifting")
-            publisher.send_goal(msg)
-            rospy.sleep(0.5)
-            while True:
-                state = publisher.get_state()
-                if state == actionlib.GoalStatus.SUCCEEDED:
-                    break
-                if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, actionlib.GoalStatus.to_string(state))
-                    return "error"
-                rospy.sleep(0.1)
-            # move to position (x/y)
-            end = (target_position[0], target_position[1], high_z)
-            msg = stompy.ros.trajectories.line(
-                leg, stompy.sensors.legs.legs[leg]['foot'],
-                end, distance=pt_distance, delay=0.1)
-            print("moving to x/y")
-            publisher.send_goal(msg)
-            rospy.sleep(0.5)
-            while True:
-                state = publisher.get_state()
-                if state == actionlib.GoalStatus.SUCCEEDED:
-                    break
-                if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, actionlib.GoalStatus.to_string(state))
-                    return "error"
-                rospy.sleep(0.1)
-            # lower to position (z or load)
-            msg = stompy.ros.trajectories.line(
-                leg, stompy.sensors.legs.legs[leg]['foot'],
-                target_position, distance=pt_distance, delay=0.1)
-            print("lowering")
-            publisher.send_goal(msg)
-            rospy.sleep(0.5)
-            leg_loaded = False
-            while True:
-                state = publisher.get_state()
-                if state == actionlib.GoalStatus.SUCCEEDED:
-                    break
-                if stompy.sensors.legs.legs[leg]['load'] >= target_load:
-                    # cancel action
-                    publisher.cancel_goal()
-                    leg_loaded = True
-                    break
-                if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, actionlib.GoalStatus.to_string(state))
-                    return "error"
-                rospy.sleep(0.1)
-            dz = 0.5
-            while loaded and not leg_loaded:
-                lower_target = (
-                    target_position[0], target_position[1],
-                    target_position[2] + dz)
-                msg = stompy.ros.trajectories.line(
-                    leg, stompy.sensors.legs.legs[leg]['foot'],
-                    lower_target, delay=0.1)
-                publisher.send_goal(msg)
-                rospy.sleep(0.5)
-                while True:
-                    state = publisher.get_state()
-                    if state == actionlib.GoalStatus.SUCCEEDED:
-                        break
-                    if stompy.sensors.legs.legs[leg]['load'] >= target_load:
-                        # cancel action
-                        publisher.cancel_goal()
-                        leg_loaded = True
-                        break
-                    if state != actionlib.GoalStatus.ACTIVE:
-                        print(leg, state)
-                        return "error"
+            plan = stompy.ros.planner.plans[leg]
+            # check if leg is loaded
+            if stompy.sensors.legs.legs[leg]['load'] > 100:
+                print(
+                    "leg is loaded %s, lifting" % (
+                        stompy.sensors.legs.legs[leg]['load']))
+                # lift until unloaded
+                plan.set_velocity(
+                    [0, 0, -pt_distance], stompy.ros.planner.FOOT_FRAME)
+                while stompy.sensors.legs.legs[leg]['load'] > 100.:
+                    plan.update()
                     rospy.sleep(0.1)
-                dz += 0.5
-
-        # TODO temporary, until I rewrite above to use planner
-        for leg in stompy.ros.planner.plans:
-            stompy.ros.planner.plans[leg].last_trajectory = None
+                # continue lifting until lift_z off ground
+                unloaded_z = stompy.sensors.legs.legs[leg]['foot'][2]
+                while (
+                        unloaded_z - stompy.sensors.legs.legs[leg]['foot'][2]
+                        < lift_z):
+                    plan.update()
+                    rospy.sleep(0.1)
+                plan.set_stop()
+            # move to xy
+            lifted_z = stompy.sensors.legs.legs[leg]['foot'][2]
+            end = [target_position[0], target_position[1], lifted_z]
+            print("moving to xy: %s" % end)
+            # TODO compute duration
+            plan.set_line(
+                end, stompy.ros.planner.FOOT_FRAME, 2.)
+            publisher = stompy.ros.legs.publishers[leg]
+            rospy.sleep(0.1)
+            while True:
+                # plan.update()
+                state = publisher.get_state()
+                if state == actionlib.GoalStatus.SUCCEEDED:
+                    break
+                if state != actionlib.GoalStatus.ACTIVE:
+                    print(leg, actionlib.GoalStatus.to_string(state))
+                    return "error"
+                rospy.sleep(0.1)
+            # lower until loaded
+            print("Lower until loaded")
+            plan.set_velocity(
+                [0, 0, pt_distance], stompy.ros.planner.FOOT_FRAME)
+            while stompy.sensors.legs.legs[leg]['load'] <= target_load:
+                plan.update()
+                rospy.sleep(0.1)
+            plan.set_stop()
         return 'ready'
 
 
@@ -292,22 +256,40 @@ class Stand(smach.State):
 
     def execute(self, userdata):
         stand_z = userdata.stand_z
-        for leg in stompy.info.legs:
-            ft = stompy.sensors.legs.legs[leg]['foot']
-            end = (ft[0], ft[1], stand_z)
-            msg = stompy.ros.trajectories.line(leg, ft, end)
-            stompy.ros.legs.publishers[leg].send_goal(msg)
-        done = True
+        start_time = rospy.Time.now() + rospy.Duration(0.5)
+        for leg in stompy.ros.planner.plans:
+            plan = stompy.ros.planner.plans[leg]
+            st, _ = stompy.ros.planner.plans[leg].find_start(
+                frame=stompy.ros.planner.FOOT_FRAME)
+            end = (st[0], st[1], stand_z)
+            print("stand, moving %s from %s to %s" % (leg, st, end))
+            print("starting at: %s" % start_time.to_sec())
+            plan.set_line(
+                end, stompy.ros.planner.FOOT_FRAME, 3.0,
+                timestamp=start_time)
+        #rospy.sleep(0.1)
+        done = False
+        print(
+            "waiting on legs to finish standing: %s" %
+            rospy.Time.now().to_sec())
         while not done:
             done = True
             for leg in stompy.info.legs:
-                p = stompy.ros.legs.publishers[leg].get_state()
-                s = p.get_state()
+                s = stompy.ros.legs.publishers[leg].get_state()
+                print(leg, actionlib.GoalStatus.to_string(s))
+                if s == actionlib.GoalStatus.SUCCEEDED:
+                    continue
                 if s != actionlib.GoalStatus.SUCCEEDED:
                     done = False
-                if s != actionlib.GoalStatus.ACTIVE:
-                    print(leg, s)
+                if s not in (
+                        actionlib.GoalStatus.ACTIVE,
+                        actionlib.GoalStatus.PENDING):
+                    print(leg, actionlib.GoalStatus.to_string(s))
                     return "error"
+            print("waiting... %s" % rospy.Time.now().to_sec())
+            rospy.sleep(0.1)
+        print("done standing: %s" % rospy.Time.now().to_sec())
+        stompy.ros.planner.set_stop()
         return "ready"
 
 
@@ -329,7 +311,7 @@ if __name__ == '__main__':
     # setup state machine
     sm = smach.StateMachine(outcomes=["error", "ready"])
     sm.userdata.stand_z = 1.2
-    sm.userdata.lift_z = 0.5
+    sm.userdata.lift_z = 0.1
     sm.userdata.leg_positions = {
         'fr': (1.5, 0., 0.5),
         'mr': (1.5, 0., 0.5),

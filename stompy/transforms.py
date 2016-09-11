@@ -22,9 +22,33 @@ def affine_2d(x, y, a, degrees=False):
     return translation_2d(x, y) * rotation_2d(a, degrees)
 
 
+def rotate_about_point_2d(x, y, a, degrees=False):
+    return (
+        translation_2d(x, y) *
+        rotation_2d(a, degrees) *
+        translation_2d(-x, -y))
+
+
 def transform_2d(m, x, y):
     r = m * [[x], [y], [1.]]
     return float(r[0]), float(r[1])
+
+
+def homogeneous_2d(pts):
+    """Expects input of [npts, dims]"""
+    pts = numpy.array(pts)
+    return numpy.hstack((
+        pts, numpy.ones((pts.shape[0], 1)))).T
+
+
+def nonhomogeneous_2d(pts):
+    """Expects input of [dims, npts]"""
+    return numpy.array(pts[:2].T)
+
+
+def transform_2d_array(m, pts):
+    r = m * homogeneous_2d(pts)
+    return nonhomogeneous_2d(r)
 
 
 def translation_3d(x, y, z):
@@ -83,6 +107,13 @@ def affine_3d(x, y, z, xa, ya, za, degrees=False):
     return (
         translation_3d(x, y, z) *
         rotation_3d(xa, ya, za, degrees))
+
+
+def rotate_about_point_3d(x, y, z, xa, ya, za, degrees=False):
+    return (
+        translation_3d(x, y, z) *
+        rotation_3d(xa, ya, za, degrees) *
+        translation_3d(-x, -y, -z))
 
 
 def transform_3d(m, x, y, z):
