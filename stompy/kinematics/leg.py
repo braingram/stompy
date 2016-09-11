@@ -61,7 +61,21 @@ def in_limits(angle, limits):
     return True
 
 
+def check_limits(angles):
+    """Assumes angles is a list of [hip, thigh, knee] in radians"""
+    if not in_limits(angles[0], hip_limits):
+        return False
+    if not in_limits(angles[1], thigh_limits):
+        return False
+    if not in_limits(angles[2], knee_limits):
+        return False
+    return True
+
+
 def inverse(x, y, z):
+    """Compute inverse kinematics:
+
+    joint angles (hip, thigh, knee) from foot coordinates (x, y, z)"""
     l = numpy.sqrt(x * x + y * y)
 
     # TODO deal with -x

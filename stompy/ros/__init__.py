@@ -14,6 +14,7 @@ if has_ros:
     from . import joints
     #from . import joystick
     from . import legs
+    from . import planner
     from . import trajectories
     #__all__ = ['init', 'joints', 'joystick', 'legs', 'trajectories']
-    __all__ = ['init', 'joints', 'legs', 'trajectories']
+    __all__ = ['init', 'joints', 'legs', 'plans', 'trajectories']

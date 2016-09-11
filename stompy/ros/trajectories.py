@@ -3,6 +3,7 @@
 """
 
 
+import genpy
 import rospy
 import control_msgs.msg
 import trajectory_msgs.msg
@@ -20,8 +21,13 @@ def timestamp(msg, delay=default_delay):
     # sets start time of movement
     if delay is None:
         return msg
-    msg.trajectory.header.stamp = (
-        rospy.Time.now() + rospy.Duration(delay))
+    elif isinstance(delay, rospy.Duration):
+        t = rospy.Time.now() + delay
+    elif isinstance(delay, (genpy.rostime.Time, rospy.Time)):
+        t = delay
+    else:
+        t = rospy.Time.now() + rospy.Duration(delay)
+    msg.trajectory.header.stamp = t
     return msg
 
 
@@ -33,7 +39,7 @@ def from_angles(leg_name, angles, dt=default_dt, delay=default_delay):
         '%s_thigh' % (leg_name))
     msg.trajectory.joint_names.append(
         '%s_knee' % (leg_name))
-    t = dt
+    t = 0.
     for angle in angles:
         p = trajectory_msgs.msg.JointTrajectoryPoint()
         p.time_from_start = rospy.Duration(t)
@@ -51,7 +57,7 @@ def from_points(leg_name, points, dt=default_dt, delay=default_delay):
         '%s_thigh' % (leg_name))
     msg.trajectory.joint_names.append(
         '%s_knee' % (leg_name))
-    t = dt
+    t = 0.
     for pt in points:
         a = kinematics.leg.inverse(pt[0], pt[1], pt[2])
         p = trajectory_msgs.msg.JointTrajectoryPoint()

@@ -74,7 +74,7 @@ class MoveLeg(smach.State):
             # check if a previous message had been sent to a different leg
             if 'leg' in state and state['leg'] != leg:
                 # if so, cancel it as the leg changed
-                stompy.ros.legs.publishers[state['leg']].cancel_goal()
+                stompy.ros.planner.plans[state['leg']].set_stop()
                 del state['leg']
             movement = False
             for a in data.axes:
@@ -82,33 +82,25 @@ class MoveLeg(smach.State):
                     movement = True
                     break
             if not movement:
-                # TODO check goal before canceling?
-                stompy.ros.legs.publishers[leg].cancel_goal()
+                stompy.ros.planner.plans[leg].set_stop()
                 if 'leg' in state:
                     del state['leg']
             else:
                 # append new trajectory to old?
                 if move_type == 'foot':
-                    ft = stompy.sensors.legs.legs[leg]['foot']
-                    end = (
-                        ft[0] + data.axes[0],
-                        ft[1] + data.axes[1],
-                        ft[2] + data.axes[2])
-                    #pts = stompy.planners.trajectory.linear_by_distance(
-                    #    ft, end, 0.01)
-                    msg = stompy.ros.trajectories.from_points(
-                        leg, [end, ], delay=0.0, dt=1.0)
-                    #msg = stompy.ros.trajectories.line(
-                    #    leg, ft, end)
+                    vector = [
+                        data.axes[0] / 10.,
+                        data.axes[1] / 10.,
+                        data.axes[2] / 10.]
+                    stompy.ros.planner.plans[leg].set_velocity(
+                        vector, stompy.ros.planner.FOOT_FRAME)
                 else:  # angles
-                    leg_angles = stompy.sensors.legs.legs[leg]
-                    end = (
-                        leg_angles['hip'] + data.axes[0],
-                        leg_angles['thigh'] + data.axes[1],
-                        leg_angles['knee'] + data.axes[2])
-                    msg = stompy.ros.trajectories.from_angles(
-                        leg, [end, ], delay=0.0, dt=1.0)
-                stompy.ros.legs.publishers[leg].send_goal(msg)
+                    vector = [
+                        data.axes[0] / 5.,
+                        data.axes[1] / 5.,
+                        data.axes[2] / 5.]
+                    stompy.ros.planner.plans[leg].set_velocity(
+                        vector, stompy.ros.planner.JOINT_FRAME)
                 state['leg'] = leg
 
         # attach callback to joystick
@@ -117,7 +109,9 @@ class MoveLeg(smach.State):
         # sleep and watch for new modes
         while True:
             rospy.sleep(0.1)
+            stompy.ros.planner.update()
             if not (stompy.ros.joystick.mode < 12):
+                stompy.ros.planner.set_stop()
                 break
         # unregister callback
         stompy.ros.joystick.callbacks.unregister(cbid)
@@ -142,53 +136,22 @@ class MoveBody(smach.State):
                     movement = True
                     break
             if not movement:
-                for leg in stompy.info.legs:
-                    # TODO check goal before canceling?
-                    stompy.ros.legs.publishers[leg].cancel_goal()
-                return
-            leg_msgs = {}
+                stompy.ros.planner.set_stop()
             if mode == 32:  # translate
+                vector = [
+                    data.axes[0] / 10.,
+                    data.axes[1] / 10.,
+                    data.axes[2] / 10.]
                 for leg in stompy.info.legs:
-                    # get most recent goal
-                    #pt = stompy.ros.legs.get_next_point(leg)
-                    ft = stompy.sensors.legs.legs[leg]['foot']
-                    bft = stompy.kinematics.body.leg_to_body(leg, *ft)
-                    bend = (
-                        bft[0] + data.axes[0],
-                        bft[1] + data.axes[1],
-                        bft[2] + data.axes[2])
-                    lend = stompy.kinematics.body.body_to_leg(leg, *bend)
-                    msg = stompy.ros.trajectories.from_points(
-                        leg, [lend, ], delay=0., dt=1.0)
-                    #pts = stompy.planners.trajectory.linear_by_distance(
-                    #    ft, stompy.kinematics.body.body_to_leg(leg, *bend),
-                    #    0.01)
-                    #msg = stompy.ros.trajectories.from_points(
-                    #    leg, pts[1:], delay=0.1)
-                    #msg = stompy.ros.trajectories.line(
-                    #    leg, ft,
-                    #    stompy.kinematics.body.body_to_leg(leg, *bend),
-                    #    delay=0.1)
-                    leg_msgs[leg] = msg
+                    stompy.ros.planner.plans[leg].set_velocity(
+                        vector, stompy.ros.planner.BODY_FRAME)
             else:  # 33, rotate
                 rm = stompy.transforms.rotation_3d(
-                    data.axes[0], data.axes[1], data.axes[2], degrees=True)
+                    data.axes[0] / 5., data.axes[1] / 5., data.axes[2] / 5.,
+                    degrees=True)
                 for leg in stompy.info.legs:
-                    ft = stompy.sensors.legs.legs[leg]['foot']
-                    bft = stompy.kinematics.body.leg_to_body(leg, *ft)
-                    # follow transform
-                    bpts = stompy.planners.trajectory.follow_transform(
-                        bft, rm, 10)
-                    pts = stompy.kinematics.body.body_to_leg_array(leg, bpts)
-                    #msg = stompy.ros.trajectories.from_points(
-                    #    leg, pts[1:], delay=0.1)
-                    msg = stompy.ros.trajectories.from_points(
-                        #leg, pts, delay=None, dt=0.1)
-                        leg, [pts[-1], ], delay=0.0, dt=1.0)
-                    leg_msgs[leg] = msg
-            # send trajectories
-            for leg in leg_msgs:
-                stompy.ros.legs.publishers[leg].send_goal(leg_msgs[leg])
+                    stompy.ros.planner.plans[leg].set_transform(
+                        rm, stompy.ros.planner.BODY_FRAME)
 
         # attach callback to joystick
         cbid = stompy.ros.joystick.callbacks.register(
@@ -196,7 +159,9 @@ class MoveBody(smach.State):
         # sleep and watch for new modes
         while True:
             rospy.sleep(0.1)
+            stompy.ros.planner.update()
             if not (stompy.ros.joystick.mode in (32, 33)):
+                stompy.ros.planner.set_stop()
                 break
         # unregister callback
         stompy.ros.joystick.callbacks.unregister(cbid)
@@ -229,6 +194,7 @@ class PositionLegs(smach.State):
 
         high_z = userdata.lift_z
         for leg in legs_by_load:
+            print("leg: %s" % leg)
             if leg not in userdata.leg_positions[leg]:
                 pass
             target_position = userdata.leg_positions[leg]
@@ -237,8 +203,9 @@ class PositionLegs(smach.State):
             start = stompy.sensors.legs.legs[leg]['foot']
             end = (start[0], start[1], high_z)
             msg = stompy.ros.trajectories.line(
-                leg, start, end, distance=pt_distance, delay=0.0)
+                leg, start, end, distance=pt_distance, delay=0.1)
             publisher = stompy.ros.legs.publishers[leg]
+            print("lifting")
             publisher.send_goal(msg)
             rospy.sleep(0.5)
             while True:
@@ -246,14 +213,15 @@ class PositionLegs(smach.State):
                 if state == actionlib.GoalStatus.SUCCEEDED:
                     break
                 if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, state)
+                    print(leg, actionlib.GoalStatus.to_string(state))
                     return "error"
                 rospy.sleep(0.1)
             # move to position (x/y)
             end = (target_position[0], target_position[1], high_z)
             msg = stompy.ros.trajectories.line(
                 leg, stompy.sensors.legs.legs[leg]['foot'],
-                end, distance=pt_distance, delay=0.0)
+                end, distance=pt_distance, delay=0.1)
+            print("moving to x/y")
             publisher.send_goal(msg)
             rospy.sleep(0.5)
             while True:
@@ -261,13 +229,14 @@ class PositionLegs(smach.State):
                 if state == actionlib.GoalStatus.SUCCEEDED:
                     break
                 if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, state)
+                    print(leg, actionlib.GoalStatus.to_string(state))
                     return "error"
                 rospy.sleep(0.1)
             # lower to position (z or load)
             msg = stompy.ros.trajectories.line(
                 leg, stompy.sensors.legs.legs[leg]['foot'],
-                target_position, distance=pt_distance, delay=0.0)
+                target_position, distance=pt_distance, delay=0.1)
+            print("lowering")
             publisher.send_goal(msg)
             rospy.sleep(0.5)
             leg_loaded = False
@@ -281,7 +250,7 @@ class PositionLegs(smach.State):
                     leg_loaded = True
                     break
                 if state != actionlib.GoalStatus.ACTIVE:
-                    print(leg, state)
+                    print(leg, actionlib.GoalStatus.to_string(state))
                     return "error"
                 rospy.sleep(0.1)
             dz = 0.5
@@ -291,7 +260,7 @@ class PositionLegs(smach.State):
                     target_position[2] + dz)
                 msg = stompy.ros.trajectories.line(
                     leg, stompy.sensors.legs.legs[leg]['foot'],
-                    lower_target, delay=0.0)
+                    lower_target, delay=0.1)
                 publisher.send_goal(msg)
                 rospy.sleep(0.5)
                 while True:
@@ -309,6 +278,9 @@ class PositionLegs(smach.State):
                     rospy.sleep(0.1)
                 dz += 0.5
 
+        # TODO temporary, until I rewrite above to use planner
+        for leg in stompy.ros.planner.plans:
+            stompy.ros.planner.plans[leg].last_trajectory = None
         return 'ready'
 
 
