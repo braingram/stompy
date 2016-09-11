@@ -55,31 +55,48 @@ class Plan(object):
         self.last_publish = None
 
     def set_stop(self):
-        self.mode = STOP_MODE
-        if self.last_trajectory is not None:
+        t = rospy.Time.now()
+        # find current goal
+        pt, ptt = self.current_point()
+        if pt is not None and valid_point_positions(pt):
+            if ptt > t:
+                # TODO send mini trajectory to this point
+                print("mini trajectory")
+                ps = pt.positions
+                trajectory = trajectories.from_angles(
+                    self.leg, [ps, ],
+                    delay=ptt)
+                if valid_point_positions(pt):
+                    #print(trajectory)
+                    self.send_trajectory(trajectory, JOINT_FRAME)
+        else:
             legs.publishers[self.leg].cancel_goal()
-            t = rospy.Time.now()
-            # find current goal
-            pt, ptt = self.current_point()
-            if pt is not None and valid_point_positions(pt):
-                if ptt > t:
-                    # TODO send mini trajectory to this point
-                    print("mini trajectory")
-                    ps = pt.positions
-                    trajectory = trajectories.from_angles(
-                        self.leg, [ps, ],
-                        delay=ptt)
-                    if valid_point_positions(pt):
-                        #print(trajectory)
-                        self.send_trajectory(trajectory, JOINT_FRAME)
-                else:
-                    print("no mini trajectory")
-                    print(ptt.to_sec(), t.to_sec())
-                # save to to avoid compounding errors
-                self._current_point = pt
+        self.mode = STOP_MODE
+        #if self.last_trajectory is not None:
+        #    legs.publishers[self.leg].cancel_goal()
+        #    t = rospy.Time.now()
+        #    # find current goal
+        #    pt, ptt = self.current_point()
+        #    if pt is not None and valid_point_positions(pt):
+        #        if ptt > t:
+        #            # TODO send mini trajectory to this point
+        #            print("mini trajectory")
+        #            ps = pt.positions
+        #            trajectory = trajectories.from_angles(
+        #                self.leg, [ps, ],
+        #                delay=ptt)
+        #            if valid_point_positions(pt):
+        #                #print(trajectory)
+        #                self.send_trajectory(trajectory, JOINT_FRAME)
+        #        else:
+        #            print("no mini trajectory")
+        #            print(ptt.to_sec(), t.to_sec())
+        #        # save to to avoid compounding errors
+        #        self._current_point = pt
 
-    def set_line(self, target, frame, duration, timestamp=None):
-        start, start_time = self.find_start(timestamp, frame)
+    def set_line(self, target, frame, duration, start=None, timestamp=None):
+        if start is None:
+            start, _ = self.find_start(timestamp, frame)
         pts = planners.trajectory.linear_by_rate(
             start, target, duration, 10.)
         # build trajectory
@@ -98,6 +115,8 @@ class Plan(object):
         self.set_transform(transform, frame, timestamp=timestamp)
 
     def set_velocity(self, velocity, frame, timestamp=None):
+        if timestamp is None:
+            timestamp = rospy.Time.now()
         print("velocity: %s, frame: %s" % (velocity, frame))
         # units are meters per second
         # or radians per second
@@ -112,6 +131,8 @@ class Plan(object):
             self.send_trajectory(trajectory)
 
     def set_transform(self, transform, frame, timestamp=None):
+        if timestamp is None:
+            timestamp = rospy.Time.now()
         self.frame = frame
         self.transform = transform
         self.mode = TRANSFORM_MODE
@@ -146,6 +167,7 @@ class Plan(object):
         return npt, nptt
 
     def compute_trajectory(self, timestamp=None, append=False):
+        trajectory_start_time = timestamp
         if timestamp is None:
             timestamp = rospy.Time.now()
         if self.mode == STOP_MODE:
@@ -155,6 +177,8 @@ class Plan(object):
         elif self.mode in (VELOCITY_MODE, TRANSFORM_MODE):
             start, start_time = self.find_start(
                 timestamp, frame=self.frame, use_end=append)
+            if append or trajectory_start_time is None:
+                trajectory_start_time = start_time
             #if append:
             #    npt, nptt = self.end_point()
             #else:
@@ -191,7 +215,7 @@ class Plan(object):
                 pts = planners.trajectory.follow_transform(
                     start, self.transform, 10)[:-1]
             msg = trajectories.from_angles(
-                self.leg, pts, 0.1, start_time)
+                self.leg, pts, 0.1, trajectory_start_time)
             #print("compute done")
             return msg
 
@@ -232,12 +256,13 @@ class Plan(object):
             '%s_knee' % (self.leg, )]
         # TODO check limits
         for (i, p) in enumerate(trajectory.trajectory.points):
-            if not kinematics.leg.check_limits(p.positions):
+            if not kinematics.leg.check_limits(p.positions, slop=0.008):
                 # TODO make this more better
                 print("!!!!Trajectory would send angles out of limits")
                 print('%s: %s' % (i, p.positions))
+                print('frame: %s' % frame)
                 # TODO print which ones is out of range
-                #return
+                return
         legs.publishers[self.leg].send_goal(trajectory)
         if trajectory.trajectory.header.stamp.is_zero():
             #print("timestamping trajectory")

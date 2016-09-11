@@ -259,13 +259,15 @@ class Stand(smach.State):
         start_time = rospy.Time.now() + rospy.Duration(0.5)
         for leg in stompy.ros.planner.plans:
             plan = stompy.ros.planner.plans[leg]
-            st, _ = stompy.ros.planner.plans[leg].find_start(
+            st, _ = plan.find_start(
+                #timestamp=start_time,
                 frame=stompy.ros.planner.FOOT_FRAME)
             end = (st[0], st[1], stand_z)
             print("stand, moving %s from %s to %s" % (leg, st, end))
             print("starting at: %s" % start_time.to_sec())
             plan.set_line(
-                end, stompy.ros.planner.FOOT_FRAME, 3.0,
+                end, stompy.ros.planner.FOOT_FRAME, 4.0,
+                start=st,
                 timestamp=start_time)
         #rospy.sleep(0.1)
         done = False
@@ -276,7 +278,7 @@ class Stand(smach.State):
             done = True
             for leg in stompy.info.legs:
                 s = stompy.ros.legs.publishers[leg].get_state()
-                print(leg, actionlib.GoalStatus.to_string(s))
+                #print(leg, actionlib.GoalStatus.to_string(s))
                 if s == actionlib.GoalStatus.SUCCEEDED:
                     continue
                 if s != actionlib.GoalStatus.SUCCEEDED:
@@ -286,7 +288,6 @@ class Stand(smach.State):
                         actionlib.GoalStatus.PENDING):
                     print(leg, actionlib.GoalStatus.to_string(s))
                     return "error"
-            print("waiting... %s" % rospy.Time.now().to_sec())
             rospy.sleep(0.1)
         print("done standing: %s" % rospy.Time.now().to_sec())
         stompy.ros.planner.set_stop()
