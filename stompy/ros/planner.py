@@ -51,7 +51,6 @@ class Plan(object):
         self.last_trajectory = None
         self.mode = STOP_MODE
         self.leg = leg
-        self._current_point = None
         self.last_publish = None
 
     def set_stop(self):
@@ -72,27 +71,6 @@ class Plan(object):
         else:
             legs.publishers[self.leg].cancel_goal()
         self.mode = STOP_MODE
-        #if self.last_trajectory is not None:
-        #    legs.publishers[self.leg].cancel_goal()
-        #    t = rospy.Time.now()
-        #    # find current goal
-        #    pt, ptt = self.current_point()
-        #    if pt is not None and valid_point_positions(pt):
-        #        if ptt > t:
-        #            # TODO send mini trajectory to this point
-        #            print("mini trajectory")
-        #            ps = pt.positions
-        #            trajectory = trajectories.from_angles(
-        #                self.leg, [ps, ],
-        #                delay=ptt)
-        #            if valid_point_positions(pt):
-        #                #print(trajectory)
-        #                self.send_trajectory(trajectory, JOINT_FRAME)
-        #        else:
-        #            print("no mini trajectory")
-        #            print(ptt.to_sec(), t.to_sec())
-        #        # save to to avoid compounding errors
-        #        self._current_point = pt
 
     def set_line(self, target, frame, duration, start=None, timestamp=None):
         if start is None:
@@ -269,7 +247,6 @@ class Plan(object):
             trajectory.trajectory.header.stamp = rospy.Time.now()
         self.last_publish = rospy.Time.now()
         self.last_trajectory = trajectory
-        self._current_point = None
         #print("trajectory sent")
 
     def update(self, timestamp=None):
@@ -336,14 +313,6 @@ class Plan(object):
             return None, None
         if timestamp is None:
             timestamp = rospy.Time.now()
-        if self._current_point is not None:
-            if valid_point_positions(self._current_point):
-                print("Using cached current_point")
-                return self._current_point, timestamp
-            else:
-                print("cached current_point is invalid")
-                print(self._current_point)
-                self._current_point = None
         pt, ptt = self.next_point(timestamp)
         if pt is None:
             print("No next point found")
