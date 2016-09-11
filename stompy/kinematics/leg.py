@@ -53,21 +53,21 @@ knee_limits = (-2.3736, 0.)
 knee_rest_angle = numpy.arctan2(kt[1], kt[0])
 
 
-def in_limits(angle, limits):
-    if angle < limits[0]:
+def in_limits(angle, limits, slop=0.):
+    if angle < (limits[0] - slop):
         return False
-    if angle > limits[1]:
+    if angle > (limits[1] + slop):
         return False
     return True
 
 
-def check_limits(angles):
+def check_limits(angles, slop=0.):
     """Assumes angles is a list of [hip, thigh, knee] in radians"""
-    if not in_limits(angles[0], hip_limits):
+    if not in_limits(angles[0], hip_limits, slop):
         return False
-    if not in_limits(angles[1], thigh_limits):
+    if not in_limits(angles[1], thigh_limits, slop):
         return False
-    if not in_limits(angles[2], knee_limits):
+    if not in_limits(angles[2], knee_limits, slop):
         return False
     return True
 
