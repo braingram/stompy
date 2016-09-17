@@ -49,6 +49,9 @@ class JointTrajectoryActionServer(object):
         print("Joint names: %s" % names)
         # wait for start
         start_time = goal.trajectory.header.stamp
+        # set this to true when playing back rosbags
+        if start_time.is_zero():
+            start_time = rospy.Time.now()
         if rospy.Time.now() < start_time:
             print("Waiting for start time: %s" % start_time)
             rospy.sleep(start_time - rospy.Time.now())
@@ -65,9 +68,13 @@ class JointTrajectoryActionServer(object):
                 success = False
                 print("preempted...")
                 break
+            print("start time: %s" % start_time)
+            print("time_from_start: %s" % pt.time_from_start)
+            st = start_time + pt.time_from_start
+            dt = st - rospy.Time.now()
+            print("pausing %s" % dt)
+            rospy.sleep(dt)
             print("Moving %s to %s" % (names, pt.positions))
-            st = pt.time_from_start - (rospy.Time.now() - start_time)
-            rospy.sleep(st)
             # TODO append feedback
             # TODO send feedback
             pass
@@ -81,7 +88,8 @@ class JointTrajectoryActionServer(object):
 
 if __name__ == '__main__':
     rospy.init_node('action_server')
-    print("starting action server: %s" % rospy.get_name())
-    JointTrajectoryActionServer(rospy.get_name())
+    topic = '/stompy/fr/follow_joint_trajectory'
+    print("starting action server: %s" % topic)
+    JointTrajectoryActionServer(topic)
     print("spinning...")
     rospy.spin()

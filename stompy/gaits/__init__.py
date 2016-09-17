@@ -2,4 +2,4 @@
 
 from . import wave
 
-__all__ = ['wave', ]
+__all__ = ['stateful', 'wave', ]

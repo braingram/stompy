@@ -9,7 +9,7 @@ Angles [gazebo]
         looking at side with leg pointed right, + tilts down
         0 resting
         angles always +
-    calf angle
+    knee angle
         looking at side with leg pointed right, - tilts up
         0 resting
         angles always -

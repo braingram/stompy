@@ -22,7 +22,7 @@ def affine_2d(x, y, a, degrees=False):
     return translation_2d(x, y) * rotation_2d(a, degrees)
 
 
-def rotate_about_point_2d(x, y, a, degrees=False):
+def rotation_about_point_2d(x, y, a, degrees=False):
     return (
         translation_2d(x, y) *
         rotation_2d(a, degrees) *
@@ -109,7 +109,7 @@ def affine_3d(x, y, z, xa, ya, za, degrees=False):
         rotation_3d(xa, ya, za, degrees))
 
 
-def rotate_about_point_3d(x, y, z, xa, ya, za, degrees=False):
+def rotation_about_point_3d(x, y, z, xa, ya, za, degrees=False):
     return (
         translation_3d(x, y, z) *
         rotation_3d(xa, ya, za, degrees) *

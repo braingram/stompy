@@ -59,7 +59,6 @@ class Plan(object):
         pt, ptt = self.current_point()
         if pt is not None and valid_point_positions(pt):
             if ptt > t:
-                # TODO send mini trajectory to this point
                 print("mini trajectory")
                 ps = pt.positions
                 trajectory = trajectories.from_angles(
@@ -232,14 +231,12 @@ class Plan(object):
             '%s_hip' % (self.leg, ),
             '%s_thigh' % (self.leg, ),
             '%s_knee' % (self.leg, )]
-        # TODO check limits
+        # check limits
         for (i, p) in enumerate(trajectory.trajectory.points):
             if not kinematics.leg.check_limits(p.positions, slop=0.008):
-                # TODO make this more better
                 print("!!!!Trajectory would send angles out of limits")
                 print('%s: %s' % (i, p.positions))
                 print('frame: %s' % frame)
-                # TODO print which ones is out of range
                 return
         legs.publishers[self.leg].send_goal(trajectory)
         if trajectory.trajectory.header.stamp.is_zero():

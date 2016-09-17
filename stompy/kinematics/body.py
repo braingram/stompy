@@ -14,17 +14,17 @@ from .. import transforms
 
 leg_to_body_transforms = {
     'fl': transforms.affine_3d(
-        2.235, 0.584, 0, 0, 0, 55, degrees=True),
+        2.2352, 0.5842, 0, 0, 0, 55, degrees=True),
     'fr': transforms.affine_3d(
-        2.235, -0.584, 0, 0, 0, -55, degrees=True),
+        2.2352, -0.5842, 0, 0, 0, -55, degrees=True),
     'ml': transforms.affine_3d(
-        0., 0.686, 0, 0, 0, 90, degrees=True),
+        0., 0.6858, 0, 0, 0, 90, degrees=True),
     'mr': transforms.affine_3d(
-        0., -0.686, 0, 0, 0, -90, degrees=True),
+        0., -0.6858, 0, 0, 0, -90, degrees=True),
     'rl': transforms.affine_3d(
-        -2.235, 0.584, 0, 0, 0, 125, degrees=True),
+        -2.2352, 0.5842, 0, 0, 0, 125, degrees=True),
     'rr': transforms.affine_3d(
-        -2.235, -0.584, 0, 0, 0, -125, degrees=True),
+        -2.2352, -0.5842, 0, 0, 0, -125, degrees=True),
     #'fl': transforms.affine_2d(2.235, 0.584, 55, degrees=True),
     #'fr': transforms.affine_2d(2.235, -0.584, -55, degrees=True),
     #'ml': transforms.affine_2d(0., 0.686, 90, degrees=True),

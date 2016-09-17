@@ -294,6 +294,27 @@ class Stand(smach.State):
         return "ready"
 
 
+class Walk(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self, outcomes=["error", "newmode"])
+
+    def execute(self, userdata):
+        # use the target direction (cx, cy): rotation about point
+        # leg states are:
+        #  - lower (follow opposite of target direction and down)
+        #  - stance (follow opposite of target direction)
+        #  - lift (follow opposite of target direction and up)
+        #  - swing (follow target direction, fast)
+        #
+        # when target changes
+        #  - if movement stopped lower all legs in stance
+        #  - recompute trajectories (passing through current points)
+        #  - recompute limits (to know when to lift)
+        #  - recompute ideal trajectories (can be resumed on swing)
+        pass
+
+
 class Wait(smach.State):
     def __init__(self):
         smach.State.__init__(
