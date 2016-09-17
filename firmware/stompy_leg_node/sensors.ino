@@ -59,6 +59,7 @@ float cylinder_length_to_angle(float cylinder_length, float edge_b, float edge_c
 
 
 void read_sensors() {
+#ifndef FAKE_JOINTS
   hip_angle = cylinder_length_to_angle(sensor_to_cylinder_length(
       analogRead(HIP_SENSOR), HIP_SENSOR_MIN,
       HIP_SENSOR_UNITS_PER_INCH, HIP_CYLINDER_MIN_LENGTH),
@@ -76,7 +77,7 @@ void read_sensors() {
   knee_angle = KNEE_RESTING_ANGLE - knee_angle;
   // TODO work out hip resting angle
   hip_angle = hip_angle - HIP_RESTING_ANGLE;
-
+#endif
   // TODO calf
   calf_angle = analogRead(CALF_SENSOR);
   last_sensor_time = millis();

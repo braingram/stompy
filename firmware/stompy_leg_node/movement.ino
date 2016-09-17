@@ -20,11 +20,6 @@ float hip_angle_error = 0.;
 float thigh_angle_error = 0.;
 float knee_angle_error = 0.;
 
-#ifdef FAKE_VALVES
-float fake_hip = 0.;
-float fake_thigh = 0.;
-float fake_knee = 0.;
-#endif
 
 void setup_buffers() {
   for (write_index=0; write_index < BUFFER_LENGTH; write_index++) {
@@ -87,21 +82,16 @@ void on_drop_point(CommandProtocol *cmd) {
 
 
 float compute_angle_error() {
-#ifdef FAKE_VALVES
-  hip_angle_error = fake_hip - hip_angles[move_index];
-  thigh_angle_error = fake_thigh - thigh_angles[move_index];
-  knee_angle_error = fake_knee - knee_angles[move_index];
-#else
   hip_angle_error = hip_angle - hip_angles[move_index];
   thigh_angle_error = thigh_angle - thigh_angles[move_index];
   knee_angle_error = knee_angle - knee_angles[move_index];
-#endif
   return abs(hip_angle_error) + abs(thigh_angle_error) + abs(knee_angle_error);
 }
 
 // increment move_index and return 1 if a valid next point is found
 byte advance_move_index() {
   byte new_index = move_index + 1;
+  if (new_index == BUFFER_LENGTH) new_index = 0;
   while (new_index != move_index) {
     if (point_states[new_index] == POINT_ENABLE) {
       move_index = new_index;
@@ -140,11 +130,11 @@ void update_movement() {
     // TODO check tolerances (time and position), if outside tolerances
     //   - stop, report failure
     // control valves
-#ifdef FAKE_VALVES
+#ifdef FAKE_JOINTS
     if (millis() >= point_times[move_index]) {
-      fake_hip = hip_angles[move_index];
-      fake_thigh = thigh_angles[move_index];
-      fake_knee = knee_angles[move_index];
+      hip_angle = hip_angles[move_index];
+      thigh_angle = thigh_angles[move_index];
+      knee_angle = knee_angles[move_index];
     };
 #endif
   };

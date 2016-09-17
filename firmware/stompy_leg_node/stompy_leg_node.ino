@@ -21,7 +21,7 @@
 // ~5 seconds of buffering
 #define BUFFER_LENGTH 50
 
-#define FAKE_VALVES
+#define FAKE_JOINTS
 
 bool enable_node = false;
 
