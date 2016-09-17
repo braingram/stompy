@@ -1,36 +1,29 @@
 #!/usr/bin/env python
 
-import rospy
+#import rospy
+
+from ...leg import teensy
 
 
-global current
-current = None
+global points_reached
+points_reached = []
 
 
-def new_trajectory(trajectory):
-    global current
-    if current is None:
-        current = trajectory
-    else:
-        current = merge(current, trajectory)
+def on_point_reached(point_index):
+    global points_reached
+    print("Point reached: %s" % point_index.value)
+    points_reached.append(point_index.value)
 
 
-def merge(a, b):
-    """Marge a with b where b is a newer trajectory
+def on_done_moving():
+    print("Done moving...")
 
-    This assumes that both trajectories have
-    """
-    if b.header.stamp.is_zero():
-        b.header.stamp = rospy.Time.now()
-    # TODO check that these should be merged
-    # check that joint names agree
-    if a.trajectory.joint_names != b.trajectory.joint_names:
-        raise Exception(
-            "Joint names do not agree[%s != %s], cannot merge" % (
-                a.trajectory.joint_names, b.trajectory.joint_names))
-    # TODO merge points
-    # copy over tolerances
-    a.goal_time_tolerance = b.goal_time_tolerance
-    a.path_tolerance = b.path_tolerance
-    a.goal_tolerance = b.goal_tolerance
-    return a
+
+def connect_to_teensy():
+    teensy.mgr.on('point_reached', on_point_reached)
+    # TODO do I need this?
+    teensy.mgr.on('done_moving', on_done_moving)
+
+
+def connect():
+    connect_to_teensy()

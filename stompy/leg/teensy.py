@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import ctypes
+import glob
 import time
 import threading
 
@@ -18,8 +19,8 @@ commands = {
     },
     1: {
         'name': 'estop',
-        'args': (ctypes.c_byte, ),
-        'result': (ctypes.c_byte, ),
+        'args': (ctypes.c_ubyte, ),
+        'result': (ctypes.c_ubyte, ),
     },
     2: {
         'name': 'enable',
@@ -36,6 +37,24 @@ commands = {
         'name': 'get_time',
         'result': (ctypes.c_uint, ),
     },
+    6: {
+        'name': 'new_point',
+        'args': (
+            ctypes.c_ubyte, ctypes.c_uint, ctypes.c_float,
+            ctypes.c_float, ctypes.c_float),
+        'result': (ctypes.c_ubyte, ),
+    },
+    7: {
+        'name': 'drop_point',
+        'args': (ctypes.c_ubyte, )
+    },
+    8: {
+        'name': 'point_reached',
+        'result': (ctypes.c_ubyte, ),
+    },
+    9: {
+        'name': 'done_moving',
+    },
 }
 
 global conn, com, text, cmd, mgr, lock
@@ -47,9 +66,19 @@ mgr = None
 lock = threading.Lock()
 
 
-def connect(port='/dev/ttyACM0', baud=115200):
+def find_port(port=None):
+    if port is not None:
+        return port
+    ports = glob.glob('/dev/ttyACM*')
+    if len(ports) == 1:
+        print("Found port: %s" % ports[0])
+        return ports[0]
+    raise Exception("Uncertain port: %s" % (ports, ))
+
+
+def connect(port=None, baud=115200):
     global conn, com, mgr
-    conn = serial.Serial(port, baud)
+    conn = serial.Serial(find_port(), baud)
     com = pycomando.Comando(conn)
     text = pycomando.protocols.TextProtocol(com)
     cmd = pycomando.protocols.CommandProtocol(com)

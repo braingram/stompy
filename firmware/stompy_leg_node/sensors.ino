@@ -47,35 +47,6 @@
 #define KNEE_C 25.6021
 
 unsigned long last_sensor_publish_time = 0;
-
-// last sensor readings
-unsigned long last_sensor_time = 0;
-float hip_angle = 0.0;
-float thigh_angle = 0.0;
-float knee_angle = 0.0;
-float calf_angle = 0.0;
-
-
-float get_hip_angle() {
-  return hip_angle;
-}
-
-
-float get_thigh_angle() {
-  return thigh_angle;
-}
-
-
-float get_knee_angle() {
-  return knee_angle;
-}
-
-
-float get_calf_angle() {
-  return calf_angle;
-}
-
-
 float sensor_to_cylinder_length(int sensor, int sensor_min, float scalar, int min_length) {
   return (sensor - sensor_min) / scalar + min_length;
 }

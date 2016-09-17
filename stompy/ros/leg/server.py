@@ -30,9 +30,10 @@ Result:
 import actionlib
 import control_msgs.msg
 import rospy
-import trajectory_msgs.msg
 
-import stompy.ros.leg
+from ...leg import teensy
+from . import clock
+from . import trajectories
 
 
 class LegPoint(object):
@@ -49,21 +50,24 @@ class LegPoint(object):
         return self.teensy_index != -1
 
     def send(self):
-        teensy_time = stompy.ros.leg.teensy.convert_ros_time(self.point_time)
-        stompy.ros.leg.teensy.lock.acquire(True)
-        self.teensy_index = stompy.ros.leg.teensy.mgr.blocking_trigger(
+        teensy_time = clock.convert_ros_time(self.point_time)
+        teensy.lock.acquire(True)
+        self.teensy_index = teensy.mgr.blocking_trigger(
             'new_point', self.pid, teensy_time,
             self.positions[0], self.positions[1],
             self.positions[2])[0].value
-        stompy.ros.leg.teensy.lock.release()
+        teensy.lock.release()
+        print(
+            "Sent point: %s, %s, %s, %s" % (
+                self.pid, self.teensy_index, teensy_time, self.positions))
 
     def drop(self):
         if not self.was_sent():
             print("Attempt to drop non-sent point: %s" % self.pid)
             return
-        stompy.rosl.leg.teensy.lock.acquire(True)
-        stompy.ros.leg.teensy.mgr.trigger(self.teensy_index)
-        stompy.ros.leg.teensy.lock.release()
+        teensy.lock.acquire(True)
+        teensy.mgr.trigger('drop_point', self.teensy_index)
+        teensy.lock.release()
 
 
 class TrajectoryBuffer(object):
@@ -90,6 +94,9 @@ class TrajectoryBuffer(object):
         dropped = {}
         for pid in self._points.keys():
             if self._points[pid].in_future(point_time):
+                #print("Dropping point because it's later")
+                #pt = self._points[pid]
+                #print(pid, pt.teensy_index, pt.point_time, pt.positions)
                 dropped[pid] = self._points.pop(pid)
         return dropped
 
@@ -102,7 +109,8 @@ class TrajectoryBuffer(object):
         # goal_time_tolerance, path_tolerance, goal_tolerance
         start_time = trajectory.header.stamp
         now = rospy.Time.now()
-        if start_time.is_zero():
+        #if start_time.is_zero():
+        if True:
             start_time = rospy.Time.now()
         first = True
         dropped_points = {}
@@ -114,6 +122,7 @@ class TrajectoryBuffer(object):
             # merge points with current points
             if first:
                 dropped_points = self.drop_later_points(point_time)
+                first = False
                 #if len(dropped_points):
                 #    pid = dropped_points[0].pid
                 #    self.set_next_id(pid)
@@ -137,9 +146,18 @@ class TrajectoryBuffer(object):
     def remove_by_index(self, index):
         for pid in self._points:
             if self._points[pid].teensy_index == index:
+                print("Removing: %s[%s]" % (pid, index))
                 del self._points[pid]
                 return
-        raise KeyError("Cannot find point index for removal: %s" % index)
+        print("------------tried to remove unknown index: %s" % index)
+        print("points...")
+        for pid in self._points:
+            pt = self._points[pid]
+            print(
+                pid, pt.teensy_index,
+                pt.point_time, pt.positions)
+        print()
+        #raise KeyError("Cannot find point index for removal: %s" % index)
 
     def get_next_point_id(self):
         """Get the next trajectory point"""
@@ -180,6 +198,7 @@ class JointTrajectoryActionServer(object):
         # TODO check names = hip, thigh, knee
         names = goal.trajectory.joint_names
         print("Joint names: %s" % names)
+        print("Existing points: %s" % len(self._point_buffer))
 
         if len(goal.trajectory.points) == 0:
             self._point_buffer.drop_all()
@@ -199,7 +218,7 @@ class JointTrajectoryActionServer(object):
         done = False
         buffer_duration = rospy.Duration(1.0)
         target_id = self._point_buffer.get_next_point_id()
-        send_id = self._point_buffer.get_next_unsent_id()
+        send_id = self._point_buffer.get_next_unsent_point_id()
         while not done and target_id is not None:
             # wait for trajectory to finish OR for trajectory to be canceled
             # OR for errors from teensy
@@ -207,43 +226,62 @@ class JointTrajectoryActionServer(object):
                 self._as.set_preempted()
                 # check if a new goal was received
                 if self._as.is_new_goal_available():
+                    print("New goal received, exiting")
                     return
                 else:
                     # there is no new goal, so stop moving
+                    print("Cancel received, dropping all points")
                     self._point_buffer.drop_all()
                     # TODO cancel, return something
                     return
                 done = True
                 break
             # check to see if target has been reached?
-            for pindex in stompy.ros.leg.trajectories.points_reached[:]:
+            for pindex in trajectories.points_reached[:]:
+                print("Point reached, removing: %s" % pindex)
                 # if so, remove it
                 self._point_buffer.remove_by_index(pindex)
-                stompy.ros.leg.trajectories.points_reached.remove(pindex)
+                trajectories.points_reached.remove(pindex)
             target_id = self._point_buffer.get_next_point_id()
             # check if more points should be sent
             now = rospy.Time.now()
             while send_id is not None:
                 pt = self._point_buffer[send_id]
                 if pt.point_time < now:
-                    raise Exception("Point in past")
+                    print(
+                        "Point in past:",
+                        pt.point_time.to_sec(),
+                        now.to_sec(),
+                        (now - pt.point_time).to_sec())
+                    del self._point_buffer[send_id]
+                    send_id = self._point_buffer.get_next_unsent_point_id()
+                    continue
+                    #raise Exception("Point in past")
                 # send at least 1 second worth of points
                 if pt.point_time - now < buffer_duration:
                     # send point
                     pt.send()
-                    send_id = self._point_buffer.get_next_unsent_id()
+                    send_id = self._point_buffer.get_next_unsent_point_id()
                 else:
                     break
+            # TODO is this necessary?
+            rospy.sleep(0.01)
 
         if success:
+            print("Goal was a success!!")
             r = self._result()
             self._as.set_succeeded(r)
 
 
+def make_server(name):
+    topic = '/stompy/%s/follow_joint_trajectory' % name
+    JointTrajectoryActionServer(topic)
+
 if __name__ == '__main__':
     rospy.init_node('action_server')
-    topic = '/stompy/fr/follow_joint_trajectory'
-    print("starting action server: %s" % topic)
-    JointTrajectoryActionServer(topic)
+    make_server('fr')
+    #topic = '/stompy/fr/follow_joint_trajectory'
+    #print("starting action server: %s" % topic)
+    #JointTrajectoryActionServer(topic)
     print("spinning...")
     rospy.spin()

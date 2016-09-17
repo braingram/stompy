@@ -3,6 +3,7 @@
 import rospy
 import sensor_msgs.msg
 
+from . import clock
 from . import info
 from ...leg import teensy
 
@@ -40,10 +41,8 @@ def connect():
 
 
 def new_joints(time, hip, thigh, knee, calf):
-    # TODO convert teensy time to ros?
-    print("new joints from teensy: %s" % time.value)
     send_joints(
-        None, hip=hip.value, thigh=thigh.value,
+        time.value, hip=hip.value, thigh=thigh.value,
         knee=knee.value, calf=calf.value)
 
 
@@ -57,6 +56,6 @@ def send_joints(time=None, **joints):
     if time is None:
         msg.header.stamp = rospy.Time.now()
     else:
-        # TODO convert time from teensy?
-        raise NotImplementedError
+        msg.header.stamp = clock.convert_teensy_time(time)
+    #print("new joints from teensy: %s" % msg.header.stamp.to_sec())
     pub.publish(msg)

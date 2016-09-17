@@ -42,7 +42,7 @@ def connect():
 
 def new_teensy_heartbeat():
     global last_heartbeat
-    print("received teensy heartbeat: %.4f" % time.time())
+    #print("received teensy heartbeat: %.4f" % time.time())
     last_heartbeat = rospy.Time.now()
 
 
@@ -56,7 +56,7 @@ def check_teensy_heartbeat():
 
 
 def send_teensy_heartbeat():
-    print("sending teensy heartbeat: %.4f" % time.time())
+    #print("sending teensy heartbeat: %.4f" % time.time())
     teensy.lock.acquire(True)
     teensy.mgr.trigger('heartbeat')
     teensy.lock.release()

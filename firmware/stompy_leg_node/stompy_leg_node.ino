@@ -9,9 +9,27 @@
 #define CMD_STATUS 4 // -> <bool enable>
 #define CMD_GET_TIME 5 // -> <unsigned long teensy_time>
 
+// -> <byte id, unsigned long time, float hip, float thigh, float knee>
+// <byte index> <-
+#define CMD_NEW_POINT 6
+#define CMD_DROP_POINT 7 // -> <byte index>
+#define CMD_POINT_REACHED 8 // <byte id> <-
+#define CMD_DONE_MOVING 9
 
+
+// assuming 100 milliseconds between points, this should give
+// ~5 seconds of buffering
+#define BUFFER_LENGTH 50
+
+#define FAKE_VALVES
 
 bool enable_node = false;
+
+unsigned long last_sensor_time = 0;
+float hip_angle = 0.0;
+float thigh_angle = 0.0;
+float knee_angle = 0.0;
+float calf_angle = 0.0;
 
 Comando com = Comando(Serial);
 TextProtocol text = TextProtocol(com);
@@ -28,6 +46,10 @@ void setup() {
   cmd.register_callback(CMD_HEARTBEAT, on_heartbeat);
   cmd.register_callback(CMD_STATUS, on_status);
   cmd.register_callback(CMD_GET_TIME, get_time);
+
+  cmd.register_callback(CMD_NEW_POINT, on_new_point);
+  cmd.register_callback(CMD_DROP_POINT, on_drop_point);
+  setup_buffers();
 }
 
 void loop() {
@@ -37,7 +59,7 @@ void loop() {
     check_heartbeat();
     read_sensors();
     send_sensors();
-    // update movements
+    update_movement();
   };
   //delay(10);  // something reasonable
 }
