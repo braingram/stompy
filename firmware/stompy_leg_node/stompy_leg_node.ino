@@ -1,5 +1,28 @@
 #include <comando.h>
 
+
+#define FAKE_JOINTS
+
+
+// ---------- pins -------------
+#define STATUS_PIN 13
+
+#define HIP_PWM_0 9
+#define HIP_PWM_1 10
+#define THIGH_PWM_0 3
+#define THIGH_PWM_1 4
+#define KNEE_PWM_0 5
+#define KNEE_PWM_1 6
+
+// joint sensor pins
+#define HIP_SENSOR A6
+#define THIGH_SENSOR A4
+#define KNEE_SENSOR A3
+#define CALF_SENSOR A2  // TODO ?
+// ---------- pins -------------
+
+
+// --------- commands ----------
 // <optional>
 // (type name, ...)
 #define CMD_JOINTS 0  // -> (ul t, f hip, f thigh, f knee, f calf)
@@ -15,13 +38,23 @@
 #define CMD_DROP_POINT 7 // -> <byte index>
 #define CMD_POINT_REACHED 8 // <byte id> <-
 #define CMD_DONE_MOVING 9
+// --------- commands ----------
 
+// setup analog write as per:
+// https://www.pjrc.com/teensy/td_pulse.html
+// for a 72 MHz CPU, 16 bit analog write
+// pwm freq = 549.3164 Hz
+#ifdef FAKE_JOINTS
+#define ANALOG_WRITE_FREQ 50
+#else
+#define ANALOG_WRITE_FREQ 1098.632
+#endif
+#define ANALOG_WRITE_RES 15
+#define ANALOG_READ_RES 16
 
 // assuming 100 milliseconds between points, this should give
 // ~5 seconds of buffering
 #define BUFFER_LENGTH 50
-
-#define FAKE_JOINTS
 
 bool enable_node = false;
 
@@ -36,6 +69,20 @@ TextProtocol text = TextProtocol(com);
 CommandProtocol cmd = CommandProtocol(com);
 
 void setup() {
+  // setup pins
+  pinMode(STATUS_PIN, OUTPUT);
+  digitalWrite(STATUS_PIN, LOW);
+  // setup valve pins
+  analogWriteResolution(ANALOG_WRITE_RES);
+  analogWriteFrequency(HIP_PWM_0, ANALOG_WRITE_FREQ);
+  analogWriteFrequency(HIP_PWM_1, ANALOG_WRITE_FREQ);
+  analogWriteFrequency(THIGH_PWM_0, ANALOG_WRITE_FREQ);
+  analogWriteFrequency(THIGH_PWM_1, ANALOG_WRITE_FREQ);
+  analogWriteFrequency(KNEE_PWM_0, ANALOG_WRITE_FREQ);
+  analogWriteFrequency(KNEE_PWM_1, ANALOG_WRITE_FREQ);
+  // setup sensor pins
+  analogReadResolution(ANALOG_READ_RES);
+
   Serial.begin(115200);
 
   com.register_protocol(0, text);
@@ -49,18 +96,21 @@ void setup() {
 
   cmd.register_callback(CMD_NEW_POINT, on_new_point);
   cmd.register_callback(CMD_DROP_POINT, on_drop_point);
-  setup_buffers();
+  clear_buffers();
 }
 
 void loop() {
-  // TODO convert this to a state machine
   com.handle_stream();
   if (enable_node) {
     check_heartbeat();
     read_sensors();
     send_sensors();
     update_movement();
-  };
+  } else {
+    digitalWrite(STATUS_PIN, LOW);
+    close_all_valves();
+    clear_buffers();
+  }
   //delay(10);  // something reasonable
 }
 

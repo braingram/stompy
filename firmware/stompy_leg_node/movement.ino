@@ -21,18 +21,33 @@ float thigh_angle_error = 0.;
 float knee_angle_error = 0.;
 
 
-void setup_buffers() {
+void clear_buffers() {
   for (write_index=0; write_index < BUFFER_LENGTH; write_index++) {
     point_states[write_index] = POINT_DISABLE;
   };
   write_index = 0;
 };
 
+void close_all_valves() {
+  analogWrite(HIP_PWM_0, 0);
+  analogWrite(HIP_PWM_1, 0);
+  analogWrite(THIGH_PWM_0, 0);
+  analogWrite(THIGH_PWM_1, 0);
+  analogWrite(KNEE_PWM_0, 0);
+  analogWrite(KNEE_PWM_1, 0);
+}
+
 void on_enable(bool enable) {
   //movement_enable = enable;
   enable_node = enable;
   // also set heartbeat time so we don't immediately disable
-  if (enable) set_heartbeat();
+  if (enable) {
+    set_heartbeat();
+  } else {
+    // shut down
+    digitalWrite(STATUS_PIN, LOW);
+    close_all_valves();
+  };
 }
 
 void on_enable(CommandProtocol *cmd){
@@ -133,8 +148,12 @@ void update_movement() {
 #ifdef FAKE_JOINTS
     if (millis() >= point_times[move_index]) {
       hip_angle = hip_angles[move_index];
+      // scale hip (+-, radians) to 15 bit (32768)
+      analogWrite(HIP_PWM_0, hip_angle * 1159 + 2457);
       thigh_angle = thigh_angles[move_index];
+      analogWrite(THIGH_PWM_0, thigh_angle * 1042 + 1638);
       knee_angle = knee_angles[move_index];
+      analogWrite(KNEE_PWM_0, knee_angle * -690 + 1638);
     };
 #endif
   };

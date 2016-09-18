@@ -1,9 +1,3 @@
-// joint sensor pins
-#define HIP_SENSOR 20
-#define THIGH_SENSOR 18
-#define KNEE_SENSOR 17
-#define CALF_SENSOR A3  // ?
-
 #define SENSOR_PERIOD 100
 
 /* sensor to cylinder length
@@ -47,6 +41,8 @@
 #define KNEE_C 25.6021
 
 unsigned long last_sensor_publish_time = 0;
+
+
 float sensor_to_cylinder_length(int sensor, int sensor_min, float scalar, int min_length) {
   return (sensor - sensor_min) / scalar + min_length;
 }
