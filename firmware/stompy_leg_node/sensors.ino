@@ -1,26 +1,32 @@
 #define SENSOR_PERIOD 100
 
 /* sensor to cylinder length
+ *  hip 0 is midway
+ *  thigh 0 is fully retracted
+ *  knee 0 is fully extended
  */
 #define HIP_SENSOR_MIN 744
-//#define HIP_SENSOR_MAX 5776
-//#define HIP_CYILNDER_TRAVEL 8
+#define HIP_SENSOR_MAX 5776
+#define HIP_CYILNDER_TRAVEL 8
 #define HIP_SENSOR_UNITS_PER_INCH 629.0
 #define HIP_CYLINDER_MIN_LENGTH 16
+#define HIP_CYLINDER_MAX_LENGTH 24
 #define HIP_RESTING_ANGLE 1.485512779977838
 
 #define THIGH_SENSOR_MIN 272
-//#define THIGH_SENSOR_MAX 7336
-//#define THIGH_CYILNDER_TRAVEL 14
+#define THIGH_SENSOR_MAX 7336
+#define THIGH_CYILNDER_TRAVEL 14
 #define THIGH_SENSOR_UNITS_PER_INCH 504.57142857142856
 #define THIGH_CYLINDER_MIN_LENGTH 24
+#define THIGH_CYLINDER_MAX_LENGTH 38
 #define THIGH_RESTING_ANGLE 0.33189216561617446
 
 #define KNEE_SENSOR_MIN 1184
-//#define KNEE_SENSOR_MAX 7472
-//#define KNEE_CYILNDER_TRAVEL 12
+#define KNEE_SENSOR_MAX 7472
+#define KNEE_CYILNDER_TRAVEL 12
 #define KNEE_SENSOR_UNITS_PER_INCH 524.0
 #define KNEE_CYLINDER_MIN_LENGTH 20
+#define KNEE_CYLINDER_MAX_LENGTH 32
 #define KNEE_RESTING_ANGLE 2.541326289554743
 
 /* cylinder length to joint angles
@@ -31,10 +37,10 @@
  *
  *   cos(A) = (-a^2 + b^2 + c^2) / (2 * b * c)
  */
-// TODO get these to a higher precision
+ 
 #define HIP_B 6.83905
-#define HIP_C 19.62051 // TODO doesn't match
-//#define HIP_C 19.16 // TODO doesn't match
+//#define HIP_C 19.62051 // middle legs
+#define HIP_C 19.16327 // front/back legs
 #define THIGH_B 10.21631
 #define THIGH_C 33.43093
 #define KNEE_B 7.4386
@@ -43,36 +49,54 @@
 unsigned long last_sensor_publish_time = 0;
 
 
-float sensor_to_cylinder_length(int sensor, int sensor_min, float scalar, int min_length) {
+/*float sensor_to_cylinder_length(int sensor, float sensor_min, float scalar, int min_length) {
+  if (sensor <= sensor_min) return min_length;
+  // TODO check over max
   return (sensor - sensor_min) / scalar + min_length;
+}*/
+
+float hip_sensor_to_cylinder_length(int sensor) {
+  if (sensor <= HIP_SENSOR_MIN) return HIP_CYLINDER_MIN_LENGTH;
+  if (sensor >= HIP_SENSOR_MAX) return HIP_CYLINDER_MAX_LENGTH;
+  return (sensor - HIP_SENSOR_MIN) / HIP_SENSOR_UNITS_PER_INCH + HIP_CYLINDER_MIN_LENGTH;
 }
 
+float thigh_sensor_to_cylinder_length(int sensor) {
+  if (sensor <= THIGH_SENSOR_MIN) return THIGH_CYLINDER_MIN_LENGTH;
+  if (sensor >= THIGH_SENSOR_MAX) return THIGH_CYLINDER_MAX_LENGTH;
+  return (sensor - THIGH_SENSOR_MIN) / THIGH_SENSOR_UNITS_PER_INCH + THIGH_CYLINDER_MIN_LENGTH;
+}
+
+float knee_sensor_to_cylinder_length(int sensor) {
+  if (sensor <= KNEE_SENSOR_MIN) return KNEE_CYLINDER_MIN_LENGTH;
+  if (sensor >= KNEE_SENSOR_MAX) return KNEE_CYLINDER_MAX_LENGTH;
+  return KNEE_CYLINDER_MAX_LENGTH - (KNEE_SENSOR_MAX - sensor) / KNEE_SENSOR_UNITS_PER_INCH;
+  // if (sensor >= sensor_max) return max_length;
+  // TODO check under min
+  // return max_length - (sensor_max - sensor) / scalar;
+}
 
 float cylinder_length_to_angle(float cylinder_length, float edge_b, float edge_c) {
   // TODO optimize this by pre-computing sq(b) + sq(c) and 2bc
   return acos((-sq(cylinder_length) + sq(edge_b) + sq(edge_c)) / (2 * edge_b * edge_c));
 }
 
-
 void read_sensors() {
 #ifndef FAKE_JOINTS
-  hip_angle = cylinder_length_to_angle(sensor_to_cylinder_length(
-      analogRead(HIP_SENSOR), HIP_SENSOR_MIN,
-      HIP_SENSOR_UNITS_PER_INCH, HIP_CYLINDER_MIN_LENGTH),
-        HIP_B, HIP_C);
-  thigh_angle = cylinder_length_to_angle(sensor_to_cylinder_length(
-      analogRead(THIGH_SENSOR), THIGH_SENSOR_MIN,
-      THIGH_SENSOR_UNITS_PER_INCH, THIGH_CYLINDER_MIN_LENGTH),
-        THIGH_B, THIGH_C);
-  knee_angle = cylinder_length_to_angle(sensor_to_cylinder_length(
-      analogRead(KNEE_SENSOR), KNEE_SENSOR_MIN,
-      KNEE_SENSOR_UNITS_PER_INCH, KNEE_CYLINDER_MIN_LENGTH),
-        KNEE_B, KNEE_C);
-
+  hip_angle = cylinder_length_to_angle(hip_sensor_to_cylinder_length(
+      analogRead(HIP_SENSOR)), HIP_B, HIP_C);
+  thigh_angle = cylinder_length_to_angle(thigh_sensor_to_cylinder_length(
+      analogRead(THIGH_SENSOR)), THIGH_B, THIGH_C);
+  knee_angle = cylinder_length_to_angle(knee_sensor_to_cylinder_length(
+      analogRead(KNEE_SENSOR)),  KNEE_B, KNEE_C);
   thigh_angle = thigh_angle - THIGH_RESTING_ANGLE;
   knee_angle = KNEE_RESTING_ANGLE - knee_angle;
-  // TODO work out hip resting angle
   hip_angle = hip_angle - HIP_RESTING_ANGLE;
+  /*
+  hip_angle = analogRead(HIP_SENSOR);
+  thigh_angle = analogRead(THIGH_SENSOR);
+  knee_angle = analogRead(KNEE_SENSOR);
+  */
 #endif
   // TODO calf
   calf_angle = analogRead(CALF_SENSOR);

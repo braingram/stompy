@@ -1,11 +1,15 @@
 #include <comando.h>
 
-
 #define FAKE_JOINTS
-
+//#define ENABLE_VALVES
 
 // ---------- pins -------------
 #define STATUS_PIN 13
+
+#define M1_EN_PIN 1
+#define M2_EN_PIN 2
+
+// TODO feedback pins
 
 #define HIP_PWM_0 9
 #define HIP_PWM_1 10
@@ -50,7 +54,7 @@
 #define ANALOG_WRITE_FREQ 1098.632
 #endif
 #define ANALOG_WRITE_RES 15
-#define ANALOG_READ_RES 16
+#define ANALOG_READ_RES 13
 
 // assuming 100 milliseconds between points, this should give
 // ~5 seconds of buffering
@@ -80,6 +84,10 @@ void setup() {
   analogWriteFrequency(THIGH_PWM_1, ANALOG_WRITE_FREQ);
   analogWriteFrequency(KNEE_PWM_0, ANALOG_WRITE_FREQ);
   analogWriteFrequency(KNEE_PWM_1, ANALOG_WRITE_FREQ);
+  pinMode(M1_EN_PIN, OUTPUT);
+  pinMode(M2_EN_PIN, OUTPUT);
+  digitalWrite(M1_EN_PIN, LOW);
+  digitalWrite(M2_EN_PIN, LOW);
   // setup sensor pins
   analogReadResolution(ANALOG_READ_RES);
 

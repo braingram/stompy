@@ -10,6 +10,8 @@ import rospy
 import sensor_msgs.msg
 
 
+degrees = True
+
 topic = '/stompy/joint_states'
 
 joints = ['fr_thigh', ]
@@ -43,7 +45,11 @@ def callback(data):
         if n not in joint_states:
             joint_states[n] = [[], []]
         joint_states[n][0].append(t)
-        joint_states[n][1].append(data.position[i])
+        if degrees:
+            a = numpy.degrees(data.position[i])
+        else:
+            a = data.position[i]
+        joint_states[n][1].append(a)
     update_plot = False
     for n in joint_states:
         if len(joint_states[n][0]) > 10:

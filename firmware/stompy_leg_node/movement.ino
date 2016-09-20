@@ -28,6 +28,18 @@ void clear_buffers() {
   write_index = 0;
 };
 
+void enable_motor_drivers() {
+#ifdef ENABLE_VALVES
+  digitalWrite(M1_EN_PIN, HIGH);
+  digitalWrite(M2_EN_PIN, HIGH);
+#endif
+}
+
+void disable_motor_drivers() {
+  digitalWrite(M1_EN_PIN, LOW);
+  digitalWrite(M2_EN_PIN, LOW);
+}
+
 void close_all_valves() {
   analogWrite(HIP_PWM_0, 0);
   analogWrite(HIP_PWM_1, 0);
@@ -42,10 +54,12 @@ void on_enable(bool enable) {
   enable_node = enable;
   // also set heartbeat time so we don't immediately disable
   if (enable) {
+    enable_motor_drivers();
     set_heartbeat();
   } else {
     // shut down
     digitalWrite(STATUS_PIN, LOW);
+    disable_motor_drivers();
     close_all_valves();
   };
 }
