@@ -1,6 +1,6 @@
 ---
 layout: default
-title: blah
+title: Stompy Documentation
 ---
 
-Can I [link](other)?
+[network]
