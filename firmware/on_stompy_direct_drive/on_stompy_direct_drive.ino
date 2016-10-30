@@ -147,6 +147,7 @@ void setup() {
 void loop() {
   if (check_input()) {
     int pwm = atoi(pwm_input_buffer);
+    enable_motors();
     switch (joint) {
       case 'H':
         set_hip_pwm(pwm);
@@ -163,6 +164,7 @@ void loop() {
   };
   if ((millis() - last_input_time) > INPUT_TIMEOUT) {
     close_valves();
+    disable_motors();
   };
   if ((millis() - last_sensor_report_time) > SENSOR_REPORT_PERIOD) {
     report_sensors();
