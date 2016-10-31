@@ -59,6 +59,8 @@ void print_sensors() {
 }
 
 void loop() {
+  if (!Serial.available()) return;
+  if (Serial.read() != 'g') return;
   digitalWrite(M1_EN_PIN, HIGH);
   digitalWrite(M2_EN_PIN, HIGH);
   Serial.println("Motors enabled!");
