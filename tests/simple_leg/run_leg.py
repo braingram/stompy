@@ -39,6 +39,7 @@ import sensor_msgs.msg
 import std_msgs.msg
 
 
+fake_teensy = True
 leg_name = 'fr'
 # index of button that should be pressed when issuing commands to just this leg
 button_index = 4
@@ -111,8 +112,10 @@ def write_pwms():
     for p in pwms:
         code = reverse_joint_codes[p]
         value = pwms[p]
-        #conn.write('%s%i\n' % (code, value))
-        print("%s%i" % (code, value))
+        if fake_teensy:
+            print("%s%i" % (code, value))
+        else:
+            conn.write('%s%i\n' % (code, value))
     last_pwms_time = time.time()
 
 
@@ -151,7 +154,8 @@ def find_port(port):
 
 def connect_to_teensy(port=None):
     global conn
-    #conn = serial.Serial(find_port(port), 115200)
+    if not fake_teensy:
+        conn = serial.Serial(find_port(port), 115200)
 
 
 def connect_to_ros():
@@ -171,11 +175,13 @@ def monitor_teensy():
     # monitor teensy, publish new pot messages when received
     global last_pwms_time
     last_pwms_time = time.time()
-    while True:
+    while not rospy.is_shutdown():
         if time.time() - last_pwms_time > send_period:
             # send pwms
             write_pwms()
-        """
+        if fake_teensy:
+            rospy.sleep(monitor_delay)
+            continue
         if conn.inwaiting:
             msg = conn.readline()
             if len(msg) < 2 or msg[0] not in joint_codes:
@@ -189,9 +195,6 @@ def monitor_teensy():
             joint_sensor_pubs[joint].publish(value)
         else:
             rospy.sleep(monitor_delay)
-        """
-        # TODO remove this when writing to teensy
-        rospy.sleep(monitor_delay)
 
 
 if __name__ == '__main__':

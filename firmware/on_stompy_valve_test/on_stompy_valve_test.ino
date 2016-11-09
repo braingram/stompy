@@ -95,6 +95,11 @@ void loop() {
       default:
         Serial.print(F("Unknown command "));
         Serial.println(cmd);
+        Serial.println(F("h or H to toggle hip pins"));
+        Serial.println(F("t or T to toggle thigh pins"));
+        Serial.println(F("k or K to toggle knee pins"));
+        Serial.println(F("c to close/stop all pins"));
+        Serial.println(F("e to enable, d to disable pins"));
         break;
     }
   }

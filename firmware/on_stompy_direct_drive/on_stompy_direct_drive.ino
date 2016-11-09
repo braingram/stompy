@@ -8,6 +8,10 @@
 #define KNEE_PWM_E 5  // extend
 #define KNEE_PWM_R 6  // retract
 
+#define KNEE_FB A8
+#define THIGH_FB A7
+#define HIP_FB A9
+
 #define HIP_SENSOR A6
 #define THIGH_SENSOR A3
 #define KNEE_SENSOR A1
@@ -96,6 +100,12 @@ void report_sensors() {
   Serial.println(analogRead(KNEE_SENSOR), DEC);
   Serial.print("C");
   Serial.println(analogRead(CALF_SENSOR), DEC);
+  Serial.print("h");
+  Serial.println(analogRead(HIP_FB, DEC));
+  Serial.print("t");
+  Serial.println(analogRead(THIGH_FB, DEC));
+  Serial.print("k");
+  Serial.println(analogRead(KNEE_FB, DEC));
 }
 
 int check_input() {
