@@ -20,6 +20,7 @@
 #define ANALOG_READ_RES 16
 #define ANALOG_WRITE_RES 10
 #define ANALOG_WRITE_FREQ 20000.0  // to make current feedback happy
+//#define ANALOG_WRITE_FREQ 1024.0
 
 #define INPUT_TIMEOUT 500UL  // ms
 #define SENSOR_REPORT_PERIOD 100UL  // ms
@@ -101,11 +102,11 @@ void report_sensors() {
   Serial.print("C");
   Serial.println(analogRead(CALF_SENSOR), DEC);
   Serial.print("h");
-  Serial.println(analogRead(HIP_FB, DEC));
+  Serial.println(analogRead(HIP_FB), DEC);
   Serial.print("t");
-  Serial.println(analogRead(THIGH_FB, DEC));
+  Serial.println(analogRead(THIGH_FB), DEC);
   Serial.print("k");
-  Serial.println(analogRead(KNEE_FB, DEC));
+  Serial.println(analogRead(KNEE_FB), DEC);
 }
 
 int check_input() {
