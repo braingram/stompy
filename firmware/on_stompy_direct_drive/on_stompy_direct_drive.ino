@@ -17,13 +17,14 @@
 #define KNEE_SENSOR A1
 #define CALF_SENSOR A2
 
+#define VOLTAGE_SENSOR A4
+
 #define ANALOG_READ_RES 16
-#define ANALOG_WRITE_RES 10
-#define ANALOG_WRITE_FREQ 20000.0  // to make current feedback happy
-//#define ANALOG_WRITE_FREQ 1024.0
+#define ANALOG_WRITE_RES 16
+#define ANALOG_WRITE_FREQ 200.0
 
 #define INPUT_TIMEOUT 500UL  // ms
-#define SENSOR_REPORT_PERIOD 100UL  // ms
+#define SENSOR_REPORT_PERIOD 20UL  // ms
 
 unsigned long last_input_time = 0;
 unsigned long last_sensor_report_time = 0;
@@ -101,6 +102,8 @@ void report_sensors() {
   Serial.println(analogRead(KNEE_SENSOR), DEC);
   Serial.print("C");
   Serial.println(analogRead(CALF_SENSOR), DEC);
+  Serial.print("V");
+  Serial.println(analogRead(VOLTAGE_SENSOR), DEC);
   Serial.print("h");
   Serial.println(analogRead(HIP_FB), DEC);
   Serial.print("t");
