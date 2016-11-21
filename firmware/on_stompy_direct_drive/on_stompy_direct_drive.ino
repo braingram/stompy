@@ -17,7 +17,7 @@
 #define KNEE_SENSOR A1
 #define CALF_SENSOR A2
 
-#define VOLTAGE_SENSOR A4
+#define VOLTAGE_SENSOR A4  // rdiv is ~`/11.2
 
 #define ANALOG_READ_RES 16
 #define ANALOG_WRITE_RES 16

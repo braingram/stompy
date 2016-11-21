@@ -1,12 +1,12 @@
 #include <comando.h>
 
-#define FAKE_JOINTS
+//#define FAKE_JOINTS
 //#define ENABLE_VALVES
 
 // ---------- pins -------------
 #define STATUS_PIN 13
 
-#define M1_EN_PIN 1
+#define M1_EN_PIN 8
 #define M2_EN_PIN 2
 
 // TODO feedback pins
@@ -20,8 +20,8 @@
 
 // joint sensor pins
 #define HIP_SENSOR A6
-#define THIGH_SENSOR A4
-#define KNEE_SENSOR A3
+#define THIGH_SENSOR A3
+#define KNEE_SENSOR A1
 #define CALF_SENSOR A2  // TODO ?
 // ---------- pins -------------
 

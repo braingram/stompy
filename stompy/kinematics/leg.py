@@ -130,6 +130,7 @@ def forward(hip_angle, thigh_angle, knee_angle):
 
 
 def compute_range_of_movements():
+    """[hip, thigh, knee, x, y, z]"""
     hl = hip_limits[0] + 0.01, hip_limits[1] - 0.01, 50
     tl = thigh_limits[0] + 0.01, thigh_limits[1] - 0.01, 10
     kl = knee_limits[0] + 0.01, knee_limits[1] - 0.01, 10

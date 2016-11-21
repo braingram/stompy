@@ -324,6 +324,9 @@ class Plan(object):
                 print(i, ptt)
         return pt, ptt
 
+    def compute_arc(self, cx, cy):
+        pass
+
 
 global plans
 plans = {leg: Plan(leg) for leg in info.legs}

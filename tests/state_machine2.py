@@ -184,7 +184,7 @@ class PositionLegs(smach.State):
         if load > 4000:
             pt_distance = 0.1
         else:
-            pt_distance = 0.4
+            pt_distance = 0.3
         # positon legs one at a time
         # start with least loaded leg
         leg_loads = {}
@@ -219,6 +219,7 @@ class PositionLegs(smach.State):
                     plan.update()
                     rospy.sleep(0.1)
                 plan.set_stop()
+            rospy.sleep(0.25)
             # move to xy
             lifted_z = stompy.sensors.legs.legs[leg]['foot'][2]
             end = [target_position[0], target_position[1], lifted_z]
@@ -238,6 +239,7 @@ class PositionLegs(smach.State):
                     return "error"
                 rospy.sleep(0.1)
             # lower until loaded
+            rospy.sleep(0.25)
             print("Lower until loaded")
             plan.set_velocity(
                 [0, 0, pt_distance], stompy.ros.planner.FOOT_FRAME)
@@ -269,7 +271,7 @@ class Stand(smach.State):
                 end, stompy.ros.planner.FOOT_FRAME, 4.0,
                 start=st,
                 timestamp=start_time)
-        #rospy.sleep(0.1)
+        #rospy.sleep(0.5)
         done = False
         print(
             "waiting on legs to finish standing: %s" %
@@ -332,17 +334,18 @@ if __name__ == '__main__':
     stompy.ros.init.init()
     # setup state machine
     sm = smach.StateMachine(outcomes=["error", "ready"])
-    sm.userdata.stand_z = 1.2
-    sm.userdata.lift_z = 0.1
+    sm.userdata.stand_z = 1.1
+    sm.userdata.lift_z = 0.6
     sm.userdata.leg_positions = {
-        'fr': (1.5, 0., 0.5),
-        'mr': (1.5, 0., 0.5),
-        'rr': (1.5, 0., 0.5),
-        'fl': (1.5, 0., 0.5),
-        'ml': (1.5, 0., 0.5),
-        'rl': (1.5, 0., 0.5),
+        'fr': (1.075, 0., 0.6),
+        'mr': (1.075, 0., 0.6),
+        'rr': (1.075, 0., 0.6),
+        'fl': (1.075, 0., 0.6),
+        'ml': (1.075, 0., 0.6),
+        'rl': (1.075, 0., 0.6),
     }
-    leg_load = 5600 / 6.
+    #leg_load = 5600 / 6.
+    leg_load = 50
     sm.userdata.leg_loads = {
         'fr': leg_load, 'mr': leg_load, 'rr': leg_load,
         'fl': leg_load, 'ml': leg_load, 'rl': leg_load,
