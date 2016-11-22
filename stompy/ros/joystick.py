@@ -28,6 +28,7 @@ modes:
      32: body translation
      33: body rotations
      34: position legs
+     35: restriction control
      ...
 
 button-mode
@@ -60,6 +61,7 @@ mode_mapping = {
     10: {-1: 32},
     11: {-1: 33},
     12: {-1: 34},
+    13: {-1: 35},
 }
 
 global last_state

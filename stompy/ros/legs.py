@@ -48,7 +48,7 @@ def get_done(leg_name=None):
     global publishers
     if leg_name is None:
         return all([get_done(ln) for ln in publishers])
-    return publishers.get_state() == actionlib.GoalStatus.SUCCEEDED
+    return publishers[leg_name].get_state() == actionlib.GoalStatus.SUCCEEDED
 
 
 def wait_till_done(leg_name=None, delay=0.1):

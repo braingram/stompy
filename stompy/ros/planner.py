@@ -59,7 +59,7 @@ class Plan(object):
         pt, ptt = self.current_point()
         if pt is not None and valid_point_positions(pt):
             if ptt > t:
-                print("mini trajectory")
+                #print("mini trajectory")
                 ps = pt.positions
                 trajectory = trajectories.from_angles(
                     self.leg, [ps, ],
@@ -233,7 +233,7 @@ class Plan(object):
             '%s_knee' % (self.leg, )]
         # check limits
         for (i, p) in enumerate(trajectory.trajectory.points):
-            if not kinematics.leg.check_limits(p.positions, slop=0.008):
+            if not kinematics.leg.check_limits(p.positions, slop=0.017):
                 print("!!!!Trajectory would send angles out of limits")
                 print('%s: %s' % (i, p.positions))
                 print('frame: %s' % frame)

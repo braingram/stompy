@@ -6,6 +6,8 @@ import smach
 
 import stompy
 import stompy.ros
+import stompy.gaits.restriction
+#import stompy.planners.legs
 # import stompy.sensors.joints
 
 
@@ -38,7 +40,7 @@ class ModeTransition(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, outcomes=[
-                'moveleg', 'movebody', 'positionlegs', 'error'])
+                'moveleg', 'movebody', 'positionlegs', 'error', 'walk'])
 
     def execute(self, userdata):
         mode = stompy.ros.joystick.mode
@@ -48,6 +50,8 @@ class ModeTransition(smach.State):
             return 'movebody'
         if mode == 34:
             return 'positionlegs'
+        if mode == 35:
+            return 'walk'
         return 'error'
 
 
@@ -182,7 +186,7 @@ class PositionLegs(smach.State):
         for leg in stompy.info.legs:
             load += stompy.sensors.legs.legs[leg]['load']
         if load > 4000:
-            pt_distance = 0.1
+            pt_distance = 0.2
         else:
             pt_distance = 0.3
         # positon legs one at a time
@@ -195,9 +199,10 @@ class PositionLegs(smach.State):
         lift_z = userdata.lift_z
         for leg in legs_by_load:
             print("leg: %s" % leg)
-            if leg not in userdata.leg_positions[leg]:
-                pass
-            target_position = userdata.leg_positions[leg]
+            #if leg not in userdata.leg_positions[leg]:
+            #    pass
+            #target_position = userdata.leg_positions[leg]
+            target_position = stompy.info.foot_centers[leg]
             target_load = userdata.leg_loads[leg]
             plan = stompy.ros.planner.plans[leg]
             # check if leg is loaded
@@ -207,7 +212,7 @@ class PositionLegs(smach.State):
                         stompy.sensors.legs.legs[leg]['load']))
                 # lift until unloaded
                 plan.set_velocity(
-                    [0, 0, -pt_distance], stompy.ros.planner.FOOT_FRAME)
+                    [0, 0, -pt_distance], stompy.ros.planner.BODY_FRAME)
                 while stompy.sensors.legs.legs[leg]['load'] > 100.:
                     plan.update()
                     rospy.sleep(0.1)
@@ -225,8 +230,13 @@ class PositionLegs(smach.State):
             end = [target_position[0], target_position[1], lifted_z]
             print("moving to xy: %s" % end)
             # TODO compute duration
+            fx, fy, fz = stompy.kinematics.body.leg_to_body(
+                leg, *stompy.sensors.legs.legs[leg]['foot'])[:3]
+            x, y, z = end
+            d = ((x - fx) ** 2. + (y - fy) ** 2. + (z - fz) ** 2.) ** 0.5
+            s = max(d / 0.2, 1.0)
             plan.set_line(
-                end, stompy.ros.planner.FOOT_FRAME, 2.)
+                end, stompy.ros.planner.BODY_FRAME, s)
             publisher = stompy.ros.legs.publishers[leg]
             rospy.sleep(0.1)
             while True:
@@ -242,7 +252,7 @@ class PositionLegs(smach.State):
             rospy.sleep(0.25)
             print("Lower until loaded")
             plan.set_velocity(
-                [0, 0, pt_distance], stompy.ros.planner.FOOT_FRAME)
+                [0, 0, pt_distance], stompy.ros.planner.BODY_FRAME)
             while stompy.sensors.legs.legs[leg]['load'] <= target_load:
                 plan.update()
                 rospy.sleep(0.1)
@@ -314,7 +324,139 @@ class Walk(smach.State):
         #  - recompute trajectories (passing through current points)
         #  - recompute limits (to know when to lift)
         #  - recompute ideal trajectories (can be resumed on swing)
-        pass
+        rc = stompy.gaits.restriction.RestrictionControl()
+
+        def get_foot_positions():
+            fps = {}
+            for foot_name in rc.feet:
+                leg = stompy.sensors.legs.legs[foot_name]
+                fps[foot_name] = stompy.kinematics.body.leg_to_body(
+                    foot_name, *leg['foot'])[:2]
+            return fps
+
+        # initialize restrictions
+        rc.compute_foot_restrictions(get_foot_positions())
+        # setup all default targets
+        for foot_name in rc.feet:
+            rc.feet[foot_name].stance_target = (0, 0)
+            rc.feet[foot_name].swing_target = rc.feet[foot_name].center
+
+        # TODO bring out
+        step_size = 0.5
+        half_step_size = step_size / 2.
+
+        # attach joystick callback
+        def update_targets(data):
+            # set all targets
+            tx = data.axes[0] / 10.
+            ty = data.axes[1] / 10.
+            for foot_name in rc.feet:
+                foot = rc.feet[foot_name]
+                foot.stance_target = (-tx, -ty)
+                cx, cy = foot.center
+                tl = ((tx * tx) + (ty * ty)) ** 0.5
+                if tl == 0.:
+                    foot.swing_target = (cx, cy)
+                else:
+                    ntx, nty = tx / tl, ty / tl
+                    print(tx, ty, tl, ntx, nty)
+                    foot.swing_target = (
+                        cx + ntx * half_step_size,
+                        cy + nty * half_step_size)
+                print(foot_name)
+                print(foot.stance_target)
+                print(foot.swing_target)
+            # TODO overwrite targets
+
+        cbid = stompy.ros.joystick.callbacks.register(
+            update_targets)
+
+        done = False
+        while not done:
+            # set leg positions by position and state
+            requested_states = rc.update(
+                rospy.Time.now().to_sec(), get_foot_positions())
+
+            for foot_name in rc.feet:
+                foot = rc.feet[foot_name]
+                leg = stompy.sensors.legs.legs[foot_name]
+                plan = stompy.ros.planner.plans[foot_name]
+                requested = requested_states.get(foot_name, None)
+                # check if leg should be paused...
+                if requested == 'pause':
+                    print foot
+                    print foot.restriction
+                    print leg
+                    print get_foot_positions()
+                    # TODO implement pausing
+                    return 'error'
+                    if foot.state in ('wait', 'stance'):
+                        plan.set_stop()
+                    elif foot.state == 'lift':
+                        pass
+                    if foot.state != 'swing':
+                        # TODO stop x,y movement (continue z)
+                        plan.set_stop()
+                        pass
+                if leg['load'] > 50:
+                    # leg is loaded
+                    if foot.state == 'lower' and leg['foot'][2] >= 1.1:
+                        dr = foot.restriction - foot.last_restriction
+                        if dr > 0:
+                            foot.set_state('stance')
+                        else:
+                            foot.set_state('wait')
+                        # update planner, straight xy along target vec
+                        dx, dy = foot.stance_target
+                        # TODO arc
+                        print('%s: %s, %s' % (
+                            foot.state, foot.name, foot.stance_target))
+                        plan.set_velocity(
+                            (dx, dy, 0.), stompy.ros.planner.BODY_FRAME)
+                else:
+                    if foot.state == 'lift' and leg['foot'][2] <= 0.9:
+                        # TODO check z height
+                        foot.set_state('swing')
+                        # update planner, straight xy to target
+                        x, y = foot.swing_target
+                        print('swing: %s, %s' % (foot.name, foot.swing_target))
+                        fx, fy = stompy.kinematics.body.leg_to_body(
+                            foot_name, *leg['foot'])[:2]
+                        d = ((x - fx) ** 2. + (y - fy) ** 2.) ** 0.5
+                        s = max(d / 0.1, 1.0)
+                        print('swing: %s, %s[%s,%s]' % (
+                            foot.name, foot.swing_target, d, s))
+                        plan.set_line(
+                            (x, y, 0.9), stompy.ros.planner.BODY_FRAME,
+                            s)
+                if requested == 'swing':
+                    foot.set_state('lift')
+                    foot.last_lift_time = rospy.Time.now().to_sec()
+                    dx, dy = foot.stance_target
+                    # TODO bring out lift velocity
+                    print('lift: %s, %s' % (foot.name, foot.stance_target))
+                    plan.set_velocity(
+                        (dx, dy, -0.3), stompy.ros.planner.BODY_FRAME)
+                # check if swing is done, if so, lower
+                if (
+                        foot.state == 'swing' and
+                        stompy.ros.legs.get_done(foot_name)):
+                    foot.set_state('lower')
+                    dx, dy = foot.stance_target
+                    # TODO bring out lower velocity
+                    print('lower: %s, %s' % (foot.name, foot.stance_target))
+                    plan.set_velocity(
+                        (dx, dy, 0.2), stompy.ros.planner.BODY_FRAME)
+            stompy.ros.planner.update()
+            rospy.sleep(0.1)
+            if not (stompy.ros.joystick.mode == 35):
+                stompy.ros.planner.set_stop()
+                # TODO transition to position legs?
+                break
+
+        # detach joystick callback
+        stompy.ros.joystick.callbacks.unregister(cbid)
+        return 'newmode'
 
 
 class Wait(smach.State):
@@ -358,7 +500,7 @@ if __name__ == '__main__':
             'ModeTransition', ModeTransition(),
             transitions={
                 'moveleg': 'MoveLeg', 'movebody': 'MoveBody',
-                'positionlegs': 'PositionLegs'})
+                'positionlegs': 'PositionLegs', 'walk': 'Walk'})
         smach.StateMachine.add(
             'MoveLeg', MoveLeg(),
             transitions={'newmode': 'ModeTransition'})
@@ -373,6 +515,9 @@ if __name__ == '__main__':
             transitions={'ready': 'Wait'})
         smach.StateMachine.add(
             'Wait', Wait(),
+            transitions={'newmode': 'ModeTransition'})
+        smach.StateMachine.add(
+            'Walk', Walk(),
             transitions={'newmode': 'ModeTransition'})
 
     outcome = sm.execute()
