@@ -236,7 +236,7 @@ class PositionLegs(smach.State):
             d = ((x - fx) ** 2. + (y - fy) ** 2. + (z - fz) ** 2.) ** 0.5
             s = max(d / 0.2, 1.0)
             plan.set_line(
-                end, stompy.ros.planner.BODY_FRAME, s)
+                end, stompy.ros.planner.BODY_FRAME, duration=s)
             publisher = stompy.ros.legs.publishers[leg]
             rospy.sleep(0.1)
             while True:
@@ -278,7 +278,7 @@ class Stand(smach.State):
             print("stand, moving %s from %s to %s" % (leg, st, end))
             print("starting at: %s" % start_time.to_sec())
             plan.set_line(
-                end, stompy.ros.planner.FOOT_FRAME, 4.0,
+                end, stompy.ros.planner.FOOT_FRAME, duration=4.0,
                 start=st,
                 timestamp=start_time)
         #rospy.sleep(0.5)
@@ -344,6 +344,9 @@ class Walk(smach.State):
         # TODO bring out
         step_size = 0.5
         half_step_size = step_size / 2.
+        lift_velocity = -0.3
+        lower_velocity = 0.2
+        swing_velocity = 0.3
 
         # attach joystick callback
         def update_targets(data):
@@ -366,7 +369,31 @@ class Walk(smach.State):
                 print(foot_name)
                 print(foot.stance_target)
                 print(foot.swing_target)
-            # TODO overwrite targets
+                if foot.state in ('stance', 'wait'):
+                    dx, dy = foot.stance_target
+                    plan.set_velocity(
+                        (dx, dy, 0.), stompy.ros.planner.BODY_FRAME)
+                elif foot.state == 'lift':
+                    dx, dy = foot.stance_target
+                    plan.set_velocity(
+                        (dx, dy, lift_velocity),
+                        stompy.ros.planner.BODY_FRAME)
+                elif foot.state == 'lower':
+                    dx, dy = foot.stance_target
+                    plan.set_velocity(
+                        (dx, dy, lower_velocity),
+                        stompy.ros.planner.BODY_FRAME)
+                elif foot.state == 'swing':
+                    x, y = foot.swing_target
+                    fx, fy = stompy.kinematics.body.leg_to_body(
+                        foot_name, *leg['foot'])[:2]
+                    d = ((x - fx) ** 2. + (y - fy) ** 2.) ** 0.5
+                    s = max(d / swing_velocity, 1.0)
+                    plan.set_line(
+                        (x, y, 0.9), stompy.ros.planner.BODY_FRAME,
+                        duration=s)
+                else:
+                    raise Exception("Unknown state: %s" % foot.state)
 
         cbid = stompy.ros.joystick.callbacks.register(
             update_targets)
@@ -384,20 +411,17 @@ class Walk(smach.State):
                 requested = requested_states.get(foot_name, None)
                 # check if leg should be paused...
                 if requested == 'pause':
-                    print foot
-                    print foot.restriction
-                    print leg
-                    print get_foot_positions()
-                    # TODO implement pausing
-                    return 'error'
+                    foot.stance_target = (0., 0.)
                     if foot.state in ('wait', 'stance'):
                         plan.set_stop()
                     elif foot.state == 'lift':
-                        pass
-                    if foot.state != 'swing':
-                        # TODO stop x,y movement (continue z)
-                        plan.set_stop()
-                        pass
+                        plan.set_velocity(
+                            (0., 0., lift_velocity),
+                            stompy.ros.planner.BODY_FRAME)
+                    elif foot.state == 'lower':
+                        plan.set_velocity(
+                            (0., 0., lower_velocity),
+                            stompy.ros.planner.BODY_FRAME)
                 if leg['load'] > 50:
                     # leg is loaded
                     if foot.state == 'lower' and leg['foot'][2] >= 1.1:
@@ -415,7 +439,6 @@ class Walk(smach.State):
                             (dx, dy, 0.), stompy.ros.planner.BODY_FRAME)
                 else:
                     if foot.state == 'lift' and leg['foot'][2] <= 0.9:
-                        # TODO check z height
                         foot.set_state('swing')
                         # update planner, straight xy to target
                         x, y = foot.swing_target
@@ -423,30 +446,30 @@ class Walk(smach.State):
                         fx, fy = stompy.kinematics.body.leg_to_body(
                             foot_name, *leg['foot'])[:2]
                         d = ((x - fx) ** 2. + (y - fy) ** 2.) ** 0.5
-                        s = max(d / 0.1, 1.0)
+                        s = max(d / swing_velocity, 1.0)
                         print('swing: %s, %s[%s,%s]' % (
                             foot.name, foot.swing_target, d, s))
                         plan.set_line(
                             (x, y, 0.9), stompy.ros.planner.BODY_FRAME,
-                            s)
+                            duration=s)
                 if requested == 'swing':
                     foot.set_state('lift')
                     foot.last_lift_time = rospy.Time.now().to_sec()
                     dx, dy = foot.stance_target
-                    # TODO bring out lift velocity
                     print('lift: %s, %s' % (foot.name, foot.stance_target))
                     plan.set_velocity(
-                        (dx, dy, -0.3), stompy.ros.planner.BODY_FRAME)
+                        (dx, dy, lift_velocity),
+                        stompy.ros.planner.BODY_FRAME)
                 # check if swing is done, if so, lower
                 if (
                         foot.state == 'swing' and
                         stompy.ros.legs.get_done(foot_name)):
                     foot.set_state('lower')
                     dx, dy = foot.stance_target
-                    # TODO bring out lower velocity
                     print('lower: %s, %s' % (foot.name, foot.stance_target))
                     plan.set_velocity(
-                        (dx, dy, 0.2), stompy.ros.planner.BODY_FRAME)
+                        (dx, dy, lower_velocity),
+                        stompy.ros.planner.BODY_FRAME)
             stompy.ros.planner.update()
             rospy.sleep(0.1)
             if not (stompy.ros.joystick.mode == 35):

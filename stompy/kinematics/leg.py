@@ -54,6 +54,8 @@ knee_rest_angle = numpy.arctan2(kt[1], kt[0])
 
 
 def in_limits(angle, limits, slop=0.):
+    if not numpy.isfinite(angle):
+        return False
     if angle < (limits[0] - slop):
         return False
     if angle > (limits[1] + slop):

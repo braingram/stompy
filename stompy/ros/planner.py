@@ -71,9 +71,19 @@ class Plan(object):
             legs.publishers[self.leg].cancel_goal()
         self.mode = STOP_MODE
 
-    def set_line(self, target, frame, duration, start=None, timestamp=None):
+    def set_line(
+            self, target, frame, duration=None, velocity=None,
+            start=None, timestamp=None):
         if start is None:
             start, _ = self.find_start(timestamp, frame)
+        if duration is None:
+            if velocity is None:
+                raise ValueError("either velocity or duration must be defined")
+            # compute duration
+            sx, sy, sz = start
+            x, y, z = target
+            dist = ((x - sx) ** 2. + (y - sy) ** 2. + (z - sz) ** 2.) ** 0.5
+            duration = dist / float(velocity)
         pts = planners.trajectory.linear_by_rate(
             start, target, duration, 10.)
         # build trajectory
@@ -232,12 +242,23 @@ class Plan(object):
             '%s_thigh' % (self.leg, ),
             '%s_knee' % (self.leg, )]
         # check limits
+        remove_points = []
         for (i, p) in enumerate(trajectory.trajectory.points):
             if not kinematics.leg.check_limits(p.positions, slop=0.017):
                 print("!!!!Trajectory would send angles out of limits")
                 print('%s: %s' % (i, p.positions))
                 print('frame: %s' % frame)
-                return
+                remove_points.append(i)
+        if len(remove_points):
+            print("!!!!Removing %s points" % len(remove_points))
+            for i in remove_points[::-1]:
+                trajectory.trajectory.points.pop(i)
+            for (i, p) in enumerate(trajectory.trajectory.points):
+                print('%s: %s' % (i, p.positions))
+            raise Exception
+        if not len(trajectory.trajectory.points):
+            print("!!!!Trajectory is empty, not sending")
+            return
         legs.publishers[self.leg].send_goal(trajectory)
         if trajectory.trajectory.header.stamp.is_zero():
             #print("timestamping trajectory")

@@ -136,3 +136,16 @@ def nonhomogeneous_3d(pts):
 def transform_3d_array(m, pts):
     r = m * homogeneous_3d(pts)
     return nonhomogeneous_3d(r)
+
+
+def blend(t0, t1, n):
+    """warning! infinite generator"""
+    t = t0.copy()
+    dt = (t1 - t0) / float(n)
+    i = 0
+    while i < n:
+        t += dt
+        yield t
+        i += 1
+    while True:
+        yield t1
