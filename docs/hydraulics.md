@@ -45,3 +45,19 @@ http://www.surpluscenter.com/Hydraulics/Hydraulic-Pumps/Gear-Pumps/1-403-cu-in-P
 - 5/8" 9 tooth x 1-1/4" splined shaft
 - 5"x5-1/8"x4-5/8"
 - Shpg 9 lbs
+
+
+Cylinders
+====
+
+Knee: DBH-2512-WT
+http://www.daltonhydraulic.com/dalton-welded-tube-cylinder-2-5-bore-x-12-stroke
+2.5" bore, 1.5" rod, 12" travel, 20" retracted length
+
+Thigh: DBH-3514-WT
+http://www.daltonhydraulic.com/dalton-welded-tube-cylinder-3-5-bore-x-14-stroke
+3.5" bore, 1.75" rod, 14" travel, 24" retracted length
+
+Hip: DBH-2008-WT
+http://www.daltonhydraulic.com/dalton-welded-tube-cylinder-2-bore-x-8-stroke
+2" bore, 1.25" rod, 8" travel, 16" retracted length
