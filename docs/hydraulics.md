@@ -3,6 +3,11 @@ layout: default
 title: Stompy Documentation
 ---
 
+Oil
+====
+Coastal Economy AW-32
+http://petroleumservicecompany.com/content/pdfs/PDS-COASTAL-ECONOMY-AW-HYDRAULIC-OILS.pdf
+
 Valves
 ====
 Hydraforce sp10-47c-8t-n-12ds
