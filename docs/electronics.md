@@ -38,3 +38,9 @@ http://cdn.kempstoncontrols.com/files/703d895b12803d7cf655dd0d65ab0a7d/2200BGH30
 - 4 PIN DIN (Micro) Mating Connector Supplied with flying leads (4-1/2˝ IP30) [only supplied on some??]
 - Amplified Only RFI Protected CE Mark, UR
 - .25%/1.5% Accuracy/Thermal
+
+IMU
+====
+model: mti-28a53g35
+ros node: http://wiki.ros.org/xsens_driver
+roslaunch xsens_driver xsens_driver.launch
