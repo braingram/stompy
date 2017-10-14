@@ -4,4 +4,4 @@ import calc
 import vis
 
 r = calc.RestrictionControl()
-vis.run(r.update, 0.1)
+vis.run(r, r.update, 0.1)

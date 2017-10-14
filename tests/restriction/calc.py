@@ -32,13 +32,15 @@ all_neighbors = {
     'rl': ('ml', 'rr', 'mr', 'fl', 'fr'),
 }
 
-#neighbors = closest_neighbors
-neighbors = all_neighbors
+neighbors = closest_neighbors
+#neighbors = all_neighbors
 
 
 class Foot(object):
     radius = 1.075
     eps = numpy.log(0.1) / radius
+    stance_velocity = 0.2
+    swing_velocity = 0.4
 
     def __init__(self, name):
         self.name = name
@@ -46,8 +48,8 @@ class Foot(object):
         self.position = self.center
         self.state = 'stance'
         self.target = self.position
-        self.stance_velocity = 0.2
-        self.swing_velocity = 0.4
+        #self.stance_velocity = 0.2
+        #self.swing_velocity = 0.4
         self.last_update = 0
 
     def __str__(self):
@@ -112,9 +114,10 @@ class RestrictionControl(object):
         for foot in self.feet:
             self.restrictions[foot] = self.feet[foot].restriction
             self.last_lift_times[foot] = 0
-        self.restriction_threshold = 0.25
+        self.restriction_threshold = 0.45
         self.max_restriction = 0.9
         self.step_size = 0.5
+        self.max_feet_up = 3
 
     def lift_foot(self, foot_name, target):
         foot = self.feet[foot_name]
@@ -137,6 +140,21 @@ class RestrictionControl(object):
         up = []
         down = []
         stance_target = target
+        self.previous_restrictions = self.restrictions.copy()
+        # first get all foot restrictions
+        for foot_name in self.feet:
+            self.restrictions[foot_name] = self.feet[foot_name].restriction
+        # combine with cross-foot restriction
+        # TODO find a/p axis
+        #rw = 0.0
+        #self.restrictions['fr'] = max(
+        #    self.restrictions['fr'], self.restrictions['mr'] * rw)
+        #self.restrictions['mr'] = max(
+        #    self.restrictions['mr'], self.restrictions['rr'] * rw)
+        #self.restrictions['fl'] = max(
+        #    self.restrictions['fl'], self.restrictions['ml'] * rw)
+        #self.restrictions['ml'] = max(
+        #    self.restrictions['ml'], self.restrictions['rl'] * rw)
         # check against max restriction
         if max(self.restrictions.values()) > self.max_restriction:
             stance_target = (0, 0)
@@ -147,8 +165,8 @@ class RestrictionControl(object):
             if foot.state in ('wait', 'stance'):
                 foot.target = stance_target
             foot.update(t)
-            pr = self.restrictions[foot_name]
-            r = foot.restriction
+            pr = self.previous_restrictions[foot_name]
+            r = self.restrictions[foot_name]
             dr = r - pr
             self.restrictions[foot_name] = r
             # if restriction isn't decreasing, switch from wait to stance
@@ -171,9 +189,13 @@ class RestrictionControl(object):
         for foot in restricted[:]:
             for n in neighbors[foot]:
                 if n in up and foot in restricted:
+                    print("%s neighbor %s is up" % (foot, n))
                     restricted.remove(foot)
         # if nothing is restricted, return
         if not len(restricted):
+            return states
+        # if already have max feet up, don't lift any more
+        if len(up) >= self.max_feet_up:
             return states
         # sort by most to least restricted
         restricted = sorted(

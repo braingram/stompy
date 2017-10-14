@@ -1,125 +1,215 @@
 #!/usr/bin/env python
+"""
+"""
 
-import sys
+import Tkinter as tk
 
-import numpy
+import calc
 
-from vispy import app
-
-from vispy.scene import SceneCanvas
-from vispy.scene.visuals import Ellipse
-from vispy.color import Color
 
 foot_radius = 0.1
-radius = 1.075
 
-black = Color("#000000")
-white = Color("#ecf0f1")
-blue = Color("#2980b9")
-green = Color("#00ff00")
-red = Color("#e74c3c")
+#black = Color("#000000")
+#white = Color("#ecf0f1")
+#blue = Color("#2980b9")
+#green = Color("#00ff00")
+#red = Color("#e74c3c")
 
-w, h = 800, 600
+pw, ph = 600, 600
+cw, ch = 9, 9
+
+tr = 5  # target radius
+fr = 5  # foot radius
+fc = {
+    'wait': 'blue',
+    'stance': 'green',
+    'swing': 'white',
+}
 
 global target
 target = (0., 0.)
 
-feet = {
-    'fr': {
-        'center': (1.95627967418, 3.19594053089),
-    },
-    'mr': {
-        'center': (2.3608, 0.0),
-    },
-    'rr': {
-        'center': (1.95627967418, -3.19594053089),
-    },
-    'fl': {
-        'center': (-1.95627967418, 3.19594053089),
-    },
-    'ml': {
-        'center': (-2.3608, 0.0),
-    },
-    'rl': {
-        'center': (-1.95627967418, -3.19594053089),
-    },
-}
+
+class App(object):
+    def __init__(self, rc, root=None):
+        self._sliders = {}
+        self.rc = rc
+        self.feet = {}
+        for foot in calc.foot_centers:
+            self.feet[foot] = {
+                'center': calc.foot_centers[foot],
+            }
+
+        if root is None:
+            root = tk.Tk()
+        self.root = root
+        self.target = (0., 0.)
+        self.t = 0.0
+        self.dt = 0.0
+
+        # add window & canvas
+        self.pw, self.ph = pw, ph
+        self.cw, self.ch = cw, ch
+        self.canvas = tk.Canvas(
+            self.root, width=self.pw, height=self.ph,
+            bg='black')
+        self.canvas.pack(side=tk.LEFT)
+
+        #Foot:
+        #    stance_velocity: 0.2
+        #    swing_velocity: 0.4
+        #RestrictionControl:
+        #    restriction threshold: 0.25
+        #    step_size: 0.5
+        """
+        f = tk.Frame(self.root)
+        l = tk.Label(f, text="stance v")
+        l.pack(side=tk.TOP)
+        self.v = tk.DoubleVar()
+        self.v.set(calc.Foot.stance_velocity)
+
+        def set_stance_velocity(a, b, c, v=self.v):
+            calc.Foot.stance_velocity = v.get()
+
+        s = tk.Scale(f, from_=0, to=1, resolution=0.05, variable=self.v)
+        self.v.trace("w", set_stance_velocity)
+        s.pack(side=tk.TOP)
+        f.pack(side=tk.LEFT)
+        """
+        self.make_slider(
+            "stace v", calc.Foot.stance_velocity,
+            lambda v: setattr(calc.Foot, "stance_velocity", v))
+        self.make_slider(
+            "swing v", calc.Foot.swing_velocity,
+            lambda v: setattr(calc.Foot, "swing_velocity", v))
+        self.make_slider(
+            "r thresh", self.rc.restriction_threshold,
+            lambda v: setattr(self.rc, "restriction_threshold", v))
+        self.make_slider(
+            "step", self.rc.step_size,
+            lambda v: setattr(self.rc, "step_size", v))
+        self.make_slider(
+            "max up", self.rc.max_feet_up,
+            lambda v: setattr(self.rc, "max_feet_up", v),
+            from_=1, to=3, resolution=1)
+
+        # initialize canvas
+        # target: white rect
+        tx, ty = self._c2p(*self.target)
+        self.target_rect = self.canvas.create_rectangle(
+            tx - tr, ty - tr, tx + tr, ty + tr,
+            fill='white')
+        for foot in self.feet:
+            foot = self.feet[foot]
+            # feet: white circles
+            fx, fy = self._c2p(*foot['center'])
+            foot['marker'] = self.canvas.create_oval(
+                fx - fr, fy - fr, fx + fr, fy + fr,
+                outline='white')
+            # restriction: red circles
+            foot['rmarker'] = self.canvas.create_oval(
+                fx - fr, fy - fr, fx + fr, fy + fr,
+                outline='red')
+            foot['rtext'] = self.canvas.create_text(
+                fx + fr, fy + fr,
+                fill='red',
+                text='?',
+                anchor='nw')
+            # travel limits: yellow circles
+            r = calc.Foot.radius * min(pw, ph) / float(max(cw, ch))
+            foot['lmarker'] = self.canvas.create_oval(
+                fx - r, fy - r, fx + r, fy + r,
+                outline='yellow')
+
+        # monitor mouse movement
+        self.canvas.bind("<B1-Motion>", self.set_target)
+        self.canvas.bind("<Button-1>", self.set_target)
+        self.canvas.bind("<Button-3>", self.reset_target)
+
+    def make_slider(self, name, value, set_value, **kwargs):
+        f = tk.Frame(self.root)
+        l = tk.Label(f, text=name)
+        l.pack(side=tk.TOP)
+        v = tk.DoubleVar()
+        v.set(value)
+
+        def func(a, b, c, v=v):
+            print("setting to %s" % v.get())
+            set_value(v.get())
+
+        kw = {'from_': 0, 'to': 1, 'resolution': 0.05, 'variable': v}
+        kw.update(kwargs)
+        #s = tk.Scale(f, from_=0, to=1, resolution=0.05, variable=v)
+        s = tk.Scale(f, **kw)
+        v.trace("w", func)
+        s.pack(side=tk.TOP)
+        f.pack(side=tk.LEFT)
+        self._sliders[name] = {'var': v}
+
+    def _p2c(self, x, y):
+        return (
+            ((x * 2.0 / self.pw) - 1.) * (self.cw / 2.),
+            ((y * -2.0 / self.ph) + 1.) * (self.ch / 2.))
+
+    def _c2p(self, x, y):
+        return (
+            ((x / (self.cw / 2.) + 1.) * self.pw / 2.),
+            ((y / (self.ch / 2.) - 1.) * self.ph / -2.))
+
+    def set_target(self, event):
+        tx, ty = self._p2c(event.x, event.y)
+        # update target
+        self.target = (tx, ty)
+
+    def reset_target(self, event):
+        self.target = (0., 0.)
+
+    def redraw(self, states):
+        # draw target: white rectangle
+        tx, ty = self._c2p(*self.target)
+        self.canvas.coords(
+            self.target_rect,
+            (tx - tr, ty - tr, tx + tr, ty + tr))
+
+        for foot in self.feet:
+            state = states[foot]
+            foot = self.feet[foot]
+            fx, fy = self._c2p(*state['position'])
+            s = state['state']
+            r = state['r']
+            # draw feet
+            self.canvas.coords(
+                foot['marker'],
+                (fx - fr, fy - fr, fx + fr, fy + fr))
+            # draw restriction
+            rr = fr + r * 20
+            self.canvas.coords(
+                foot['rmarker'],
+                (fx - rr, fy - rr, fx + rr, fy + rr))
+            self.canvas.coords(foot['rtext'], (fx + fr, fy + fr))
+            self.canvas.itemconfig(
+                foot['rtext'],
+                text='%0.2f[%s]' % (r, s),
+                fill=fc[s])
+            # draw state
+            self.canvas.itemconfig(
+                foot['marker'],
+                outline=fc[s])
+
+    def update(self):
+        states = self.ufunc(self.t, self.target)
+        self.redraw(states)
+        self.t += self.dt
+        # call after dt
+        self.root.after(int(self.dt * 1000), self.update)
+
+    def run(self, ufunc, dt):
+        self.ufunc = ufunc
+        self.dt = dt
+        self.root.after(int(self.dt * 1000), self.update)
+        self.root.mainloop()
 
 
-class Canvas(SceneCanvas):
-    def on_mouse_move(self, event):
-        # set target direction
-        x, y = event.pos
-        fx = x * 2. / w - 1.
-        fy = y * -2. / h + 1.
-        #print(fx, fy)
-        global target
-        target = (fx, fy)
-        #self.print_mouse_event(event, 'Mouse move')
-
-    def print_mouse_event(self, event, what):
-        modifiers = ', '.join([key.name for key in event.modifiers])
-        print('%s - pos: %r, button: %s, modifiers: %s, delta: %r' %
-              (what, event.pos, event.button, modifiers, event.delta))
-
-
-canvas = Canvas(keys="interactive", title="stompy walk", show=True)
-v = canvas.central_widget.add_view()
-v.camera = 'panzoom'
-v.camera.zoom(10, center=v.camera.center)
-
-# draw leg circles
-for foot_name in feet:
-    foot = feet[foot_name]
-    x, y = foot['center']
-    ellipse = Ellipse(
-        center=(x, y), radius=(radius, radius), color=black,
-        border_width=2, border_color=white, num_segments=100, parent=v.scene)
-    x += (numpy.random.random() - 0.5) * 0.5
-    y += (numpy.random.random() - 0.5) * 0.5
-    ellipse = Ellipse(
-        center=(x, y), radius=(foot_radius, foot_radius), color=black,
-        border_width=1, border_color=red, num_segments=10, parent=v.scene)
-    foot['rmarker'] = ellipse
-    ellipse = Ellipse(
-        center=(x, y), radius=(foot_radius, foot_radius), color=black,
-        border_width=1, border_color=blue, num_segments=10, parent=v.scene)
-    foot['marker'] = ellipse
-
-
-def draw_state(states):
-    # draw marker.center and rmarker.center
-    # set marker.border_color
-    # - white down
-    # - blue waiting
-    # - green stance
-    for foot_name in feet:
-        state = states[foot_name]
-        foot = feet[foot_name]
-        foot['marker'].center = state['position']
-        foot['rmarker'].center = state['position']
-        foot['rmarker'].radius = foot_radius + state['r'] * 0.5
-        color = {
-            'wait': blue,
-            'stance': green,
-            'swing': white,
-        }[state['state']]
-        foot['marker'].border_color = color
-
-
-def run(ufunc, dt):
-    timer = app.Timer()
-    global t
-    t = 0
-
-    def update(event):
-        global target, t
-        state = ufunc(t, target)
-        draw_state(state)
-        t += dt
-
-    timer.connect(update)
-    timer.start(dt)
-
-    if sys.flags.interactive != 1:
-        app.run()
+def run(rc, ufunc, dt):
+    app = App(rc)
+    app.run(ufunc, dt)
