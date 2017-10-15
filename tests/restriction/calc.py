@@ -41,6 +41,7 @@ class Foot(object):
     eps = numpy.log(0.1) / radius
     stance_velocity = 0.2
     swing_velocity = 0.4
+    velocity_scale = 1.0
 
     def __init__(self, name):
         self.name = name
@@ -156,8 +157,15 @@ class RestrictionControl(object):
         #self.restrictions['ml'] = max(
         #    self.restrictions['ml'], self.restrictions['rl'] * rw)
         # check against max restriction
-        if max(self.restrictions.values()) > self.max_restriction:
+        max_r = max(self.restrictions.values())
+        if max_r > self.max_restriction:
             stance_target = (0, 0)
+        elif max_r > self.restriction_threshold:
+            # 1.0 at threshold, 0.0 at max
+            Foot.velocity_scale = (
+                1 - (max_r - self.restriction_threshold)
+                / (self.max_restriction - self.restriction_threshold))
+            print("Velocity scale:", Foot.velocity_scale)
         # move feet
         for foot_name in self.feet:
             foot = self.feet[foot_name]
