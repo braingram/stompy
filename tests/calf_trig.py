@@ -125,6 +125,7 @@ class CalfLinkage(object):
         #print("calf link angle error: %s" % e)
 
         # 5) compute excursion of spring using angle #4
+        # sqrt(F * F + G * G - 2 * F * G * cos(CD))
         return cd
 
     def compute_spring_length(self, cd=None):
@@ -159,20 +160,43 @@ def compress_calf():
     angles = numpy.arange(30) + sda - 17
     sls = []
     lbs = []
+    cds = []
     for a in angles:
         c.da = a
-        sl = c.compute_spring_length()
+        cd = numpy.degrees(c.compute_cd())
+        sl = c.compute_spring_length(numpy.radians(cd))
         lb = c.compute_calf_load(sl)
+        cds.append(cd)
         sls.append(sl)
         lbs.append(lb)
+    # the code below here is super messy from attempting
+    # to see if a linear model fits well to the
+    # 4-bar linkage
+    cds = numpy.array(cds)
     sls = numpy.array(sls)
     lbs = numpy.array(lbs)
     pylab.subplot(311)
     #pylab.plot(angles)
-    pylab.plot(sls)
-    #pylab.plot(lbs)
+    #pylab.plot(sls)
+    #pylab.plot(cds - angles)
+    pylab.plot(cds)
+    pylab.plot(lbs)
     # how far is lbs from a straight line?
-    flbs = numpy.linspace(lbs.min(), lbs.max(), lbs.size)
+    #flbs = numpy.linspace(lbs.min(), lbs.max(), lbs.size)
+    #fcds = numpy.linspace(cds[0], cds[-1], cds.size)
+    slope = (cds[-1] - cds[0]) / (angles[-1] - angles[0])
+    print("cd0, cd-1: %s, %s" % (cds[0], cds[-1]))
+    fcds = angles * slope
+    offset = numpy.mean(cds) - numpy.mean(fcds)
+    print("Slope: %s" % slope)
+    print("Offset: %s" % offset)
+    fcds += offset
+    flbs = [
+        c.compute_calf_load(c.compute_spring_length(numpy.radians(cd)))
+        for cd in fcds]
+    pylab.plot(fcds)
+    pylab.plot(flbs)
+    #r = cds - fcds
     r = lbs - flbs
     pylab.subplot(312)
     pylab.plot(angles, r)
@@ -180,6 +204,7 @@ def compress_calf():
     pylab.ylabel('load error (lbs)')
     pylab.subplot(313)
     pylab.plot(angles, (r * 100.) / lbs)
+    #pylab.plot(angles, (r * 100.) / cds)
     pylab.ylabel('load error (%)')
     pylab.xlabel('sensor angle (degrees)')
     #pylab.plot((angles - angles.min()) / angles.ptp())

@@ -161,6 +161,7 @@ class RestrictionControl(object):
         if max_r > self.max_restriction:
             stance_target = (0, 0)
         elif max_r > self.restriction_threshold:
+            # adjust stance velocity based on maximum restriction
             # 1.0 at threshold, 0.0 at max
             Foot.velocity_scale = (
                 1 - (max_r - self.restriction_threshold)
@@ -170,15 +171,22 @@ class RestrictionControl(object):
         for foot_name in self.feet:
             foot = self.feet[foot_name]
             # set target direction if 'down'
+            ps = foot.state
             if foot.state in ('wait', 'stance'):
                 foot.target = stance_target
             foot.update(t)
             pr = self.previous_restrictions[foot_name]
-            r = self.restrictions[foot_name]
+            #r = self.restrictions[foot_name]
+            # restriction is calculated twice, but this is to deal with
+            # foot movements during update and 'wait' -> 'stance' transitions
+            r = self.feet[foot_name].restriction
+            self.restrictions[foot_name] = r
             dr = r - pr
+            if foot_name == 'fr':
+                print("!!!", dr, ps, r, pr)
             self.restrictions[foot_name] = r
             # if restriction isn't decreasing, switch from wait to stance
-            if foot.state == 'wait' and dr > 0:
+            if foot.state == 'wait' and dr > 0.0 and ps != 'swing':
                 print("\t%s dr = %s" % (foot_name, dr))
                 foot.set_state('stance')
             if foot.state == 'swing':
