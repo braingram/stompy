@@ -1,9 +1,4 @@
----
-layout: default
-title: Electronics
----
-
-Each leg has a raspberry pi 3 and teensy 3.2.
+Each leg has a teensy 3.2 with a custom breakout PCB
 
 
 Valve drivers
@@ -26,7 +21,7 @@ Calf sensors
 ER10031 Delphi Ride Height Sensor
 http://www.summitracing.com/parts/dfp-er10031?seid=srese1&gclid=CjwKEAjw3_ypBRCwoKqKw5P9wgsSJAAbi2K94xzHsf7dmDgVCodPEyFrd_NVCg_UObi5ZNHQsuZ5GBoCj2fw_wcB
 
-Pressure sensors
+Pressure sensors (only on front right leg)
 ====
 http://cdn.kempstoncontrols.com/files/703d895b12803d7cf655dd0d65ab0a7d/2200BGH3002A3UA.pdf
 
@@ -39,7 +34,7 @@ http://cdn.kempstoncontrols.com/files/703d895b12803d7cf655dd0d65ab0a7d/2200BGH30
 - Amplified Only RFI Protected CE Mark, UR
 - .25%/1.5% Accuracy/Thermal
 
-IMU
+IMU (not currently connected)
 ====
 model: mti-28a53g35
 ros node: http://wiki.ros.org/xsens_driver

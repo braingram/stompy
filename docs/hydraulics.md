@@ -1,8 +1,3 @@
----
-layout: default
-title: Stompy Documentation
----
-
 Oil
 ====
 Coastal Economy AW-32
@@ -66,3 +61,33 @@ http://www.daltonhydraulic.com/dalton-welded-tube-cylinder-3-5-bore-x-14-stroke
 Hip: DBH-2008-WT
 http://www.daltonhydraulic.com/dalton-welded-tube-cylinder-2-bore-x-8-stroke
 2" bore, 1.25" rod, 8" travel, 16" retracted length
+
+
+Load calculations
+====
+Assuming 2500 psi, 2000 rpm, combined flow is 45 GPM and using this table:
+
+http://www.womackmachine.com/engineering-toolbox/data-sheets/electric-motor-size-for-hydraulic-pump-drive/
+
+gives 78 HP.
+
+Starting with the valves, max flow is 6 GPM x 18 joints, giving 108 GPM, way more than the pumps can handle.
+
+Similar number (83) from here:
+
+http://www.hydraulicspneumatics.com/hydraulic-pumps-amp-motors/sizing-motors-hpus
+
+combined pump displacement: 
+5.272 = 3.869 + 1.403
+
+required torque (assuming 80% efficiency):
+~218 = (2500 * 5.272) / (6.28  * 12 * 0.8) [lb ft]
+
+hp at 2000 rpm
+~83 = (218 * 2000) / 5250. [hp]
+
+http://www.hydraulicspneumatics.com/200/TechZone/ManifoldsHICs/Article/False/6405/TechZone-ManifoldsHICs
+
+says oversize the combustion engine by 2.5x the electric, so assuming 83 hp, we should be looking at 207 HP.
+
+Getting an estimated flow for a gait seems tricky without knowing how hard the valves/pumps work with loaded legs. Assuming 100% duty cycle of just the hips,3 swinging back, 3 swinging forward at full speed, we're already looking at 36 GPM (80% of the flow going to the hips).
