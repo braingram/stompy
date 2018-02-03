@@ -1,5 +1,10 @@
 Each leg has a teensy 3.2 with a custom breakout PCB
 
+Firmware
+===
+see: https://github.com/braingram/StompyLegControl/tree/bjg_reorg
+current firmware: https://github.com/braingram/StompyLegControl/blob/bjg_reorg/examples/on_stompy_joystick_test/on_stompy_joystick_test.ino
+
 
 Valve drivers
 ====
