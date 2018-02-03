@@ -1,141 +1,114 @@
 #!/usr/bin/env python
 
-import ctypes
 import glob
+import logging
+import subprocess
 import time
-import threading
 
 import serial
 
 import pycomando
 
+from . import consts
 
-commands = {
-    0: {
-        'name': 'joints',
-        'result': (
-            ctypes.c_uint, ctypes.c_float, ctypes.c_float,
-            ctypes.c_float, ctypes.c_float),
-    },
-    1: {
-        'name': 'estop',
-        'args': (ctypes.c_ubyte, ),
-        'result': (ctypes.c_ubyte, ),
-    },
-    2: {
-        'name': 'enable',
-        'args': (ctypes.c_bool, ),
-    },
-    3: {
-        'name': 'heartbeat',
-    },
-    4: {
-        'name': 'status',
-        'result': (ctypes.c_bool, ),
-    },
-    5: {
-        'name': 'get_time',
-        'result': (ctypes.c_uint, ),
-    },
-    6: {
-        'name': 'new_point',
-        'args': (
-            ctypes.c_ubyte, ctypes.c_uint, ctypes.c_float,
-            ctypes.c_float, ctypes.c_float),
-        'result': (ctypes.c_ubyte, ),
-    },
-    7: {
-        'name': 'drop_point',
-        'args': (ctypes.c_ubyte, )
-    },
-    8: {
-        'name': 'point_reached',
-        'result': (ctypes.c_ubyte, ),
-    },
-    9: {
-        'name': 'done_moving',
-    },
+
+logger = logging.getLogger(__name__)
+
+cmds = {
+    0: 'estop(byte)',  # 0 = off, 1 = soft, 2 = hard
+    1: 'heartbeat',
+    2: 'pwm(float,float,float)',  # hip thigh knee
+    3: 'adc=uint32,uint32,uint32,uint32',
+    4: 'adc_target(uint32,uint32,uint32)',
+    5: 'pwm_value=int32,int32,int32',
+    6: 'pid=float,float,float,float,float,float,float,float,float',
+    7: 'plan(byte,byte,float,float,float,float,float,float,float)',
+    8: 'enable_pid(bool)',
+    9: 'xyz_values=float,float,float',
+    10: 'angles=float,float,float,float,bool',
+    11: 'set_pid(byte,float,float,float,float,float)',
+    12: 'loop_time=uint32',
+    13: 'leg_number(byte)=byte',
+    14: 'pwm_limits(byte,float,float,float,float)',
+    15: 'adc_limits(byte,float,float)',
+    16: 'calf_scale(float,float)',
 }
 
-global conn, com, text, cmd, mgr, lock
-conn = None
-com = None
-text = None
-cmd = None
-mgr = None
-lock = threading.Lock()
+
+def usb_serial_port_info(port_path=None, glob_string='/dev/ttyACM*'):
+    if port_path is None:
+        ports = glob.glob(glob_string)
+        return [usb_serial_port_info(p) for p in ports]
+    dev_path = subprocess.check_output(
+        ("udevadm info -q path -n %s" % port_path).split()).strip()
+    info = subprocess.check_output(
+        ("udevadm info -p %s" % dev_path).split()).strip()
+    d = {'port': port_path, 'dev_path': dev_path}
+    for l in info.split('\n'):
+        t = l.split()
+        if len(t) > 1 and '=' in t[1]:
+            st = t[1].split('=')
+            if len(st) == 2:
+                d[st[0]] = st[1]
+    return d
 
 
-def find_port(port=None):
-    if port is not None:
-        return port
-    ports = glob.glob('/dev/ttyACM*')
-    if len(ports) == 1:
-        print("Found port: %s" % ports[0])
-        return ports[0]
-    raise Exception("Uncertain port: %s" % (ports, ))
+def find_teensies():
+    info = usb_serial_port_info()
+    tinfo = []
+    for i in info:
+        if i['ID_VENDOR'] != 'Teensyduino':
+            continue
+        tinfo.append({
+            'port': i['port'],
+            'serial': i['ID_SERIAL_SHORT']})
+    return tinfo
 
 
-def connect(port=None, baud=115200):
-    global conn, com, mgr
-    conn = serial.Serial(find_port(), baud)
-    com = pycomando.Comando(conn)
-    text = pycomando.protocols.TextProtocol(com)
-    cmd = pycomando.protocols.CommandProtocol(com)
-    com.register_protocol(0, text)
-    com.register_protocol(1, cmd)
-    mgr = pycomando.protocols.command.EventManager(cmd, commands)
-    return mgr
+class Teensy(object):
+    def __init__(self, port):
+        self.port = port
+        self.com = pycomando.Comando(serial.Serial(self.port, 9600))
+        self.cmd = pycomando.protocols.command.CommandProtocol()
+        self.com.register_protocol(0, self.cmd)
+        # used for callbacks
+        self.mgr = pycomando.protocols.command.EventManager(self.cmd, cmds)
+        # easier for calling
+        self.ns = self.mgr.build_namespace()
+        # get leg number
+        logger.debug("%s Get leg number" % port)
+        self.leg_number = self.mgr.blocking_trigger('leg_number')
+        logger.debug("%s leg number = %s" % (port, self.leg_number))
+
+        # disable leg
+        self.ns.estop(consts.ESTOP_DEFAULT)
+        # send first heartbeat
+        self.send_heartbeat()
+
+    def send_heartbeat(self):
+        self.ns.heartbeat()
+        self.last_heartbeat = time.time()
+
+    def update(self):
+        self.com.handle_stream()
+        if time.time() - self.last_heartbeat > consts.HEARTBEAT_PERIOD:
+            self.send_heartbeat()
 
 
-def test_dropped_sbc_heartbeat():
-
-    def make_printer(header):
-        def printer(*args):
-            args = [getattr(a, 'value', a) for a in args]
-            print("%s: %s" % (header, args))
-        return printer
-
-    global last_beat
-    last_beat = time.time()
-
-    def on_beat():
-        global last_beat
-        last_beat = time.time()
-        print("heartbeat: [%s]" % last_beat)
-
-    # connect
-    if mgr is None:
-        connect()
-
-    # connect callbacks
-    mgr.on('joints', make_printer('joints'))
-    mgr.on('estop', make_printer('estop'))
-    mgr.on('enable', make_printer('enable'))
-    #mgr.on('heartbeat', make_printer('heartbeat'))
-    mgr.on('heartbeat', on_beat)
-
-    last_sent_beat = time.time()
-    mgr.trigger('heartbeat')
-
-    beats = 0
-    while True:
-        try:
-            t = time.time()
-            if t - last_sent_beat > 0.5 and beats < 5:
-                last_sent_beat = time.time()
-                print("sending heartbeat")
-                mgr.trigger('heartbeat')
-                beats += 1
-            com.handle_stream()
-            if t - last_beat > 1.0:
-                print("!! heartbeat lost !!")
-                print("sending estop")
-                mgr.trigger('estop', 0)
-                break
-        except KeyboardInterrupt as e:
-            break
-
-
-def test():
-    test_dropped_sbc_heartbeat()
+def connect_to_teensies(ports=None):
+    """Return dict with {leg_number: teensy}"""
+    if ports is None:
+        tinfo = find_teensies()
+        ports = [i['port'] for i in tinfo]
+    teensies = [Teensy(p) for p in ports]
+    lnd = {}
+    for t in teensies:
+        ln = t.leg_number
+        lnd[ln] = lnd.get(ln, []) + [t, ]
+    for ln in lnd:
+        if len(lnd[ln]) > 1:
+            raise Exception(
+                "Found >1 teensies with the same leg number: %s[%s]" %
+                (ln, lnd[ln]))
+        lnd[ln] = lnd[ln][0]
+    return lnd
