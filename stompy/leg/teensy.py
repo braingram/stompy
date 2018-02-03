@@ -3,6 +3,7 @@
 import glob
 import logging
 import subprocess
+import threading
 import time
 
 import serial
@@ -77,13 +78,44 @@ class Teensy(object):
         self.ns = self.mgr.build_namespace()
         # get leg number
         logger.debug("%s Get leg number" % port)
-        self.leg_number = self.mgr.blocking_trigger('leg_number')
+        self.leg_number = self.mgr.blocking_trigger('leg_number')[0].value
         logger.debug("%s leg number = %s" % (port, self.leg_number))
+
+        self.leg_name = consts.LEG_NAMES_BY_NUMBER[self.leg_number]
 
         # disable leg
         self.ns.estop(consts.ESTOP_DEFAULT)
         # send first heartbeat
         self.send_heartbeat()
+
+        # state
+        # -- status
+        #   - estop [state from python/firmware?]
+        #   - heartbeat [time from python]
+        #   - enable_pid [state from python/firmware?]
+        # -- low level
+        #   - adc [hip, thigh, knee, calf] {uint32}
+        #   - pwm_value [hip, thigh, knee] {int32}
+        #   - pid [h_output, to, ko, h_set, ts, ks, h_err, te, ke]
+        # -- high level
+        #   - xyz {float}
+        self.xyz = {}
+        #   - angles [hip, thigh, knee, calf, valid] {float,...,byte}
+        self.angles = {}
+
+        self.mgr.on('xyz_values', self.on_xyz_values)
+        self.mgr.on('angles', self.on_angles)
+
+    def on_xyz_values(self, x, y, z):
+        self.xyz = {
+            'x': x.value, 'y': y.value, 'z': z.value,
+            'time': time.time()}
+
+    def on_angles(self, h, t, k, c, v):
+        self.angles = {
+            'hip': h.value, 'thigh': t.value, 'knee': k.value,
+            'calf': c.value,
+            'valid': bool(v), 'time': time.time()}
 
     def send_heartbeat(self):
         self.ns.heartbeat()
@@ -93,6 +125,17 @@ class Teensy(object):
         self.com.handle_stream()
         if time.time() - self.last_heartbeat > consts.HEARTBEAT_PERIOD:
             self.send_heartbeat()
+
+    def _update_thread_function(self):
+        while True:
+            self.update()
+            time.sleep(0.01)
+
+    def start_update_thread(self):
+        self._update_thread = threading.Thread(
+            target=self._update_thread_function)
+        self._update_thread.daemon = True
+        self._update_thread.start()
 
 
 def connect_to_teensies(ports=None):
