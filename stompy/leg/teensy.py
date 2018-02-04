@@ -11,6 +11,7 @@ import serial
 import pycomando
 
 from . import consts
+from .. import calibration
 
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,9 @@ def find_teensies():
     return tinfo
 
 
+THREAD_SLEEP = 0.01
+
+
 class Teensy(object):
     def __init__(self, port):
         self.port = port
@@ -82,6 +86,12 @@ class Teensy(object):
         logger.debug("%s leg number = %s" % (port, self.leg_number))
 
         self.leg_name = consts.LEG_NAMES_BY_NUMBER[self.leg_number]
+
+        # load calibration setup
+        for v in calibration.setup.get(self.leg_number, []):
+            f, args = v
+            logger.debug("Calibration: %s, %s" % (f, args))
+            getattr(self.ns, f)(*args)
 
         # disable leg
         self.ns.estop(consts.ESTOP_DEFAULT)
@@ -129,7 +139,7 @@ class Teensy(object):
     def _update_thread_function(self):
         while True:
             self.update()
-            time.sleep(0.01)
+            time.sleep(THREAD_SLEEP)
 
     def start_update_thread(self):
         self._update_thread = threading.Thread(
