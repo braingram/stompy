@@ -12,6 +12,7 @@ import pycomando
 
 from . import consts
 from .. import calibration
+from . import plans
 
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ class Teensy(object):
     def send_heartbeat(self):
         self.ns.heartbeat()
         self.last_heartbeat = time.time()
+        #print("HB: %s" % self.last_heartbeat)
 
     def update(self):
         self.com.handle_stream()
@@ -146,6 +148,20 @@ class Teensy(object):
             target=self._update_thread_function)
         self._update_thread.daemon = True
         self._update_thread.start()
+
+    def send_plan(self, *args, **kwargs):
+        if len(args) == 0:
+            return self.stop()
+        if len(args) == 1 and isinstance(args[0], plans.Plan):
+            plan = args[0]
+        else:
+            plan = plans.Plan(*args, **kwargs)
+        print("sending: %s" % (plan.packed(), ))
+        self.ns.plan(*plan.packed())
+
+    def stop(self):
+        """Send stop plan"""
+        self.send_plan(plans.stop())
 
 
 def connect_to_teensies(ports=None):

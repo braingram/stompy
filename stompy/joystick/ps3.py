@@ -91,7 +91,12 @@ class PS3Joystick(object):
         self.fn = fn
         self.f = open(fn, 'rb+')
         self.keys = {}
+        self.key_edges = {}
         self.axes = {}
+
+    def clear_key_edge(self, name):
+        if name in self.key_edges:
+            del self.key_edges[name]
 
     def update(self, poll=True):
         if poll:
@@ -109,6 +114,9 @@ class PS3Joystick(object):
         if ev_type == 0x01:  # keys
             e['type'] = 'button'
             e['name'] = KEYS.get(code, 'unknown')
+            old_value = self.keys.get(e['name'], None)
+            if old_value is None or old_value != value:
+                self.key_edges[e['name']] = e
             self.keys[e['name']] = value
         elif ev_type == 0x03:  # axes
             e['type'] = 'axis'
