@@ -32,9 +32,11 @@ class Foot(object):
     def restriction(self, x, y, z):
         cx, cy = self.center
         d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
-        return numpy.exp(-self.eps * (d - self.radius))
+        return numpy.exp(-self.r_eps * (d - self.radius))
 
-    def update(self, x, y, z, t):
+    def update(self, x, y, z, t=None):
+        if t is None:
+            t = time.time()
         #dt = t - self.last_update
         r = self.restriction(x, y, z)
         ns = None
@@ -59,5 +61,7 @@ class Foot(object):
         elif self.state == 'stance':
             # continue moving...
             pass
+        if r > self.r_max:
+            ns = 'halt'
         self.last_update = t
         return r, ns
