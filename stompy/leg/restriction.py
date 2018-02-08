@@ -7,7 +7,7 @@ import numpy
 
 class Foot(object):
     r_max = 0.9
-    r_thresh = 0.15
+    r_thresh = 0.6
     center = (66.0, 0.0)
     radius = 42.0
     r_eps = numpy.log(0.1) / radius
