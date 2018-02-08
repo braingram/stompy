@@ -71,6 +71,38 @@ class SingleLeg(object):
                 self.conn.ns.estop(1)
                 self.stopped = True
             self.joy.clear_key_edge(DEADMAN_KEY)
+        sdt = None
+        if 'up' in self.joy.key_edges:
+            # increase speed
+            if self.joy.key_edges['up']['value']:
+                sdt = 0.1
+            self.joy.clear_key_edge('up')
+        if 'down' in self.joy.key_edges:
+            # decrease speed
+            if self.joy.key_edges['down']['value']:
+                sdt = -0.1
+            self.joy.clear_key_edge('down')
+        if sdt is not None:
+            self.speed_scalar = max(
+                self.speed_scalar_range[0],
+                min(
+                    self.speed_scalar_range[1],
+                    self.speed_scalar + sdt))
+            print("Speed scalar set to: %s" % self.speed_scalar)
+        new_frame = None
+        if 'cross' in self.joy.key_edges:
+            if self.joy.key_edges['cross']['value']:
+                new_frame = consts.PLAN_SENSOR_FRAME
+            self.joy.clear_key_edge('cross')
+        if 'square' in self.joy.key_edges:
+            if self.joy.key_edges['square']['value']:
+                new_frame = consts.PLAN_LEG_FRAME
+            self.joy.clear_key_edge('square')
+        if new_frame is not None:
+            self.conn.stop()
+            self.speed_scalar = 1.
+            self.move_frame = new_frame
+            print("New frame: %s" % self.move_frame)
         if self.stopped:
             return
         # read joystick axes, send plan
@@ -89,7 +121,7 @@ class SingleLeg(object):
             return
         # scale to -1, 1
         ax = max(-1., min(1., ax / float(thumb_scale)))
-        ay = max(-1., min(1., ay / float(thumb_scale)))
+        ay = max(-1., min(1., -ay / float(thumb_scale)))
         az = max(-1., min(1., az / 255.))
         # calculate speed
         speed = self.speeds[self.move_frame] * self.speed_scalar
