@@ -4,10 +4,23 @@ Write timestamped dicts to pickle file
 """
 
 import atexit
+import glob
 import logging
 import os
 import cPickle as pickle
 import time
+
+
+def load_dir(d):
+    fns = glob.glob(os.path.join(d, '*.p'))
+    fns = sorted(
+        fns, key=lambda fn: int(
+            os.path.splitext(os.path.basename(fn))[0].split('_')[0]))
+    evs = []
+    for fn in fns:
+        with open(fn, 'rb') as f:
+            evs.extend(pickle.load(f))
+    return evs
 
 
 class Logger(object):
