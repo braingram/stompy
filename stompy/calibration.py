@@ -1,6 +1,20 @@
 #!/usr/bin/env python
 
 setup = {
+    1: [  # fl calibration: 180114
+        # hip was swapped (min length = max val), swapped lengths
+        # 20% symmetric deadband, 100% max, 13 bit
+        ('pwm_limits', (0, 1638, 8192, 1638, 8192)),
+        ('pwm_limits', (1, 1638, 8192, 1638, 8192)),
+        ('pwm_limits', (2, 1638, 8192, 1638, 8192)),
+        ('adc_limits', (0, 6520, 50680)),
+        ('adc_limits', (1, 3258, 61003)),
+        ('adc_limits', (2, 10701, 60554)),
+        ('set_pid', (0, 1.0, 1.0, 0.0, -8192, 8192)),
+        ('set_pid', (1, 2.0, 3.0, 0.0, -8192, 8192)),
+        ('set_pid', (2, 1.0, 1.0, 0.0, -8192, 8192)),
+        # calf scale
+    ],
     5: [  # mr calibration: 170807
         ('pwm_limits', (0, 1638, 8192, 1638, 8192)),
         ('pwm_limits', (1, 1638, 8192, 1638, 8192)),

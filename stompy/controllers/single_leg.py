@@ -48,8 +48,8 @@ class SingleLeg(object):
         self.conn.set_estop(1)
         self.move_frame = consts.PLAN_SENSOR_FRAME
         self.speeds = {
-            consts.PLAN_SENSOR_FRAME: 1500,
-            consts.PLAN_LEG_FRAME: 10.0,
+            consts.PLAN_SENSOR_FRAME: 1200,
+            consts.PLAN_LEG_FRAME: 5.0,
         }
         self.speed_scalar = 1.0
         self.speed_scalar_range = (0.1, 2.0)

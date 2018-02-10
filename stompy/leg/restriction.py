@@ -13,10 +13,10 @@ class Foot(object):
     r_eps = numpy.log(0.1) / radius
 
     step_size = 30.0
-    stance_velocity = 8.0
-    swing_velocity = 16.0
-    lower_velocity = 16.0
-    lift_velocity = 16.0
+    stance_velocity = 4.0
+    swing_velocity = 8.0
+    lower_velocity = 8.0
+    lift_velocity = 8.0
     velocity_scale = 1.0
 
     lower_height = -15.0
