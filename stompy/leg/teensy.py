@@ -117,9 +117,13 @@ class Teensy(object):
         self.xyz = {}
         #   - angles [hip, thigh, knee, calf, valid] {float,...,byte}
         self.angles = {}
+        self.pid = {}
+        self.pwm_value = {}
 
         self.mgr.on('xyz_values', self.on_xyz_values)
         self.mgr.on('angles', self.on_angles)
+        self.mgr.on('pid', self.on_pid)
+        self.mgr.on('pwm_value', self.on_pwm_value)
 
     def set_estop(self, value):
         self.ns.estop(value)
@@ -148,6 +152,31 @@ class Teensy(object):
             'calf': c.value,
             'valid': bool(v), 'time': time.time()}
         log.debug({'angles': self.angles})
+
+    def on_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
+        self.pid = {
+            'time': time.time(),
+            'output': {
+                'hip': ho.value,
+                'thigh': to.value,
+                'knee': ko.value,
+            },
+            'set_point': {
+                'hip': hs.value,
+                'thigh': ts.value,
+                'knee': ks.value,
+            },
+            'error': {
+                'hip': he.value,
+                'thigh': te.value,
+                'knee': ke.value,
+            }}
+        log.debug({'pid': self.pid})
+
+    def on_pwm_value(self, h, t, k):
+        self.pwm_value = {
+            'hip': h, 'thigh': t, 'knee': k, 'time': time.time()}
+        log.debug({'pwm_value': self.pwm_value})
 
     def send_heartbeat(self):
         self.ns.heartbeat()
