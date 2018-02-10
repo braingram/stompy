@@ -13,6 +13,7 @@ import pycomando
 from . import consts
 from .. import calibration
 from . import plans
+from .. import log
 
 
 logger = logging.getLogger(__name__)
@@ -84,18 +85,21 @@ class Teensy(object):
         # get leg number
         logger.debug("%s Get leg number" % port)
         self.leg_number = self.mgr.blocking_trigger('leg_number')[0].value
+        log.info({'leg_number': self.leg_number})
         logger.debug("%s leg number = %s" % (port, self.leg_number))
 
         self.leg_name = consts.LEG_NAMES_BY_NUMBER[self.leg_number]
+        log.info({'leg_name': self.leg_name})
 
         # load calibration setup
         for v in calibration.setup.get(self.leg_number, []):
+            log.debug({'calibration': v})
             f, args = v
             logger.debug("Calibration: %s, %s" % (f, args))
             getattr(self.ns, f)(*args)
 
         # disable leg
-        self.ns.estop(consts.ESTOP_DEFAULT)
+        self.set_estop(consts.ESTOP_DEFAULT)
         # send first heartbeat
         self.send_heartbeat()
 
@@ -117,16 +121,33 @@ class Teensy(object):
         self.mgr.on('xyz_values', self.on_xyz_values)
         self.mgr.on('angles', self.on_angles)
 
+    def set_estop(self, value):
+        self.ns.estop(value)
+        log.info({'estop': value})
+
+    def enable_pid(self, value):
+        self.ns.enable_pid(value)
+        log.debug({'enable_pid': value})
+
+    def on_adc(self, hip, thigh, knee, calf):
+        self.adc = {
+            'hip': hip.value, 'thigh': thigh.value,
+            'knee': knee.value, 'calf': calf.value,
+            'time': time.time()}
+        log.debug({'adc': self.adc})
+
     def on_xyz_values(self, x, y, z):
         self.xyz = {
             'x': x.value, 'y': y.value, 'z': z.value,
             'time': time.time()}
+        log.debug({'xyz': self.xyz})
 
     def on_angles(self, h, t, k, c, v):
         self.angles = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'calf': c.value,
             'valid': bool(v), 'time': time.time()}
+        log.debug({'angles': self.angles})
 
     def send_heartbeat(self):
         self.ns.heartbeat()
@@ -156,8 +177,10 @@ class Teensy(object):
             plan = args[0]
         else:
             plan = plans.Plan(*args, **kwargs)
-        print("sending: %s" % (plan.packed(), ))
-        self.ns.plan(*plan.packed())
+        pp = plan.packed()
+        print("sending: %s" % (pp, ))
+        log.info({'plan': pp})
+        self.ns.plan(*pp)
 
     def stop(self):
         """Send stop plan"""

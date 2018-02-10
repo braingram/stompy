@@ -91,18 +91,10 @@ class PS3Joystick(object):
         self.fn = fn
         self.f = open(fn, 'rb+')
         self.keys = {}
-        self.key_edges = {}
         self.axes = {}
+        self.report_ev_types = set((0x01, 0x03))
 
-    def clear_key_edge(self, name):
-        if name in self.key_edges:
-            del self.key_edges[name]
-
-    def update(self, poll=True):
-        if poll:
-            rf, _, _ = select.select([self.f, ], [], [], POLL_TIMEOUT)
-            if len(rf) == 0:
-                return None
+    def read_event(self):
         t_sec, t_usec, ev_type, code, value = struct.unpack(
             FMT, self.f.read(NB))
 
@@ -114,9 +106,6 @@ class PS3Joystick(object):
         if ev_type == 0x01:  # keys
             e['type'] = 'button'
             e['name'] = KEYS.get(code, 'unknown')
-            old_value = self.keys.get(e['name'], None)
-            if old_value is None or old_value != value:
-                self.key_edges[e['name']] = e
             self.keys[e['name']] = value
         elif ev_type == 0x03:  # axes
             e['type'] = 'axis'
@@ -124,11 +113,22 @@ class PS3Joystick(object):
             self.axes[e['name']] = value
         return e
 
+    def update(self, max_time=0.01):
+        # read multiple events per update
+        st = time.time()
+        evs = []
+        while time.time() - st < max_time:
+            rf, _, _ = select.select([self.f, ], [], [], POLL_TIMEOUT)
+            if len(rf) == 0:
+                return evs
+            e = self.read_event()
+            if e['ev_type'] in self.report_ev_types:
+                evs.append(e)
+        return evs
+
     def _update_thread_function(self):
         while True:
-            ev = self.update(poll=True)
-            while ev is not None:
-                ev = self.update(poll=True)
+            self.update(poll=True)
             time.sleep(THREAD_SLEEP)
 
     def start_update_thread(self):
@@ -136,14 +136,6 @@ class PS3Joystick(object):
             target=self._update_thread_function)
         self._update_thread.daemon = True
         self._update_thread.start()
-
-    def write_event(self, ev_type, code, value):
-        return
-        t = time.time()
-        t_sec = int(t)
-        t_usec = int(t - t_sec * 1000000)
-        msg = struct.pack(FMT, t_sec, t_usec, ev_type, code, value)
-        self.f.write(msg)
 
 
 def test_read_axes():

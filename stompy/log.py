@@ -12,7 +12,7 @@ import time
 
 class Logger(object):
     def __init__(self, directory, events_per_file=10000):
-        self.level = logging.WARNING
+        self.level = logging.DEBUG
         self._dir = directory
         self._events = []
         self._file_index = 0

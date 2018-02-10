@@ -7,12 +7,12 @@ import numpy
 
 class Foot(object):
     r_max = 0.9
-    r_thresh = 0.6
+    r_thresh = 0.2
     center = (66.0, 0.0)
     radius = 42.0
     r_eps = numpy.log(0.1) / radius
 
-    step_size = 20.0
+    step_size = 30.0
     stance_velocity = 8.0
     swing_velocity = 16.0
     lower_velocity = 16.0

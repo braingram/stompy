@@ -29,6 +29,7 @@ d-pad: increase, decrease speed [within bound]
 
 from ..leg import consts
 from ..leg import restriction
+from .. import log
 
 
 DEADMAN_KEY = 'one_right'
@@ -44,7 +45,7 @@ class SingleLeg(object):
         self.joy = joy
         self._threads_running = False
         self.stopped = True
-        self.conn.ns.estop(1)
+        self.conn.set_estop(1)
         self.move_frame = consts.PLAN_SENSOR_FRAME
         self.speeds = {
             consts.PLAN_SENSOR_FRAME: 1500,
@@ -54,65 +55,71 @@ class SingleLeg(object):
         self.speed_scalar_range = (0.1, 2.0)
         self.res = restriction.Foot()
         self.res.enabled = False
-
-    def run_threads(self):
-        self.joy.start_update_thread()
-        self.conn.start_update_thread()
-        self._threads_running = True
+        self.last_r = None
 
     def update(self):
-        if not self._threads_running:
-            self.joy.update()
-            self.conn.update()
-        if DEADMAN_KEY in self.joy.key_edges:
-            e = self.joy.key_edges[DEADMAN_KEY]
-            if e['value']:  # pressed
-                self.conn.ns.estop(0)
-                self.conn.ns.enable_pid(True)
+        evs = self.joy.update()
+        # value by key name, just keep most recent
+        kevs = {}
+        for e in evs:
+            kevs[e['name']] = e['value']
+        self.conn.update()
+        if DEADMAN_KEY in kevs:
+            if kevs[DEADMAN_KEY] and self.stopped:  # pressed
+                self.conn.set_estop(0)
+                self.conn.enable_pid(True)
                 self.stopped = False
-            else:  # released, turn estop back on
-                self.conn.ns.estop(1)
+            elif not kevs[DEADMAN_KEY] and not self.stopped:
+                # released, turn estop back on
+                self.conn.set_estop(1)
                 self.stopped = True
-            self.joy.clear_key_edge(DEADMAN_KEY)
         sdt = None
-        if 'up' in self.joy.key_edges:
+        if kevs.get('up', False):
             # increase speed
-            if self.joy.key_edges['up']['value']:
-                sdt = 0.1
-            self.joy.clear_key_edge('up')
-        if 'down' in self.joy.key_edges:
+            sdt = 0.1
+        if kevs.get('down', False):
             # decrease speed
-            if self.joy.key_edges['down']['value']:
-                sdt = -0.1
-            self.joy.clear_key_edge('down')
+            sdt = -0.1
         if sdt is not None:
             self.speed_scalar = max(
                 self.speed_scalar_range[0],
                 min(
                     self.speed_scalar_range[1],
                     self.speed_scalar + sdt))
+            log.info({"speed_scalar": self.speed_scalar})
             print("Speed scalar set to: %s" % self.speed_scalar)
         new_frame = None
-        if 'cross' in self.joy.key_edges:
-            if self.joy.key_edges['cross']['value']:
-                new_frame = consts.PLAN_SENSOR_FRAME
-            self.joy.clear_key_edge('cross')
-        if 'circle' in self.joy.key_edges:
-            if self.joy.key_edges['circle']['value']:
-                new_frame = consts.PLAN_LEG_FRAME
-            self.joy.clear_key_edge('circle')
-        if new_frame is not None:
+        if kevs.get('cross', False):
+            new_frame = consts.PLAN_SENSOR_FRAME
+        if kevs.get('circle', False):
+            new_frame = consts.PLAN_LEG_FRAME
+        if new_frame is not None and new_frame != self.move_frame:
             self.conn.stop()
             self.speed_scalar = 1.
             self.res.enabled = False
             self.move_frame = new_frame
             print("New frame: %s" % self.move_frame)
-        if 'square' in self.joy.key_edges:
-            if self.joy.key_edges['square']['value']:
-                self.conn.stop()
-                self.speed_scalar = 1.
-                self.res.enabled = True
-            self.joy.clear_key_edge('square')
+            log.info({"new_frame": new_frame})
+        if (
+                kevs.get('square', False) and not self.res.enabled
+                and not self.stopped):
+            self.conn.stop()
+            self.speed_scalar = 1.
+            self.res.enabled = True
+            log.info({"res_enabled": True})
+            # move to swing target
+            self.res.target = (
+                self.res.center[0],
+                self.res.center[1] + self.res.step_size)
+            self.conn.send_plan(
+                consts.PLAN_TARGET_MODE,
+                consts.PLAN_LEG_FRAME,
+                (
+                    self.res.target[0],
+                    self.res.target[1],
+                    self.res.lift_height),
+                speed=self.res.swing_velocity * self.speed_scalar)
+            self.res.state = 'swing'
         if self.stopped:
             return
         if not self.res.enabled:
@@ -143,11 +150,18 @@ class SingleLeg(object):
         # else restriction control
         r, new_state = self.res.update(
             self.conn.xyz['x'], self.conn.xyz['y'], self.conn.xyz['z'])
+        if self.last_r is None:
+            dr = 0.
+        else:
+            dr = r - self.last_r
+        self.last_r = r
+        log.debug({"r_update": (r, new_state, dr)})
+        print("R: %s, dr: %s" % (r, dr))
         if new_state == 'halt':
             print("restriction too high, stopping")
             self.conn.stop()
             return
-        if self.res.state == 'stance' and r > self.res.r_thresh:
+        if self.res.state == 'stance' and r > self.res.r_thresh and dr > 0:
             new_state = 'lift'
         if new_state is not None:
             if new_state == 'swing':
