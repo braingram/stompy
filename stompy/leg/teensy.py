@@ -130,6 +130,7 @@ class Teensy(object):
         self.mgr.on('angles', self.on_angles)
         self.mgr.on('pid', self.on_pid)
         self.mgr.on('pwm_value', self.on_pwm_value)
+        self.mgr.on('adc', self.on_adc)
 
     def set_estop(self, value):
         self.ns.estop(value)
