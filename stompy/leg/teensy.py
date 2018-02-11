@@ -199,7 +199,8 @@ class Teensy(object):
 
     def on_pwm_value(self, h, t, k):
         self.pwm_value = {
-            'hip': h, 'thigh': t, 'knee': k, 'time': time.time()}
+            'hip': h.value, 'thigh': t.value, 'knee': k.value,
+            'time': time.time()}
         log.debug({'pwm_value': self.pwm_value})
 
     def send_heartbeat(self):
