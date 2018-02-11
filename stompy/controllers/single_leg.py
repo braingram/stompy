@@ -93,7 +93,9 @@ class SingleLeg(object):
             new_frame = consts.PLAN_SENSOR_FRAME
         if kevs.get('circle', False):
             new_frame = consts.PLAN_LEG_FRAME
-        if new_frame is not None and new_frame != self.move_frame:
+        if (
+                new_frame is not None and
+                (new_frame != self.move_frame or self.res.enabled)):
             self.conn.stop()
             self.speed_scalar = 1.
             self.res.enabled = False
