@@ -76,10 +76,10 @@ class SingleLeg(object):
         sdt = None
         if kevs.get('up', False):
             # increase speed
-            sdt = 0.1
+            sdt = 0.05
         if kevs.get('down', False):
             # decrease speed
-            sdt = -0.1
+            sdt = -0.05
         if sdt is not None:
             self.speed_scalar = max(
                 self.speed_scalar_range[0],
@@ -111,8 +111,8 @@ class SingleLeg(object):
             log.info({"res_enabled": True})
             # move to swing target
             self.res.target = (
-                self.res.center[0],
-                self.res.center[1] + self.res.step_size)
+                self.conn.foot_travel_center[0],
+                self.conn.foot_travel_center[1] + self.res.step_size)
             self.conn.send_plan(
                 consts.PLAN_TARGET_MODE,
                 consts.PLAN_LEG_FRAME,
@@ -163,11 +163,14 @@ class SingleLeg(object):
             return
         #if self.res.state == 'stance' and r > self.res.r_thresh and dr > 0:
         #    new_state = 'lift'
+        if new_state is None and sdt is not None:
+            # trigger resend current plan with new speed
+            new_state = self.res.state
         if new_state is not None:
             if new_state == 'swing':
                 self.res.target = (
-                    self.res.center[0],
-                    self.res.center[1] + self.res.step_size)
+                    self.conn.foot_travel_center[0],
+                    self.conn.foot_travel_center[1] + self.res.step_size)
                 self.conn.send_plan(
                     consts.PLAN_TARGET_MODE,
                     consts.PLAN_LEG_FRAME,

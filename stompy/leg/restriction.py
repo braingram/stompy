@@ -2,16 +2,16 @@
 
 import time
 
-import numpy
+# import numpy
 
 
 class Foot(object):
     r_max = 0.9
     r_thresh = 0.2
 
-    center = (66.0, 0.0)
-    radius = 42.0
-    r_eps = numpy.log(0.1) / radius
+    # center = (66.0, 0.0)
+    # radius = 42.0
+    # r_eps = numpy.log(0.1) / radius
 
     step_size = 30.0
     stance_velocity = 4.0
@@ -30,10 +30,10 @@ class Foot(object):
         self.target = None
         self.last_update = time.time()
 
-    def restriction(self, x, y, z):
-        cx, cy = self.center
-        d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
-        return numpy.exp(-self.r_eps * (d - self.radius))
+    # def restriction(self, x, y, z):
+    #     cx, cy = self.center
+    #     d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
+    #     return numpy.exp(-self.r_eps * (d - self.radius))
 
     def update(self, x, y, z, r, dr, t=None):
         if t is None:
