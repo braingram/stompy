@@ -8,6 +8,7 @@ import numpy
 class Foot(object):
     r_max = 0.9
     r_thresh = 0.2
+
     center = (66.0, 0.0)
     radius = 42.0
     r_eps = numpy.log(0.1) / radius
@@ -34,11 +35,11 @@ class Foot(object):
         d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
         return numpy.exp(-self.r_eps * (d - self.radius))
 
-    def update(self, x, y, z, t=None):
+    def update(self, x, y, z, r, dr, t=None):
         if t is None:
             t = time.time()
         #dt = t - self.last_update
-        r = self.restriction(x, y, z)
+        #r = self.restriction(x, y, z)
         ns = None
         if self.state == 'swing':
             # check against target position
@@ -59,8 +60,9 @@ class Foot(object):
                 # if there, enter swing
                 ns = 'swing'
         elif self.state == 'stance':
-            # continue moving...
-            pass
+            # continue moving until restricted and r is increasing
+            if r > self.r_thresh and dr > 0:
+                ns = 'lift'
         if r > self.r_max:
             ns = 'halt'
         self.last_update = t

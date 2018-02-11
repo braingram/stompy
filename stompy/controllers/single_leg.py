@@ -151,11 +151,9 @@ class SingleLeg(object):
             return
         # else restriction control
         r, new_state = self.res.update(
-            self.conn.xyz['x'], self.conn.xyz['y'], self.conn.xyz['z'])
-        if self.last_r is None:
-            dr = 0.
-        else:
-            dr = r - self.last_r
+            self.conn.xyz['x'], self.conn.xyz['y'], self.conn.xyz['z'],
+            self.conn.xyz['r'], self.conn.xyz['dr'])
+        dr = self.conn.xyz['dr']
         self.last_r = r
         log.debug({"r_update": (r, new_state, dr)})
         print("R: %s, dr: %s" % (r, dr))
@@ -163,8 +161,8 @@ class SingleLeg(object):
             print("restriction too high, stopping")
             self.conn.stop()
             return
-        if self.res.state == 'stance' and r > self.res.r_thresh and dr > 0:
-            new_state = 'lift'
+        #if self.res.state == 'stance' and r > self.res.r_thresh and dr > 0:
+        #    new_state = 'lift'
         if new_state is not None:
             if new_state == 'swing':
                 self.res.target = (

@@ -6,6 +6,7 @@ import subprocess
 import threading
 import time
 
+import numpy
 import serial
 
 import pycomando
@@ -73,6 +74,11 @@ THREAD_SLEEP = 0.01
 
 
 class Teensy(object):
+    foot_travel_center = (66.0, 0.0)
+    foot_travel_radius = 42.0
+    foot_r_eps = numpy.log(0.1) / foot_travel_radius
+    dr_smooth = 0.5  # should be 0 -> 0.9999: higher = more dr smoothing
+
     def __init__(self, port):
         self.port = port
         self.com = pycomando.Comando(serial.Serial(self.port, 9600))
@@ -140,10 +146,27 @@ class Teensy(object):
             'time': time.time()}
         log.debug({'adc': self.adc})
 
+    def restriction(self, x, y, z):
+        cx, cy = self.foot_travel_center
+        d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
+        return numpy.exp(-self.foot_r_eps * (d - self.foot_travel_radius))
+
     def on_xyz_values(self, x, y, z):
+        t = time.time()
+        x, y, z = x.value, y.value, z.value
+        self.r = self.restriction(x, y, z)
+        # compute smooted dr
+        if 'r' not in self.xyz or 'time' not in self.xyz:
+            self.dr = 0.
+            idr = 0.
+        else:
+            idr = (self.r - self.xyz['r']) / (t - self.xyz['time'])
+            self.dr = self.dr * self.dr_smooth + idr * (1. - self.dr_smooth)
         self.xyz = {
-            'x': x.value, 'y': y.value, 'z': z.value,
-            'time': time.time()}
+            'x': x, 'y': y, 'z': z,
+            'r': self.r, 'dr': self.dr, 'idr': idr,
+            'time': t}
+        self.xyz['dr'] = self.dr
         log.debug({'xyz': self.xyz})
 
     def on_angles(self, h, t, k, c, v):
