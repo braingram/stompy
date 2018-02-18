@@ -43,7 +43,7 @@ def setup_pid_plot(pw):
     ax3.setPen('r')
 
     def updateViews(a=0, p1=p1, p2=p2, p3=p3):
-        print(a, p1, p2, p3)
+        #print(a, p1, p2, p3)
         ## view has resized; update auxiliary views to match
         p2.setGeometry(p1.vb.sceneBoundingRect())
         p3.setGeometry(p1.vb.sceneBoundingRect())
@@ -79,7 +79,7 @@ def setup_pid_plot(pw):
         # force redraw?
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
-    timer.start(0)
+    timer.start(50)
     d1._timer = timer
 
 
