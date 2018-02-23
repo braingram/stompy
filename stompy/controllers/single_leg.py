@@ -49,7 +49,7 @@ class SingleLeg(object):
         self.move_frame = consts.PLAN_SENSOR_FRAME
         self.speeds = {
             consts.PLAN_SENSOR_FRAME: 1200,
-            consts.PLAN_LEG_FRAME: 5.0,
+            consts.PLAN_LEG_FRAME: 3.0,
         }
         self.speed_scalar = 1.0
         self.speed_scalar_range = (0.1, 2.0)

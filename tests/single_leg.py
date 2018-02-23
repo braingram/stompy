@@ -20,7 +20,6 @@ leg = legs.values()[0]
 print("Connected to leg: %s" % leg.leg_name)
 
 c = stompy.controllers.single_leg.SingleLeg(leg, joy)
-#c.run_threads()
 
 while True:
     try:
