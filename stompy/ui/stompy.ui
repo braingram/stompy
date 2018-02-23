@@ -125,7 +125,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QProgressBar" name="progressBar">
+               <widget class="QProgressBar" name="hipADCProgress">
                 <property name="maximum">
                  <number>65535</number>
                 </property>
@@ -149,7 +149,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QProgressBar" name="progressBar_2">
+               <widget class="QProgressBar" name="thighADCProgress">
                 <property name="maximum">
                  <number>65535</number>
                 </property>
@@ -173,7 +173,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QProgressBar" name="progressBar_3">
+               <widget class="QProgressBar" name="kneeADCProgress">
                 <property name="maximum">
                  <number>65535</number>
                 </property>
@@ -197,7 +197,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QProgressBar" name="progressBar_4">
+               <widget class="QProgressBar" name="calfADCProgress">
                 <property name="maximum">
                  <number>65535</number>
                 </property>
@@ -235,7 +235,7 @@
               <item>
                <widget class="QLabel" name="label_29">
                 <property name="text">
-                 <string>Hip</string>
+                 <string>PID</string>
                 </property>
                </widget>
               </item>
@@ -249,7 +249,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="hipPSpin"/>
+                 <widget class="QDoubleSpinBox" name="pidPSpin"/>
                 </item>
                </layout>
               </item>
@@ -263,7 +263,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="hipISpin"/>
+                 <widget class="QDoubleSpinBox" name="pidISpin"/>
                 </item>
                </layout>
               </item>
@@ -277,7 +277,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="hipDSpin"/>
+                 <widget class="QDoubleSpinBox" name="pidDSpin"/>
                 </item>
                </layout>
               </item>
@@ -288,7 +288,7 @@
               <item>
                <widget class="QLabel" name="label_25">
                 <property name="text">
-                 <string>Thigh</string>
+                 <string>PWM</string>
                 </property>
                </widget>
               </item>
@@ -297,12 +297,12 @@
                 <item>
                  <widget class="QLabel" name="label_26">
                   <property name="text">
-                   <string>P</string>
+                   <string>Extend min</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="thighPSpin"/>
+                 <widget class="QDoubleSpinBox" name="extendMinSpin"/>
                 </item>
                </layout>
               </item>
@@ -311,12 +311,12 @@
                 <item>
                  <widget class="QLabel" name="label_27">
                   <property name="text">
-                   <string>I</string>
+                   <string>Extend max</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="thighISpin_2"/>
+                 <widget class="QDoubleSpinBox" name="extendMaxSpin"/>
                 </item>
                </layout>
               </item>
@@ -325,12 +325,26 @@
                 <item>
                  <widget class="QLabel" name="label_28">
                   <property name="text">
-                   <string>D</string>
+                   <string>Retract min</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="thighDSpin"/>
+                 <widget class="QDoubleSpinBox" name="retractMinSpin"/>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_30">
+                <item>
+                 <widget class="QLabel" name="label_33">
+                  <property name="text">
+                   <string>Retract max</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="retractMaxSpin"/>
                 </item>
                </layout>
               </item>
@@ -341,7 +355,7 @@
               <item>
                <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Knee</string>
+                 <string>ADC limits</string>
                 </property>
                </widget>
               </item>
@@ -350,12 +364,12 @@
                 <item>
                  <widget class="QLabel" name="label_11">
                   <property name="text">
-                   <string>P</string>
+                   <string>Min</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="kneePSpin"/>
+                 <widget class="QDoubleSpinBox" name="adcLimitMin"/>
                 </item>
                </layout>
               </item>
@@ -364,26 +378,12 @@
                 <item>
                  <widget class="QLabel" name="label_10">
                   <property name="text">
-                   <string>I</string>
+                   <string>Max</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="kneeISpin"/>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_9">
-                <item>
-                 <widget class="QLabel" name="label_9">
-                  <property name="text">
-                   <string>D</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="kneeDSpin"/>
+                 <widget class="QDoubleSpinBox" name="adcLimitMax"/>
                 </item>
                </layout>
               </item>
@@ -392,18 +392,25 @@
            </layout>
           </item>
           <item>
-           <widget class="QPushButton" name="commitPIDButton">
-            <property name="text">
-             <string>Commit</string>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_29">
+            <item>
+             <widget class="QPushButton" name="pidCommitButton">
+              <property name="text">
+               <string>Commit</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="pidJointCombo"/>
+            </item>
+           </layout>
           </item>
          </layout>
          <zorder>pidPlotWidget</zorder>
          <zorder>horizontalLayoutWidget_2</zorder>
          <zorder>label_12</zorder>
          <zorder>horizontalLayoutWidget_2</zorder>
-         <zorder>commitPIDButton</zorder>
+         <zorder>horizontalLayoutWidget_8</zorder>
         </widget>
         <widget class="QWidget" name="bodyTab">
          <attribute name="title">
