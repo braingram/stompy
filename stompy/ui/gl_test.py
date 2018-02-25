@@ -5,16 +5,23 @@ Demonstrate use of GLLinePlotItem to draw cross-sections of a surface.
 """
 ## Add path to library (just for examples; you do not need this)
 
+import PIL.Image
+import PIL.ImageDraw
+import PIL.ImageFont
+
+
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 import numpy
 
 side_view = {
-    'center': QtGui.QVector3D(45, 0, 0),
+    'center': QtGui.QVector3D(60, 0, 0),
     'azimuth': 90,
     'elevation': 0,
-    'distance': 150,
+    # 'distance': 150,
+    'distance': 9000,
+    'fov': 1,
 }
 
 top_view = side_view.copy()
@@ -51,6 +58,23 @@ gz.setSize(gi, gi, 1)
 gz.setSpacing(6, 6, 1)
 gz.translate(gi / 2, 0, 0)
 w.addItem(gz)
+
+
+def draw_text(txt):
+    im = PIL.Image.fromarray(
+        numpy.zeros((100, 300, 4), numpy.uint8))
+    draw = PIL.ImageDraw.Draw(im)
+    font = PIL.ImageFont.truetype(
+        "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 80)
+    draw.text((10, 10), txt, (255, 255, 255, 255), font=font)
+    return numpy.array(im, numpy.uint8)
+
+
+tim = draw_text('test')
+gtxt = gl.GLImageItem(tim)
+gtxt.scale(0.1, 0.1, 0.1)
+gtxt.rotate(90, 0, 0, 1)
+w.addItem(gtxt)
 
 
 def generate_leg_points(hip, thigh, knee):
@@ -131,13 +155,13 @@ def update2(state=state):
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.start(50)
-timer = QtCore.QTimer()
-timer.timeout.connect(update2)
-timer.start(5000)
+#timer = QtCore.QTimer()
+#timer.timeout.connect(update2)
+#timer.start(5000)
 
 ## Start Qt event loop unless running in interactive mode.
 if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+    #import sys
+    #if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+    #    QtGui.QApplication.instance().exec_()
     pass

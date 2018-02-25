@@ -33,85 +33,16 @@
          <attribute name="title">
           <string>Leg</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_7">
+         <layout class="QVBoxLayout" name="verticalLayout_15">
           <item>
-           <layout class="QGridLayout" name="gridLayout" rowstretch="0,0" columnstretch="0,0,0,0,0">
-            <item row="0" column="1" rowspan="2">
-             <widget class="GLViewWidget" name="legGLWidget">
-              <property name="minimumSize">
-               <size>
-                <width>400</width>
-                <height>400</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <layout class="QVBoxLayout" name="verticalLayout_9">
-              <item>
-               <widget class="PlotWidget" name="graphicsView_3">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>200</width>
-                  <height>200</height>
-                 </size>
-                </property>
-                <property name="baseSize">
-                 <size>
-                  <width>200</width>
-                  <height>200</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="0" column="2">
-             <layout class="QVBoxLayout" name="verticalLayout_8">
-              <item>
-               <widget class="PlotWidget" name="graphicsView_5">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>200</width>
-                  <height>200</height>
-                 </size>
-                </property>
-                <property name="baseSize">
-                 <size>
-                  <width>200</width>
-                  <height>200</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="verticalSpacer">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>40</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-           </layout>
+           <widget class="GLViewWidget" name="legGLWidget">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_7">
@@ -213,12 +144,91 @@
             </item>
            </layout>
           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_73">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_71">
+              <item>
+               <widget class="QLabel" name="label_70">
+                <property name="text">
+                 <string>X</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="legXLineEdit"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_70">
+              <item>
+               <widget class="QLabel" name="label_69">
+                <property name="text">
+                 <string>Y</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="legYLineEdit"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_9">
+              <item>
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>Z</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="legZLineEdit"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_72">
+              <item>
+               <widget class="QLabel" name="label_71">
+                <property name="text">
+                 <string>L</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="legLLineEdit"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_69">
+              <item>
+               <widget class="QLabel" name="label_68">
+                <property name="text">
+                 <string>R</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="legRLineEdit"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
          </layout>
          <zorder>horizontalLayoutWidget_3</zorder>
          <zorder>horizontalLayoutWidget_7</zorder>
          <zorder>label_3</zorder>
          <zorder>gridLayoutWidget</zorder>
          <zorder>gridLayoutWidget</zorder>
+         <zorder>horizontalLayoutWidget_9</zorder>
+         <zorder>horizontalLayoutWidget_26</zorder>
+         <zorder>horizontalLayoutWidget_27</zorder>
+         <zorder>horizontalLayoutWidget_28</zorder>
+         <zorder>horizontalLayoutWidget_29</zorder>
         </widget>
         <widget class="QWidget" name="PIDTab">
          <attribute name="title">
@@ -226,7 +236,14 @@
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <widget class="PlotWidget" name="pidPlotWidget"/>
+           <widget class="PlotWidget" name="pidPlotWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>1</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -281,7 +298,30 @@
                 </item>
                </layout>
               </item>
+              <item>
+               <spacer name="verticalSpacer_2">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
              </layout>
+            </item>
+            <item>
+             <widget class="Line" name="line">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+             </widget>
             </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -348,7 +388,30 @@
                 </item>
                </layout>
               </item>
+              <item>
+               <spacer name="verticalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
              </layout>
+            </item>
+            <item>
+             <widget class="Line" name="line_2">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+             </widget>
             </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -387,6 +450,22 @@
                 </item>
                </layout>
               </item>
+              <item>
+               <spacer name="verticalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
              </layout>
             </item>
            </layout>
@@ -401,7 +480,23 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="pidJointCombo"/>
+             <widget class="QComboBox" name="pidJointCombo">
+              <item>
+               <property name="text">
+                <string>Hip</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Thigh</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Knee</string>
+               </property>
+              </item>
+             </widget>
             </item>
            </layout>
           </item>
