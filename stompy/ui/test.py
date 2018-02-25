@@ -230,6 +230,26 @@ class LegTab(Tab):
         super(LegTab, self).__init__(ui)
         self.gl_widget = ui.legGLWidget
         # add grids
+        gi = 120
+        self.grids = {}
+        self.grids['x'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['x'].setSize(gi, gi, 1)
+        self.grids['x'].setSpacing(6, 6, 1)
+        self.grids['x'].rotate(90, 0, 1, 0)
+        #self.grids['x'].translate(-25, 0, 0)
+        self.gl_widget.addItem(self.grids['x'])
+        self.grids['y'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['y'].setSize(gi, gi, 1)
+        self.grids['y'].setSpacing(6, 6, 1)
+        self.grids['y'].rotate(90, 1, 0, 0)
+        self.grids['y'].translate(gi / 2, 0, 0)
+        self.gl_widget.addItem(self.grids['y'])
+        self.grids['z'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['z'].setSize(gi, gi, 1)
+        self.grids['z'].setSpacing(6, 6, 1)
+        self.grids['z'].translate(gi / 2, 0, 0)
+        self.gl_widget.addItem(self.grids['z'])
+
         # add leg links
         pts = list(generate_leg_points(0., 0., 0.))
         self.hip_link = pyqtgraph.opengl.GLLinePlotItem(
@@ -244,6 +264,50 @@ class LegTab(Tab):
         self.gl_widget.addItem(self.hip_link)
         self.gl_widget.addItem(self.thigh_link)
         self.gl_widget.addItem(self.knee_link)
+
+        # make context menu
+        self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.gl_widget.customContextMenuRequested.connect(self.on_gl_menu)
+        self.gl_menu = QtGui.QMenu(self.gl_widget)
+        sva = QtGui.QAction('Side view', self.gl_widget)
+        sva.triggered.connect(self.show_side_view)
+        self.gl_menu.addAction(sva)
+        tva = QtGui.QAction('Top view', self.gl_widget)
+        tva.triggered.connect(self.show_top_view)
+        self.gl_menu.addAction(tva)
+        self.gl_menu.addSeparator()
+        sga = QtGui.QAction('Show grids', self.gl_widget)
+        sga.triggered.connect(self.show_grids)
+        self.gl_menu.addAction(sga)
+        hga = QtGui.QAction('Hide grids', self.gl_widget)
+        hga.triggered.connect(self.hide_grids)
+        self.gl_menu.addAction(hga)
+        #self.gl_menu.triggered[QtGui.QAction].connect(self.on_gl_menu_action)
+        self.show_side_view()
+
+    def on_gl_menu(self, point):
+        print(point)
+        self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
+
+    #def on_gl_menu_action(self, action):
+    #    print(action)
+    #    print(action.text())
+
+    def show_grids(self):
+        for k in self.grids:
+            self.grids[k].setVisible(True)
+
+    def hide_grids(self):
+        for k in self.grids:
+            self.grids[k].setVisible(False)
+
+    def show_side_view(self):
+        self.gl_widget.opts.update(self.views['side'])
+        self.gl_widget.update()
+
+    def show_top_view(self):
+        self.gl_widget.opts.update(self.views['top'])
+        self.gl_widget.update()
 
     def plot_leg(self, hip, thigh, knee):
         pts = list(generate_leg_points(hip, thigh, knee))
@@ -277,8 +341,13 @@ class TabManager(object):
         self.tab_widget = tab_widget
         self.tab_widget.currentChanged.connect(self.tab_changed)
         self.tabs = {}
-        # TODO start showing current
         self.current = None
+
+    def show_current(self):
+        i = self.tab_widget.currentIndex()
+        if i == -1:
+            return
+        self.tab_changed(i)
 
     def add_tab(self, name, tab):
         self.tabs[name] = tab
@@ -309,5 +378,6 @@ if __name__ == "__main__":
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui))
     tm.add_tab('Leg', LegTab(ui))
+    tm.show_current()
     MainWindow.show()
     sys.exit(app.exec_())
