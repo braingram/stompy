@@ -367,10 +367,7 @@ class TabManager(object):
             self.current = self.tabs[label]
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        test()
-        sys.exit(1)
+def load_ui():
     app = QtGui.QApplication(sys.argv)
     MainWindow = QtGui.QMainWindow()
     ui = base.Ui_MainWindow()
@@ -380,4 +377,16 @@ if __name__ == "__main__":
     tm.add_tab('Leg', LegTab(ui))
     tm.show_current()
     MainWindow.show()
-    sys.exit(app.exec_())
+    return {'app': app, 'ui': ui, 'window': MainWindow, 'tab_manager': tm}
+
+
+def run_ui(ui):
+    sys.exit(ui['app'].exec_())
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        test()
+        sys.exit(1)
+    ui = load_ui()
+    run_ui(ui)
