@@ -13,7 +13,7 @@ pyqtgraph.setConfigOption('background', 'w')
 pyqtgraph.setConfigOption('foreground', 'k')
 
 
-import base
+from . import base
 
 
 HIP_LENGTH = 11
@@ -57,6 +57,12 @@ class Tab(object):
 class PIDTab(Tab):
     def __init__(self, ui, controller):
         super(PIDTab, self).__init__(ui, controller)
+        if self.controller is not None:
+            self.controller.conn.mgr.on('pid', self.on_pid)
+
+        self.ui.pidJointCombo.currentIndexChanged.connect(
+            self.clear_pid_values)
+
         self.plot = ui.pidPlotWidget
         self.output_line = self.plot.plotItem
         self.output_line.getAxis('left').setLabel("Output")
@@ -110,9 +116,21 @@ class PIDTab(Tab):
                 (output, setpoint, error),
                 (self.output_data, self.setpoint_data, self.error_data)):
             d._data.append(v)
-            while len(d._data) > 200:
+            while len(d._data) > 400:
                 d._data.pop(0)
             d.setData(d._data)
+
+    def on_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
+        txt = str(self.ui.pidJointCombo.currentText())
+        if txt == 'Hip':
+            o, s, e = ho.value, hs.value, he.value
+        elif txt == 'Thigh':
+            o, s, e = to.value, ts.value, te.value
+        elif txt == 'Knee':
+            o, s, e = ko.value, ks.value, ke.value
+        else:
+            return
+        self.add_pid_values(o, s, e)
 
     def clear_pid_values(self):
         for d in (self.output_data, self.setpoint_data, self.error_data):
@@ -156,10 +174,11 @@ class LegTab(Tab):
 
     def __init__(self, ui, controller):
         super(LegTab, self).__init__(ui, controller)
-        controller.conn.mgr.on('angles', self.on_angles)
-        controller.conn.mgr.on('xyz_values', self.on_xyz_values)
-        controller.conn.mgr.on('adc', self.on_adc)
-        #controller.conn.mgr.on('pwm_value', self.on_pwm_value)
+        if self.controller is not None:
+            self.controller.conn.mgr.on('angles', self.on_angles)
+            self.controller.conn.mgr.on('xyz_values', self.on_xyz_values)
+            self.controller.conn.mgr.on('adc', self.on_adc)
+            #self.controller.conn.mgr.on('pwm_value', self.on_pwm_value)
 
         self.gl_widget = ui.legGLWidget
         # add grids
@@ -261,19 +280,19 @@ class LegTab(Tab):
         # TODO h, t, k readouts
         # TODO what to do when v is False?
         self.plot_leg(h.value, t.value, k.value)
-        self.legLLineEdit.text('%0.2f' % c.value)
+        self.ui.legLLineEdit.setText('%0.2f' % c.value)
 
     def on_xyz_values(self, x, y, z):
-        self.legXLineEdit.text('%0.2f' % x.value)
-        self.legYLineEdit.text('%0.2f' % y.value)
-        self.legZLineEdit.text('%0.2f' % z.value)
+        self.ui.legXLineEdit.setText('%0.2f' % x.value)
+        self.ui.legYLineEdit.setText('%0.2f' % y.value)
+        self.ui.legZLineEdit.setText('%0.2f' % z.value)
         # TODO restriction?
 
     def on_adc(self, h, t, k, c):
-        ui.hipADCProgress.value(h.value)
-        ui.thighADCProgress.value(t.value)
-        ui.kneeADCProgress.value(k.value)
-        ui.calfADCProgress.value(c.value)
+        self.ui.hipADCProgress.setValue(h.value)
+        self.ui.thighADCProgress.setValue(t.value)
+        self.ui.kneeADCProgress.setValue(k.value)
+        self.ui.calfADCProgress.setValue(c.value)
 
     def start_showing(self):
         if self.controller is None:
