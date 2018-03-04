@@ -19,24 +19,48 @@ from .. import log
 
 logger = logging.getLogger(__name__)
 
+"""
+// commands
+#define CMD_HEARTBEAT 0
+
+// attributes
+#define CMD_ESTOP 1
+#define CMD_PWM 2
+#define CMD_PLAN 3
+#define CMD_ENABLE_PID 7
+#define CMD_PID_CONFIG 8
+#define CMD_LEG_NUMBER 9
+#define CMD_PWM_LIMITS 10
+#define CMD_ADC_LIMITS 11
+#define CMD_CALF_SCALE 12
+#define CMD_REPORT_TIME 13
+
+#define CMD_REPORT_ADC 14
+#define CMD_REPORT_PID 15
+#define CMD_REPORT_PWM 16
+#define CMD_REPORT_XYZ 17
+#define CMD_REPORT_ANGLES 18
+#define CMD_REPORT_LOOP_TIME 19
+"""
+
 cmds = {
-    0: 'estop(byte)',  # 0 = off, 1 = soft, 2 = hard
-    1: 'heartbeat',
-    2: 'pwm(float,float,float)',  # hip thigh knee
-    3: 'adc=uint32,uint32,uint32,uint32',
-    4: 'adc_target(uint32,uint32,uint32)',
-    5: 'pwm_value=int32,int32,int32',
-    6: 'pid=float,float,float,float,float,float,float,float,float',
-    7: 'plan(byte,byte,float,float,float,float,float,float,float)',
-    8: 'enable_pid(bool)',
-    9: 'xyz_values=float,float,float',
-    10: 'angles=float,float,float,float,bool',
-    11: 'set_pid(byte,float,float,float,float,float)',
-    12: 'loop_time=uint32',
-    13: 'leg_number(byte)=byte',
-    14: 'pwm_limits(byte,float,float,float,float)',
-    15: 'adc_limits(byte,float,float)',
-    16: 'calf_scale(float,float)',
+    0: 'heartbeat',
+    1: 'estop(byte)=byte',  # 0 = off, 1 = soft, 2 = hard
+    2: 'pwm(float,float,float)=float,float,float',  # hip thigh knee
+    3: 'plan(byte,byte,float,float,float,float,float,float,float)=byte,byte,float,float,float,float,float,float,float',
+    4: 'enable_pid(bool)=bool',
+    5: 'pid_config(byte,float,float,float,float,float)=byte,float,float,float,float,float',
+    6: 'leg_number(byte)=byte',
+    7: 'pwm_limits(byte,int32,int32,int32,int32)=byte,int32,int32,int32,int32',
+    8: 'adc_limits(byte,float,float)=byte,float,float',
+    9: 'calf_scale(float,float)=float,float',
+    10: 'report_time(uint32)=uint32',
+    11: 'report_adc(bool)=uint32,uint32,uint32,uint32',
+    12: 'report_pid(bool)=float,float,float,float,float,float,float,float,float',
+    13: 'report_pwm(bool)=int32,int32,int32',
+    14: 'report_xyz(bool)=float,float,float',
+    15: 'report_angles(bool)=float,float,float,float,bool',
+    16: 'report_loop_time(bool)=uint32',
 }
 
 
@@ -87,7 +111,7 @@ class Teensy(object):
         # used for callbacks
         self.mgr = pycomando.protocols.command.EventManager(self.cmd, cmds)
         # easier for calling
-        self.ns = self.mgr.build_namespace()
+        #self.ns = self.mgr.build_namespace()
         # get leg number
         logger.debug("%s Get leg number" % port)
         self.leg_number = self.mgr.blocking_trigger('leg_number')[0].value
@@ -102,7 +126,7 @@ class Teensy(object):
             log.debug({'calibration': v})
             f, args = v
             logger.debug("Calibration: %s, %s" % (f, args))
-            getattr(self.ns, f)(*args)
+            self.mgr.trigger(f, *args)
 
         # disable leg
         self.set_estop(consts.ESTOP_DEFAULT)
@@ -126,21 +150,21 @@ class Teensy(object):
         self.pid = {}
         self.pwm_value = {}
 
-        self.mgr.on('xyz_values', self.on_xyz_values)
-        self.mgr.on('angles', self.on_angles)
-        self.mgr.on('pid', self.on_pid)
-        self.mgr.on('pwm_value', self.on_pwm_value)
-        self.mgr.on('adc', self.on_adc)
+        self.mgr.on('report_xyz', self.on_report_xyz)
+        self.mgr.on('report_angles', self.on_report_angles)
+        self.mgr.on('report_pid', self.on_report_pid)
+        self.mgr.on('report_pwm', self.on_report_pwm)
+        self.mgr.on('report_adc', self.on_report_adc)
 
     def set_estop(self, value):
-        self.ns.estop(value)
+        self.mgr.trigger('estop', value)
         log.info({'estop': value})
 
     def enable_pid(self, value):
-        self.ns.enable_pid(value)
+        self.mgr.trigger('enable_pid', value)
         log.debug({'enable_pid': value})
 
-    def on_adc(self, hip, thigh, knee, calf):
+    def on_report_adc(self, hip, thigh, knee, calf):
         self.adc = {
             'hip': hip.value, 'thigh': thigh.value,
             'knee': knee.value, 'calf': calf.value,
@@ -152,7 +176,7 @@ class Teensy(object):
         d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
         return numpy.exp(-self.foot_r_eps * (d - self.foot_travel_radius))
 
-    def on_xyz_values(self, x, y, z):
+    def on_report_xyz(self, x, y, z):
         t = time.time()
         x, y, z = x.value, y.value, z.value
         self.r = self.restriction(x, y, z)
@@ -170,14 +194,14 @@ class Teensy(object):
         self.xyz['dr'] = self.dr
         log.debug({'xyz': self.xyz})
 
-    def on_angles(self, h, t, k, c, v):
+    def on_report_angles(self, h, t, k, c, v):
         self.angles = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'calf': c.value,
             'valid': bool(v), 'time': time.time()}
         log.debug({'angles': self.angles})
 
-    def on_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
+    def on_report_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
         self.pid = {
             'time': time.time(),
             'output': {
@@ -197,14 +221,14 @@ class Teensy(object):
             }}
         log.debug({'pid': self.pid})
 
-    def on_pwm_value(self, h, t, k):
-        self.pwm_value = {
+    def on_report_pwm(self, h, t, k):
+        self.pwm = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'time': time.time()}
-        log.debug({'pwm_value': self.pwm_value})
+        log.debug({'pwm': self.pwm})
 
     def send_heartbeat(self):
-        self.ns.heartbeat()
+        self.mgr.trigger('heartbeat')
         self.last_heartbeat = time.time()
         #print("HB: %s" % self.last_heartbeat)
 
@@ -234,7 +258,7 @@ class Teensy(object):
         pp = plan.packed()
         print("sending: %s" % (pp, ))
         log.info({'plan': pp})
-        self.ns.plan(*pp)
+        self.mgr.trigger('plan', *pp)
 
     def stop(self):
         """Send stop plan"""

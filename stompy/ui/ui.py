@@ -55,13 +55,19 @@ class Tab(object):
 
 
 class PIDTab(Tab):
+    n_points = 1000
+
     def __init__(self, ui, controller):
         super(PIDTab, self).__init__(ui, controller)
+        # TODO make ui map
+        self.joint_config = {}
         if self.controller is not None:
-            self.controller.conn.mgr.on('pid', self.on_pid)
+            self.controller.conn.mgr.on('report_pid', self.on_report_pid)
 
         self.ui.pidJointCombo.currentIndexChanged.connect(
-            self.clear_pid_values)
+            self.change_joint)
+        self.ui.pidCommitButton.clicked.connect(
+            self.commit_values)
 
         self.plot = ui.pidPlotWidget
         self.output_line = self.plot.plotItem
@@ -101,6 +107,7 @@ class PIDTab(Tab):
         self.error_data = pyqtgraph.PlotCurveItem(v, pen='r')
         self.error_line.addItem(self.error_data)
         self.error_data._data = v
+        self.change_joint()
 
     def update_views(self):
         self.setpoint_line.setGeometry(self.output_line.vb.sceneBoundingRect())
@@ -116,11 +123,11 @@ class PIDTab(Tab):
                 (output, setpoint, error),
                 (self.output_data, self.setpoint_data, self.error_data)):
             d._data.append(v)
-            while len(d._data) > 400:
+            while len(d._data) > self.n_points:
                 d._data.pop(0)
             d.setData(d._data)
 
-    def on_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
+    def on_report_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
         txt = str(self.ui.pidJointCombo.currentText())
         if txt == 'Hip':
             o, s, e = ho.value, hs.value, he.value
@@ -131,6 +138,111 @@ class PIDTab(Tab):
         else:
             return
         self.add_pid_values(o, s, e)
+
+    def change_joint(self):
+        self.clear_pid_values()
+        self.read_joint_config()
+
+    def read_joint_config(self):
+        # get current joint
+        txt = str(self.ui.pidJointCombo.currentText())
+        try:
+            index = ['Hip', 'Thigh', 'Knee'].index(txt)
+        except ValueError:
+            return
+        self.joint_config = {}
+        # get all values for this joint
+        # P, I, D, min, max
+        r = self.controller.conn.mgr.blocking_trigger('pid_config', index)
+        self.joint_config['pid'] = {
+            'p': r[1].value,
+            'i': r[2].value,
+            'd': r[3].value,
+            'min': r[4].value,
+            'max': r[5].value,
+        }
+
+        # pwm: extend/retract min/max
+        r = self.controller.conn.mgr.blocking_trigger('pwm_limits', index)
+        self.joint_config['pwm'] = {
+            'extend_min': r[1].value,
+            'extend_max': r[2].value,
+            'retract_min': r[3].value,
+            'retract_max': r[4].value,
+        }
+
+        # adc limits
+        r = self.controller.conn.mgr.blocking_trigger('adc_limits', index)
+        self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
+
+        # set ui elements by joint_config
+        self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
+        self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
+        self.ui.pidDSpin.setValue(self.joint_config['pid']['d'])
+        self.ui.pidMinSpin.setValue(self.joint_config['pid']['min'])
+        self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
+        self.ui.extendMinSpin.setValue(self.joint_config['pwm']['extend_min'])
+        self.ui.extendMaxSpin.setValue(self.joint_config['pwm']['extend_max'])
+        self.ui.retractMinSpin.setValue(
+            self.joint_config['pwm']['retract_min'])
+        self.ui.retractMaxSpin.setValue(
+            self.joint_config['pwm']['retract_max'])
+        self.ui.adcLimitMin.setValue(self.joint_config['adc']['min'])
+        self.ui.adcLimitMax.setValue(self.joint_config['adc']['max'])
+
+    def commit_values(self):
+        # compare to joint config
+        # set ui elements by joint_config
+        values = {'pid': {}, 'pwm': {}, 'adc': {}}
+        values['pid']['p'] = self.ui.pidPSpin.value()
+        values['pid']['i'] = self.ui.pidISpin.value()
+        values['pid']['d'] = self.ui.pidDSpin.value()
+        values['pid']['min'] = self.ui.pidMinSpin.value()
+        values['pid']['max'] = self.ui.pidMaxSpin.value()
+        values['pwm']['extend_min'] = self.ui.extendMinSpin.value()
+        values['pwm']['extend_max'] = self.ui.extendMaxSpin.value()
+        values['pwm']['retract_min'] = self.ui.retractMinSpin.value()
+        values['pwm']['retract_max'] = self.ui.retractMaxSpin.value()
+        values['adc']['min'] = self.ui.adcLimitMin.value()
+        values['adc']['max'] = self.ui.adcLimitMax.value()
+
+        txt = str(self.ui.pidJointCombo.currentText())
+        try:
+            index = ['Hip', 'Thigh', 'Knee'].index(txt)
+        except ValueError:
+            return
+
+        v = values['pid']
+        j = self.joint_config['pid']
+        if (
+                v['p'] != j['p'] or v['i'] != j['i'] or v['d'] != j['i']):
+            print("setting pid")
+            self.controller.conn.mgr.trigger(
+                'pid_config', index,
+                values['pid']['p'], values['pid']['i'], values['pid']['d'],
+                values['pid']['min'], values['pid']['max'])
+        v = values['pwm']
+        j = self.joint_config['pwm']
+        if (
+                v['extend_min'] != j['extend_min'] or
+                v['extend_max'] != j['extend_max'] or
+                v['retract_min'] != j['retract_min'] or
+                v['retract_max'] != j['retract_max']):
+            print("setting pwm")
+            self.controller.conn.mgr.trigger(
+                'pwm_limits', index,
+                values['pwm']['extend_min'],
+                values['pwm']['extend_max'],
+                values['pwm']['retract_min'],
+                values['pwm']['retract_max'])
+        v = values['adc']
+        j = self.joint_config['adc']
+        if (v['min'] != j['min'] or v['max'] != j['max']):
+            print("setting adc")
+            self.controller.conn.mgr.trigger(
+                'adc_limits', index,
+                values['adc']['min'], values['adc']['max'])
+        self.read_joint_config()
 
     def clear_pid_values(self):
         for d in (self.output_data, self.setpoint_data, self.error_data):
@@ -175,9 +287,9 @@ class LegTab(Tab):
     def __init__(self, ui, controller):
         super(LegTab, self).__init__(ui, controller)
         if self.controller is not None:
-            self.controller.conn.mgr.on('angles', self.on_angles)
-            self.controller.conn.mgr.on('xyz_values', self.on_xyz_values)
-            self.controller.conn.mgr.on('adc', self.on_adc)
+            self.controller.conn.mgr.on('report_angles', self.on_report_angles)
+            self.controller.conn.mgr.on('report_xyz', self.on_report_xyz)
+            self.controller.conn.mgr.on('report_adc', self.on_report_adc)
             #self.controller.conn.mgr.on('pwm_value', self.on_pwm_value)
 
         self.gl_widget = ui.legGLWidget
@@ -276,19 +388,19 @@ class LegTab(Tab):
                     self.angles[i] < self.limits[i][1]):
                 self.deltas[i] *= -1
 
-    def on_angles(self, h, t, k, c, v):
+    def on_report_angles(self, h, t, k, c, v):
         # TODO h, t, k readouts
         # TODO what to do when v is False?
         self.plot_leg(h.value, t.value, k.value)
         self.ui.legLLineEdit.setText('%0.2f' % c.value)
 
-    def on_xyz_values(self, x, y, z):
+    def on_report_xyz(self, x, y, z):
         self.ui.legXLineEdit.setText('%0.2f' % x.value)
         self.ui.legYLineEdit.setText('%0.2f' % y.value)
         self.ui.legZLineEdit.setText('%0.2f' % z.value)
         # TODO restriction?
 
-    def on_adc(self, h, t, k, c):
+    def on_report_adc(self, h, t, k, c):
         self.ui.hipADCProgress.setValue(h.value)
         self.ui.thighADCProgress.setValue(t.value)
         self.ui.kneeADCProgress.setValue(k.value)

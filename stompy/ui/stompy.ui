@@ -219,16 +219,6 @@
            </layout>
           </item>
          </layout>
-         <zorder>horizontalLayoutWidget_3</zorder>
-         <zorder>horizontalLayoutWidget_7</zorder>
-         <zorder>label_3</zorder>
-         <zorder>gridLayoutWidget</zorder>
-         <zorder>gridLayoutWidget</zorder>
-         <zorder>horizontalLayoutWidget_9</zorder>
-         <zorder>horizontalLayoutWidget_26</zorder>
-         <zorder>horizontalLayoutWidget_27</zorder>
-         <zorder>horizontalLayoutWidget_28</zorder>
-         <zorder>horizontalLayoutWidget_29</zorder>
         </widget>
         <widget class="QWidget" name="PIDTab">
          <attribute name="title">
@@ -266,7 +256,11 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="pidPSpin"/>
+                 <widget class="QDoubleSpinBox" name="pidPSpin">
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -280,7 +274,11 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="pidISpin"/>
+                 <widget class="QDoubleSpinBox" name="pidISpin">
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -294,7 +292,62 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="pidDSpin"/>
+                 <widget class="QDoubleSpinBox" name="pidDSpin">
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_75">
+                <item>
+                 <widget class="QLabel" name="label_73">
+                  <property name="text">
+                   <string>Min</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="pidMinSpin">
+                  <property name="decimals">
+                   <number>2</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-8192.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>1.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_74">
+                <item>
+                 <widget class="QLabel" name="label_72">
+                  <property name="text">
+                   <string>Max</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="pidMaxSpin">
+                  <property name="minimum">
+                   <double>-8192.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>1.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -342,7 +395,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="extendMinSpin"/>
+                 <widget class="QDoubleSpinBox" name="extendMinSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -356,7 +416,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="extendMaxSpin"/>
+                 <widget class="QDoubleSpinBox" name="extendMaxSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -370,7 +437,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="retractMinSpin"/>
+                 <widget class="QDoubleSpinBox" name="retractMinSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -384,7 +458,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="retractMaxSpin"/>
+                 <widget class="QDoubleSpinBox" name="retractMaxSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -432,7 +513,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="adcLimitMin"/>
+                 <widget class="QDoubleSpinBox" name="adcLimitMin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>65535.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -446,7 +534,14 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="adcLimitMax"/>
+                 <widget class="QDoubleSpinBox" name="adcLimitMax">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>65535.000000000000000</double>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -501,11 +596,6 @@
            </layout>
           </item>
          </layout>
-         <zorder>pidPlotWidget</zorder>
-         <zorder>horizontalLayoutWidget_2</zorder>
-         <zorder>label_12</zorder>
-         <zorder>horizontalLayoutWidget_2</zorder>
-         <zorder>horizontalLayoutWidget_8</zorder>
         </widget>
         <widget class="QWidget" name="bodyTab">
          <attribute name="title">
