@@ -19,48 +19,31 @@ from .. import log
 
 logger = logging.getLogger(__name__)
 
-"""
-// commands
-#define CMD_HEARTBEAT 0
-
-// attributes
-#define CMD_ESTOP 1
-#define CMD_PWM 2
-#define CMD_PLAN 3
-#define CMD_ENABLE_PID 7
-#define CMD_PID_CONFIG 8
-#define CMD_LEG_NUMBER 9
-#define CMD_PWM_LIMITS 10
-#define CMD_ADC_LIMITS 11
-#define CMD_CALF_SCALE 12
-#define CMD_REPORT_TIME 13
-
-#define CMD_REPORT_ADC 14
-#define CMD_REPORT_PID 15
-#define CMD_REPORT_PWM 16
-#define CMD_REPORT_XYZ 17
-#define CMD_REPORT_ANGLES 18
-#define CMD_REPORT_LOOP_TIME 19
-"""
-
 cmds = {
     0: 'heartbeat',
     1: 'estop(byte)=byte',  # 0 = off, 1 = soft, 2 = hard
     2: 'pwm(float,float,float)=float,float,float',  # hip thigh knee
-    3: 'plan(byte,byte,float,float,float,float,float,float,float)=byte,byte,float,float,float,float,float,float,float',
+    3: 'plan(byte,byte,float,float,float,float,float,float,float)='
+       'byte,byte,float,float,float,float,float,float,float',
     4: 'enable_pid(bool)=bool',
-    5: 'pid_config(byte,float,float,float,float,float)=byte,float,float,float,float,float',
+    5: 'pid_config(byte,float,float,float,float,float)='
+       'byte,float,float,float,float,float',
     6: 'leg_number(byte)=byte',
     7: 'pwm_limits(byte,int32,int32,int32,int32)=byte,int32,int32,int32,int32',
     8: 'adc_limits(byte,float,float)=byte,float,float',
     9: 'calf_scale(float,float)=float,float',
     10: 'report_time(uint32)=uint32',
-    11: 'report_adc(bool)=uint32,uint32,uint32,uint32',
-    12: 'report_pid(bool)=float,float,float,float,float,float,float,float,float',
-    13: 'report_pwm(bool)=int32,int32,int32',
-    14: 'report_xyz(bool)=float,float,float',
-    15: 'report_angles(bool)=float,float,float,float,bool',
-    16: 'report_loop_time(bool)=uint32',
+    11: 'pid_seed_time(uint32,uint32)=uint32,uint32',
+    12: 'reset_pids(bool)',  # i_only
+    13: 'dither(byte,uint32,int)=byte,uint32,int',
+
+    21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
+    22: 'report_pid(bool)='
+        'float,float,float,float,float,float,float,float,float',
+    23: 'report_pwm(bool)=int32,int32,int32',
+    24: 'report_xyz(bool)=float,float,float',
+    25: 'report_angles(bool)=float,float,float,float,bool',
+    26: 'report_loop_time(bool)=uint32',
 }
 
 

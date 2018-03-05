@@ -513,7 +513,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="adcLimitMin">
+                 <widget class="QDoubleSpinBox" name="adcLimitMinSpin">
                   <property name="decimals">
                    <number>0</number>
                   </property>
@@ -534,12 +534,61 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="adcLimitMax">
+                 <widget class="QDoubleSpinBox" name="adcLimitMaxSpin">
                   <property name="decimals">
                    <number>0</number>
                   </property>
                   <property name="maximum">
                    <double>65535.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_13">
+                <property name="text">
+                 <string>Dither</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_12">
+                <item>
+                 <widget class="QLabel" name="label_14">
+                  <property name="text">
+                   <string>Time(us)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="ditherTimeSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>1000000.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_13">
+                <item>
+                 <widget class="QLabel" name="label_15">
+                  <property name="text">
+                   <string>Amplitude</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="ditherAmpSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
                   </property>
                  </widget>
                 </item>

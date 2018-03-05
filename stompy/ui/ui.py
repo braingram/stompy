@@ -14,6 +14,7 @@ pyqtgraph.setConfigOption('foreground', 'k')
 
 
 from . import base
+from .. import log
 
 
 HIP_LENGTH = 11
@@ -175,6 +176,10 @@ class PIDTab(Tab):
         r = self.controller.conn.mgr.blocking_trigger('adc_limits', index)
         self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
 
+        # dither
+        r = self.controller.conn.mgr.blocking_trigger('dither', index)
+        self.joint_config['dither'] = {'time': r[1].value, 'amp': r[2].value}
+
         # set ui elements by joint_config
         self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
         self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
@@ -187,13 +192,15 @@ class PIDTab(Tab):
             self.joint_config['pwm']['retract_min'])
         self.ui.retractMaxSpin.setValue(
             self.joint_config['pwm']['retract_max'])
-        self.ui.adcLimitMin.setValue(self.joint_config['adc']['min'])
-        self.ui.adcLimitMax.setValue(self.joint_config['adc']['max'])
+        self.ui.adcLimitMinSpin.setValue(self.joint_config['adc']['min'])
+        self.ui.adcLimitMaxSpin.setValue(self.joint_config['adc']['max'])
+        self.ui.ditherTimeSpin.setValue(self.joint_config['dither']['time'])
+        self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
 
     def commit_values(self):
         # compare to joint config
         # set ui elements by joint_config
-        values = {'pid': {}, 'pwm': {}, 'adc': {}}
+        values = {'pid': {}, 'pwm': {}, 'adc': {}, 'dither': {}}
         values['pid']['p'] = self.ui.pidPSpin.value()
         values['pid']['i'] = self.ui.pidISpin.value()
         values['pid']['d'] = self.ui.pidDSpin.value()
@@ -203,8 +210,10 @@ class PIDTab(Tab):
         values['pwm']['extend_max'] = self.ui.extendMaxSpin.value()
         values['pwm']['retract_min'] = self.ui.retractMinSpin.value()
         values['pwm']['retract_max'] = self.ui.retractMaxSpin.value()
-        values['adc']['min'] = self.ui.adcLimitMin.value()
-        values['adc']['max'] = self.ui.adcLimitMax.value()
+        values['adc']['min'] = self.ui.adcLimitMinSpin.value()
+        values['adc']['max'] = self.ui.adcLimitMaxSpin.value()
+        values['dither']['time'] = self.ui.ditherTimeSpin.value()
+        values['dither']['amp'] = self.ui.ditherAmpSpin.value()
 
         txt = str(self.ui.pidJointCombo.currentText())
         try:
@@ -216,11 +225,13 @@ class PIDTab(Tab):
         j = self.joint_config['pid']
         if (
                 v['p'] != j['p'] or v['i'] != j['i'] or v['d'] != j['i']):
-            print("setting pid")
-            self.controller.conn.mgr.trigger(
-                'pid_config', index,
+            args = (
+                index,
                 values['pid']['p'], values['pid']['i'], values['pid']['d'],
                 values['pid']['min'], values['pid']['max'])
+            print("pid_config", args)
+            log.info({'pid_config': args})
+            self.controller.conn.mgr.trigger('pid_config', *args)
         v = values['pwm']
         j = self.joint_config['pwm']
         if (
@@ -228,20 +239,31 @@ class PIDTab(Tab):
                 v['extend_max'] != j['extend_max'] or
                 v['retract_min'] != j['retract_min'] or
                 v['retract_max'] != j['retract_max']):
-            print("setting pwm")
-            self.controller.conn.mgr.trigger(
-                'pwm_limits', index,
-                values['pwm']['extend_min'],
-                values['pwm']['extend_max'],
-                values['pwm']['retract_min'],
-                values['pwm']['retract_max'])
+            args = (
+                index,
+                int(values['pwm']['extend_min']),
+                int(values['pwm']['extend_max']),
+                int(values['pwm']['retract_min']),
+                int(values['pwm']['retract_max']))
+            print("pwm_limits:", args)
+            log.info({'pwm_limits': args})
+            self.controller.conn.mgr.trigger('pwm_limits', *args)
         v = values['adc']
         j = self.joint_config['adc']
         if (v['min'] != j['min'] or v['max'] != j['max']):
-            print("setting adc")
-            self.controller.conn.mgr.trigger(
-                'adc_limits', index,
-                values['adc']['min'], values['adc']['max'])
+            args = (index, values['adc']['min'], values['adc']['max'])
+            print("adc_limits:", args)
+            log.info({'adc_limits': args})
+            self.controller.conn.mgr.trigger('adc_limits', *args)
+        v = values['dither']
+        j = self.joint_config['dither']
+        if (v['time'] != j['time'] or v['amp'] != j['amp']):
+            args = (
+                index, int(values['dither']['time']),
+                int(values['dither']['amp']))
+            print("dither:", args)
+            log.info({'dither': args})
+            self.controller.conn.mgr.trigger('dither', *args)
         self.read_joint_config()
 
     def clear_pid_values(self):
