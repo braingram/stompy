@@ -1,30 +1,17 @@
 #!/usr/bin/env python
 """
-single leg controller:
-    - read joystick & teensy
-    - handle joystick events
-    - change modes:
-        - raw pwm
-        - sensor coord moves
-        - joint coord moves
-        - leg coord moves
-        - body coord moves
-        - restriction control
-    - manage speeds
-    - manage logging
-    - present data for UI (?)
-
-
 deadman: one_right [button]
-    when pressed: disable estop
-    when released: enable estop, enable_pids (always?)
 thumb_left_x/y: move leg in X Y
 one/two_left [axis]: move leg in Z
+arrows up/down: change speed
+arrows left/right: change leg (to front left/front right)
+
 X [button]: switch to sensor coord moves
 square [button]: switch to restriction
 circle [button]: switch to leg coord moves
-triangle [button]: ?
-d-pad: increase, decrease speed [within bound]
+triangle [button]: move both legs
+
+frame/mode
 """
 
 from .. import consts
@@ -39,23 +26,57 @@ thumb_db = 5  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
 
 
-class SingleLeg(object):
-    def __init__(self, leg_teensy, joy):
-        self.conn = leg_teensy
+class MultiLeg(object):
+    def __init__(self, legs, joy):
+        self._callbacks = {}
+        self.legs = legs
+        self.leg = None
+        self.leg_index = None
+        # self.conn = leg_teensy
         self.joy = joy
-        self._threads_running = False
         self.stopped = True
-        self.conn.set_estop(1)
+        # stop all legs
+        self.all_legs('set_estop', 1)
         self.move_frame = consts.PLAN_SENSOR_FRAME
         self.speeds = {
             consts.PLAN_SENSOR_FRAME: 1200,
-            consts.PLAN_LEG_FRAME: 3.0,
+            consts.PLAN_LEG_FRAME: 1.5,
         }
         self.speed_scalar = 1.0
         self.speed_scalar_range = (0.1, 2.0)
-        self.res = restriction.Foot()
-        self.res.enabled = False
-        self.last_r = None
+        #self.res = restriction.Foot()
+        #self.res.enabled = False
+        #self.last_r = None
+
+    def all_legs(self, cmd, *args):
+        log.info({"all_legs": (cmd, args)})
+        for leg in self.legs:
+            getattr(self.legs[leg], cmd)(*args)
+
+    def on(self, signal, func):
+        if signal not in self._callbacks:
+            self._callbacks[signal] = []
+        self._callbacks[signal].append(func)
+
+    def remove_on(self, signal, func):
+        if signal not in self._callbacks:
+            return
+        if func in self._callbacks[signal]:
+            self._callbacks[signal].remove(func)
+
+    def trigger(self, signal, *args, **kwargs):
+        if signal in self._callbacks:
+            for f in self._callbacks[signal]:
+                f(*args, **kwargs)
+
+    def set_leg(self, index):
+        log.info({"set_leg": index})
+        self.leg_index = index
+        if self.leg_index is None:
+            self.leg = None
+        else:
+            self.leg = self.legs[index]
+        self.trigger('set_leg', index)
 
     def update(self):
         evs = self.joy.update()
@@ -63,15 +84,15 @@ class SingleLeg(object):
         kevs = {}
         for e in evs:
             kevs[e['name']] = e['value']
-        self.conn.update()
+        self.all_legs('update')
         if DEADMAN_KEY in kevs:
             if kevs[DEADMAN_KEY] and self.stopped:  # pressed
-                self.conn.set_estop(0)
-                self.conn.enable_pid(True)
+                self.all_legs('set_estop', 0)
+                self.all_legs('enable_pid', True)
                 self.stopped = False
             elif not kevs[DEADMAN_KEY] and not self.stopped:
                 # released, turn estop back on
-                self.conn.set_estop(1)
+                self.all_legs('set_estop', 1)
                 self.stopped = True
         sdt = None
         if kevs.get('up', False):
@@ -93,19 +114,24 @@ class SingleLeg(object):
             new_frame = consts.PLAN_SENSOR_FRAME
         if kevs.get('circle', False):
             new_frame = consts.PLAN_LEG_FRAME
+        #if (
+        #        new_frame is not None and
+        #        (new_frame != self.move_frame or self.res.enabled)):
         if (
                 new_frame is not None and
-                (new_frame != self.move_frame or self.res.enabled)):
-            self.conn.stop()
+                new_frame != self.move_frame):
+            self.all_legs('stop')
             self.speed_scalar = 1.
-            self.res.enabled = False
+            #self.res.enabled = False
             self.move_frame = new_frame
-            print("New frame: %s" % self.move_frame)
+            #print("New frame: %s" % self.move_frame)
             log.info({"new_frame": new_frame})
+        #  other modes...
+        """
         if (
                 kevs.get('square', False) and not self.res.enabled
                 and not self.stopped):
-            self.conn.stop()
+            self.leg_command('stop')
             self.speed_scalar = 1.
             self.res.enabled = True
             log.info({"res_enabled": True})
@@ -205,3 +231,4 @@ class SingleLeg(object):
                     speed=self.speed_scalar)
             print("new restriction state: %s" % new_state)
             self.res.state = new_state
+        """

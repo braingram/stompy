@@ -671,12 +671,12 @@
      <height>25</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuLegs">
+   <widget class="QMenu" name="legsMenu">
     <property name="title">
      <string>Legs</string>
     </property>
    </widget>
-   <addaction name="menuLegs"/>
+   <addaction name="legsMenu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

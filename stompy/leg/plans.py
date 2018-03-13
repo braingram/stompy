@@ -9,7 +9,8 @@ Some example plans:
         [3, 2, 20, 0, -15, 0., 0., 0., 10.]
 """
 
-from . import consts
+from .. import consts
+from .. import kinematics
 
 
 class Plan(object):
@@ -22,7 +23,10 @@ class Plan(object):
         self.angular = angular
         self.speed = speed
 
-    def packed(self):
+    def packed(self, leg_number):
+        # convert from body to leg
+        if self.frame == consts.PLAN_BODY_FRAME:
+            return self._body_packed(leg_number)
         if self.linear is None:
             l = (0., 0., 0.)
         else:
@@ -31,8 +35,27 @@ class Plan(object):
             a = (0., 0., 0.)
         else:
             a = self.angular
+        f = self.frame
+        if f == consts.PLAN_BODY_FRAME:
+            if leg_number in kinematics.body.body_to_leg_transforms:
+                # convert from body to leg
+                if self.mode == consts.PLAN_STOP_MODE:
+                    # stop: do nothing
+                    pass
+                elif self.mode == consts.PLAN_TARGET_MODE:
+                    # target: convert linear
+                    l = kinematics.body.body_to_leg(
+                        leg_number, l[0], l[1], l[2])
+                elif self.mode == consts.PLAN_VELOCITY_MODE:
+                    # vel: convert linear as vector, just rotate
+                    l = kinematics.body.body_to_leg_rotation(
+                        leg_number, l[0], l[1], l[2])
+                elif self.mode == consts.PLAN_ARC_MODE:
+                    # arc: raise NotImplementedError()
+                    raise NotImplementedError()
+            f = consts.PLAN_LEG_FRAME
         return [
-            self.mode, self.frame,
+            self.mode, f,
             l[0], l[1], l[2],
             a[0], a[1], a[2],
             self.speed]

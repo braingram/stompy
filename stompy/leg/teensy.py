@@ -11,7 +11,7 @@ import serial
 
 import pycomando
 
-from . import consts
+from .. import consts
 from .. import calibration
 from . import plans
 from .. import log
@@ -94,14 +94,14 @@ class Teensy(object):
         # used for callbacks
         self.mgr = pycomando.protocols.command.EventManager(self.cmd, cmds)
         # easier for calling
-        #self.ns = self.mgr.build_namespace()
+        # self.ns = self.mgr.build_namespace()
         # get leg number
         logger.debug("%s Get leg number" % port)
         self.leg_number = self.mgr.blocking_trigger('leg_number')[0].value
         log.info({'leg_number': self.leg_number})
         logger.debug("%s leg number = %s" % (port, self.leg_number))
 
-        self.leg_name = consts.LEG_NAMES_BY_NUMBER[self.leg_number]
+        self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
         log.info({'leg_name': self.leg_name})
 
         # load calibration setup
@@ -213,7 +213,7 @@ class Teensy(object):
     def send_heartbeat(self):
         self.mgr.trigger('heartbeat')
         self.last_heartbeat = time.time()
-        #print("HB: %s" % self.last_heartbeat)
+        # print("HB: %s" % self.last_heartbeat)
 
     def update(self):
         self.com.handle_stream()
@@ -238,8 +238,8 @@ class Teensy(object):
             plan = args[0]
         else:
             plan = plans.Plan(*args, **kwargs)
-        pp = plan.packed()
-        print("sending: %s" % (pp, ))
+        pp = plan.packed(self.leg_number)
+        # print("sending: %s" % (pp, ))
         log.info({'plan': pp})
         self.mgr.trigger('plan', *pp)
 

@@ -13,6 +13,7 @@ pyqtgraph.setConfigOption('background', 'w')
 pyqtgraph.setConfigOption('foreground', 'k')
 
 
+from .. import consts
 from . import base
 from .. import kinematics
 from .. import log
@@ -22,6 +23,13 @@ class Tab(object):
     def __init__(self, ui, controller):
         self.ui = ui
         self.controller = controller
+        if self.controller is not None:
+            self._last_leg_index = None
+            self.controller.on('set_leg', self.set_leg_index)
+            self.set_leg_index(self.controller.leg_index)
+
+    def set_leg_index(self, index):
+        self._last_leg_index = index
 
     def start_showing(self):
         pass
@@ -37,8 +45,6 @@ class PIDTab(Tab):
         super(PIDTab, self).__init__(ui, controller)
         # TODO make ui map
         self.joint_config = {}
-        if self.controller is not None:
-            self.controller.conn.mgr.on('report_pid', self.on_report_pid)
 
         self.ui.pidJointCombo.currentIndexChanged.connect(
             self.change_joint)
@@ -85,6 +91,17 @@ class PIDTab(Tab):
         self.error_data._data = v
         self.change_joint()
 
+    def set_leg_index(self, index):
+        if self.controller is None:
+            return
+        if self._last_leg_index is not None:
+            self.controller.leg.mgr.remove_on(
+                'report_pid', self.on_report_pid)
+        super(PIDTab, self).set_leg_index(index)  # update index
+        if index is not None:
+            self.controller.leg.mgr.on(
+                'report_pid', self.on_report_pid)
+
     def update_views(self):
         self.setpoint_line.setGeometry(self.output_line.vb.sceneBoundingRect())
         self.error_line.setGeometry(self.output_line.vb.sceneBoundingRect())
@@ -127,9 +144,11 @@ class PIDTab(Tab):
         except ValueError:
             return
         self.joint_config = {}
+        if self.controller.leg is None:
+            return self.joint_config
         # get all values for this joint
         # P, I, D, min, max
-        r = self.controller.conn.mgr.blocking_trigger('pid_config', index)
+        r = self.controller.leg.mgr.blocking_trigger('pid_config', index)
         self.joint_config['pid'] = {
             'p': r[1].value,
             'i': r[2].value,
@@ -139,7 +158,7 @@ class PIDTab(Tab):
         }
 
         # pwm: extend/retract min/max
-        r = self.controller.conn.mgr.blocking_trigger('pwm_limits', index)
+        r = self.controller.leg.mgr.blocking_trigger('pwm_limits', index)
         self.joint_config['pwm'] = {
             'extend_min': r[1].value,
             'extend_max': r[2].value,
@@ -148,11 +167,11 @@ class PIDTab(Tab):
         }
 
         # adc limits
-        r = self.controller.conn.mgr.blocking_trigger('adc_limits', index)
+        r = self.controller.leg.mgr.blocking_trigger('adc_limits', index)
         self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
 
         # dither
-        r = self.controller.conn.mgr.blocking_trigger('dither', index)
+        r = self.controller.leg.mgr.blocking_trigger('dither', index)
         self.joint_config['dither'] = {'time': r[1].value, 'amp': r[2].value}
 
         # set ui elements by joint_config
@@ -173,6 +192,8 @@ class PIDTab(Tab):
         self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
 
     def commit_values(self):
+        if self.controller.leg is None:
+            return
         # compare to joint config
         # set ui elements by joint_config
         values = {'pid': {}, 'pwm': {}, 'adc': {}, 'dither': {}}
@@ -204,9 +225,9 @@ class PIDTab(Tab):
                 index,
                 values['pid']['p'], values['pid']['i'], values['pid']['d'],
                 values['pid']['min'], values['pid']['max'])
-            print("pid_config", args)
+            # print("pid_config", args)
             log.info({'pid_config': args})
-            self.controller.conn.mgr.trigger('pid_config', *args)
+            self.controller.leg.mgr.trigger('pid_config', *args)
         v = values['pwm']
         j = self.joint_config['pwm']
         if (
@@ -220,25 +241,25 @@ class PIDTab(Tab):
                 int(values['pwm']['extend_max']),
                 int(values['pwm']['retract_min']),
                 int(values['pwm']['retract_max']))
-            print("pwm_limits:", args)
+            # print("pwm_limits:", args)
             log.info({'pwm_limits': args})
-            self.controller.conn.mgr.trigger('pwm_limits', *args)
+            self.controller.leg.mgr.trigger('pwm_limits', *args)
         v = values['adc']
         j = self.joint_config['adc']
         if (v['min'] != j['min'] or v['max'] != j['max']):
             args = (index, values['adc']['min'], values['adc']['max'])
-            print("adc_limits:", args)
+            # print("adc_limits:", args)
             log.info({'adc_limits': args})
-            self.controller.conn.mgr.trigger('adc_limits', *args)
+            self.controller.leg.mgr.trigger('adc_limits', *args)
         v = values['dither']
         j = self.joint_config['dither']
         if (v['time'] != j['time'] or v['amp'] != j['amp']):
             args = (
                 index, int(values['dither']['time']),
                 int(values['dither']['amp']))
-            print("dither:", args)
+            # print("dither:", args)
             log.info({'dither': args})
-            self.controller.conn.mgr.trigger('dither', *args)
+            self.controller.leg.mgr.trigger('dither', *args)
         self.read_joint_config()
 
     def clear_pid_values(self):
@@ -284,6 +305,7 @@ class LegTab(Tab):
     def __init__(self, ui, controller):
         super(LegTab, self).__init__(ui, controller)
         if self.controller is not None:
+            # TODO attach leg
             self.controller.conn.mgr.on('report_angles', self.on_report_angles)
             self.controller.conn.mgr.on('report_xyz', self.on_report_xyz)
             self.controller.conn.mgr.on('report_adc', self.on_report_adc)
@@ -346,8 +368,26 @@ class LegTab(Tab):
         #self.gl_menu.triggered[QtGui.QAction].connect(self.on_gl_menu_action)
         self.show_side_view()
 
+    def set_leg_index(self, index):
+        if self.controller is None:
+            return
+        if self._last_leg_index is not None:
+            self.controller.leg.mgr.remove_on(
+                'report_angles', self.on_report_angles)
+            self.controller.leg.mgr.remove_on(
+                'report_xyz', self.on_report_xyz)
+            self.controller.leg.mgr.remove_on(
+                'report_adc', self.on_report_adc)
+        super(PIDTab, self).set_leg_index(index)  # update index
+        if index is not None:
+            self.controller.leg.mgr.on(
+                'report_angles', self.on_report_angles)
+            self.controller.leg.mgr.on(
+                'report_xyz', self.on_report_xyz)
+            self.controller.leg.mgr.on(
+                'report_adc', self.on_report_adc)
+
     def on_gl_menu(self, point):
-        print(point)
         self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
 
     #def on_gl_menu_action(self, action):
@@ -434,16 +474,12 @@ class TabManager(object):
         self.tabs[name] = tab
 
     def tab_changed(self, index):
-        print("Tab changed to index: %s" % index)
         # lookup index
         label = str(self.tab_widget.tabText(index))
-        print("  label: %s" % label)
         if self.current is not None:
-            print("stop showing: %s" % self.current)
             self.current.stop_showing()
             self.current = None
         if label in self.tabs:
-            print("start showing: %s" % self.tabs[label])
             self.tabs[label].start_showing()
             self.current = self.tabs[label]
 
@@ -453,6 +489,14 @@ def load_ui(controller=None):
     MainWindow = QtGui.QMainWindow()
     ui = base.Ui_MainWindow()
     ui.setupUi(MainWindow)
+    # setup menu
+    if controller is not None:
+        ui._legMenu_actions = []
+        for leg in controller.legs:
+            a = QtGui.QAction(
+                consts.LEG_NAME_BY_NUMBER[leg],
+                triggered=lambda i=leg: controller.set_leg(i))
+            ui._legMenu_actions.append(a)
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui, controller))
     tm.add_tab('Leg', LegTab(ui, controller))
