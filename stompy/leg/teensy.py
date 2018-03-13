@@ -3,7 +3,6 @@
 import glob
 import logging
 import subprocess
-import threading
 import time
 
 import numpy
@@ -13,8 +12,11 @@ import pycomando
 
 from .. import consts
 from .. import calibration
+from .. import kinematics
 from . import plans
 from .. import log
+from . import restriction
+from .. import signaler
 
 
 logger = logging.getLogger(__name__)
@@ -77,16 +79,131 @@ def find_teensies():
     return tinfo
 
 
-THREAD_SLEEP = 0.01
+class LegController(signaler.Signaler):
+    def __init__(self, leg_number):
+        super(LegController, self).__init__()
+        self.leg_number = leg_number
+        log.info({'leg_number': self.leg_number})
+        logger.debug("leg number = %s" % (self.leg_number, ))
+
+        self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
+        log.info({'leg_name': self.leg_name})
+
+        self.res = restriction.Foot(self.leg_number)
+        self.adc = {}
+        self.angles = {}
+        self.xyz = {}
+        self.pid = {}
+        self.pwm = {}
+
+    def set_estop(self, value):
+        log.info({'estop': value})
+
+    def enable_pid(self, value):
+        log.debug({'enable_pid': value})
+
+    def _accept_request(self, r):
+        self.send_plan(r['plan'])
+        self.res.set_state(r['state'])
+        self.res.state = r['state']
+
+    def _update_restriction(self, x, y, z, t):
+        request = self.res.update(x, y, z, t)
+        if request is not None:
+            request['accept'] = lambda r=request: self._accept_request(r)
+            self.trigger('request', request)
+
+    def update(self):
+        pass
+
+    def send_plan(self, *args, **kwargs):
+        if len(args) == 0:
+            return self.stop()
+        if len(args) == 1 and isinstance(args[0], plans.Plan):
+            plan = args[0]
+        else:
+            plan = plans.Plan(*args, **kwargs)
+        pp = plan.packed(self.leg_number)
+        log.info({'plan': pp})
+        self.trigger('plan', pp)
+
+    def stop(self):
+        """Send stop plan"""
+        self.send_plan(plans.stop())
 
 
-class Teensy(object):
-    foot_travel_center = (66.0, 0.0)
-    foot_travel_radius = 42.0
-    foot_r_eps = numpy.log(0.1) / foot_travel_radius
-    dr_smooth = 0.5  # should be 0 -> 0.9999: higher = more dr smoothing
+class FakeTeensy(LegController):
+    def __init__(self, leg_number):
+        super(FakeTeensy, self).__init__(leg_number)
+        self.on('plan', self._new_plan)
 
+        self.pwm = {'hip': 0, 'thigh': 0, 'knee': 0, 'time': time.time()}
+        self.pid = {
+            'time': time.time(),
+            'output': {'hip': 0, 'thigh': 0, 'knee': 0},
+            'set_point': {'hip': 0, 'thigh': 0, 'knee': 0},
+            'error': {'hip': 0, 'thigh': 0, 'knee': 0},
+        }
+        self.adc = {
+            'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
+        self.angles = {
+            'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
+        self.xyz = {
+            'time': time.time(), 'x': 0, 'y': 0, 'z': 0}
+        self._last_update = time.time()
+        self._plan = None
+
+    def _new_plan(self, p):
+        self._plan = p
+        # TODO if body frame, convert to leg
+
+    def _follow_plan(self, t, dt):
+        self.xyz['time'] = t
+        self.angles['time'] = t
+        if self._plan is None:
+            return
+        # TODO set angles and x, y, z
+        if self._plan.mode == consts.PLAN_STOP_MODE:
+            return
+        # TODO if leg plan follow in xyz
+        # TODO if joint plan follow in angles
+        elif self._plan.mode == consts.PLAN_VELOCITY_MODE:
+            pass
+        elif self._plan.mode == consts.PLAN_TARGET_MODE:
+            pass
+        h, t, k = 0., 0., 0.
+        x, y, z = list(kinematics.leg.angles_to_points(h, t, k))
+        self.xyz.update({'x': x, 'y': y, 'z': z})
+        self.angles.update({'hip': h, 'thigh': t, 'knee': k})
+
+    def update(self):
+        t = time.time()
+        dt = t - self._last_update
+        if dt > 0.1:
+            # follow plan, update angles
+            self._follow_plan(t, dt)
+            # update restriction
+            self._update_restriction(
+                self.xyz['x'], self.xyz['y'], self.xyz['z'], t)
+            self.angles['time'] = t
+            self.adc['time'] = t
+            self.xyz.update({
+                'r': self.res.r, 'dr': self.res.dr, 'idr': self.res.idr,
+                'time': t})
+
+            # generate events:
+            self.pwm['time'] = t
+            self.pid['time'] = t
+            self.trigger('adc', self.adc)
+            self.trigger('pwm', self.pwm)
+            self.trigger('pid', self.pid)
+            self.trigger('angles', self.angles)
+            self.trigger('xyz', self.xyz)
+
+
+class Teensy(LegController):
     def __init__(self, port):
+
         self.port = port
         self.com = pycomando.Comando(serial.Serial(self.port, 9600))
         self.cmd = pycomando.protocols.command.CommandProtocol()
@@ -97,12 +214,8 @@ class Teensy(object):
         # self.ns = self.mgr.build_namespace()
         # get leg number
         logger.debug("%s Get leg number" % port)
-        self.leg_number = self.mgr.blocking_trigger('leg_number')[0].value
-        log.info({'leg_number': self.leg_number})
-        logger.debug("%s leg number = %s" % (port, self.leg_number))
-
-        self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
-        log.info({'leg_name': self.leg_name})
+        ln = self.mgr.blocking_trigger('leg_number')[0].value
+        super(Teensy, self).__init__(ln)
 
         # load calibration setup
         for v in calibration.setup.get(self.leg_number, []):
@@ -116,23 +229,6 @@ class Teensy(object):
         # send first heartbeat
         self.send_heartbeat()
 
-        # state
-        # -- status
-        #   - estop [state from python/firmware?]
-        #   - heartbeat [time from python]
-        #   - enable_pid [state from python/firmware?]
-        # -- low level
-        #   - adc [hip, thigh, knee, calf] {uint32}
-        #   - pwm_value [hip, thigh, knee] {int32}
-        #   - pid [h_output, to, ko, h_set, ts, ks, h_err, te, ke]
-        # -- high level
-        #   - xyz {float}
-        self.xyz = {}
-        #   - angles [hip, thigh, knee, calf, valid] {float,...,byte}
-        self.angles = {}
-        self.pid = {}
-        self.pwm_value = {}
-
         self.mgr.on('report_xyz', self.on_report_xyz)
         self.mgr.on('report_angles', self.on_report_angles)
         self.mgr.on('report_pid', self.on_report_pid)
@@ -141,11 +237,11 @@ class Teensy(object):
 
     def set_estop(self, value):
         self.mgr.trigger('estop', value)
-        log.info({'estop': value})
+        super(Teensy, self).set_estop(value)
 
     def enable_pid(self, value):
         self.mgr.trigger('enable_pid', value)
-        log.debug({'enable_pid': value})
+        super(Teensy, self).enable_pid(value)
 
     def on_report_adc(self, hip, thigh, knee, calf):
         self.adc = {
@@ -153,29 +249,23 @@ class Teensy(object):
             'knee': knee.value, 'calf': calf.value,
             'time': time.time()}
         log.debug({'adc': self.adc})
+        self.trigger('adc', self.adc)
 
-    def restriction(self, x, y, z):
-        cx, cy = self.foot_travel_center
-        d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
-        return numpy.exp(-self.foot_r_eps * (d - self.foot_travel_radius))
+    def _accept_request(self, r):
+        self.send_plan(r['plan'])
+        self.res.set_state(r['state'])
+        self.res.state = r['state']
 
     def on_report_xyz(self, x, y, z):
         t = time.time()
         x, y, z = x.value, y.value, z.value
-        self.r = self.restriction(x, y, z)
-        # compute smooted dr
-        if 'r' not in self.xyz or 'time' not in self.xyz:
-            self.dr = 0.
-            idr = 0.
-        else:
-            idr = (self.r - self.xyz['r']) / (t - self.xyz['time'])
-            self.dr = self.dr * self.dr_smooth + idr * (1. - self.dr_smooth)
+        self._update_restriction(x, y, z, t)
         self.xyz = {
             'x': x, 'y': y, 'z': z,
-            'r': self.r, 'dr': self.dr, 'idr': idr,
+            'r': self.res.r, 'dr': self.res.dr, 'idr': self.res.idr,
             'time': t}
-        self.xyz['dr'] = self.dr
         log.debug({'xyz': self.xyz})
+        self.trigger('xyz', self.xyz)
 
     def on_report_angles(self, h, t, k, c, v):
         self.angles = {
@@ -183,6 +273,7 @@ class Teensy(object):
             'calf': c.value,
             'valid': bool(v), 'time': time.time()}
         log.debug({'angles': self.angles})
+        self.trigger('angles', self.angles)
 
     def on_report_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
         self.pid = {
@@ -203,12 +294,14 @@ class Teensy(object):
                 'knee': ke.value,
             }}
         log.debug({'pid': self.pid})
+        self.trigger('pid', self.pid)
 
     def on_report_pwm(self, h, t, k):
         self.pwm = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'time': time.time()}
         log.debug({'pwm': self.pwm})
+        self.trigger('pwm', self.pwm)
 
     def send_heartbeat(self):
         self.mgr.trigger('heartbeat')
@@ -220,39 +313,14 @@ class Teensy(object):
         if time.time() - self.last_heartbeat > consts.HEARTBEAT_PERIOD:
             self.send_heartbeat()
 
-    def _update_thread_function(self):
-        while True:
-            self.update()
-            time.sleep(THREAD_SLEEP)
-
-    def start_update_thread(self):
-        self._update_thread = threading.Thread(
-            target=self._update_thread_function)
-        self._update_thread.daemon = True
-        self._update_thread.start()
-
-    def send_plan(self, *args, **kwargs):
-        if len(args) == 0:
-            return self.stop()
-        if len(args) == 1 and isinstance(args[0], plans.Plan):
-            plan = args[0]
-        else:
-            plan = plans.Plan(*args, **kwargs)
-        pp = plan.packed(self.leg_number)
-        # print("sending: %s" % (pp, ))
-        log.info({'plan': pp})
-        self.mgr.trigger('plan', *pp)
-
-    def stop(self):
-        """Send stop plan"""
-        self.send_plan(plans.stop())
-
 
 def connect_to_teensies(ports=None):
     """Return dict with {leg_number: teensy}"""
     if ports is None:
         tinfo = find_teensies()
         ports = [i['port'] for i in tinfo]
+    if len(ports) == 0:
+        return {ln: FakeTeensy(ln) for ln in range(1, 7)}
     teensies = [Teensy(p) for p in ports]
     lnd = {}
     for t in teensies:

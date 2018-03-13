@@ -6,6 +6,9 @@ from . import joystick
 from . import kinematics
 from . import leg
 from . import log
+from . import signaler
 
 
-__all__ = ['consts', 'controllers', 'joystick', 'kinematics', 'leg', 'log']
+__all__ = [
+    'consts', 'controllers', 'joystick', 'kinematics', 'leg', 'log',
+    'signaler']

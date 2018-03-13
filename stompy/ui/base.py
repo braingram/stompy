@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Mar  4 21:32:55 2018
+# Created: Tue Mar 13 18:59:07 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -362,13 +362,13 @@ class Ui_MainWindow(object):
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 756, 25))
         self.menubar.setObjectName(_fromUtf8("menubar"))
-        self.menuLegs = QtGui.QMenu(self.menubar)
-        self.menuLegs.setObjectName(_fromUtf8("menuLegs"))
+        self.legsMenu = QtGui.QMenu(self.menubar)
+        self.legsMenu.setObjectName(_fromUtf8("legsMenu"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
         MainWindow.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menuLegs.menuAction())
+        self.menubar.addAction(self.legsMenu.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabs.setCurrentIndex(1)
@@ -415,7 +415,7 @@ class Ui_MainWindow(object):
         self.tabs.setTabText(self.tabs.indexOf(self.PIDTab), _translate("MainWindow", "PID", None))
         self.tabs.setTabText(self.tabs.indexOf(self.bodyTab), _translate("MainWindow", "Body", None))
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))
-        self.menuLegs.setTitle(_translate("MainWindow", "Legs", None))
+        self.legsMenu.setTitle(_translate("MainWindow", "Legs", None))
 
 from pyqtgraph.opengl import GLViewWidget
 from pyqtgraph import PlotWidget

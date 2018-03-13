@@ -95,12 +95,12 @@ class PIDTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.leg.mgr.remove_on(
-                'report_pid', self.on_report_pid)
+            self.controller.leg.remove_on(
+                'pid', self.on_pid)
         super(PIDTab, self).set_leg_index(index)  # update index
         if index is not None:
-            self.controller.leg.mgr.on(
-                'report_pid', self.on_report_pid)
+            self.controller.leg.on(
+                'pid', self.on_pid)
 
     def update_views(self):
         self.setpoint_line.setGeometry(self.output_line.vb.sceneBoundingRect())
@@ -120,17 +120,12 @@ class PIDTab(Tab):
                 d._data.pop(0)
             d.setData(d._data)
 
-    def on_report_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
-        txt = str(self.ui.pidJointCombo.currentText())
-        if txt == 'Hip':
-            o, s, e = ho.value, hs.value, he.value
-        elif txt == 'Thigh':
-            o, s, e = to.value, ts.value, te.value
-        elif txt == 'Knee':
-            o, s, e = ko.value, ks.value, ke.value
-        else:
+    def on_pid(self, pid):
+        txt = str(self.ui.pidJointCombo.currentText()).lower()
+        o, s, e = pid['output'], pid['set_point'], pid['error']
+        if txt not in o:
             return
-        self.add_pid_values(o, s, e)
+        self.add_pid_values(o[txt], s[txt], e[txt])
 
     def change_joint(self):
         self.clear_pid_values()
@@ -304,13 +299,6 @@ class LegTab(Tab):
 
     def __init__(self, ui, controller):
         super(LegTab, self).__init__(ui, controller)
-        if self.controller is not None:
-            # TODO attach leg
-            self.controller.conn.mgr.on('report_angles', self.on_report_angles)
-            self.controller.conn.mgr.on('report_xyz', self.on_report_xyz)
-            self.controller.conn.mgr.on('report_adc', self.on_report_adc)
-            #self.controller.conn.mgr.on('pwm_value', self.on_pwm_value)
-
         self.gl_widget = ui.legGLWidget
         # add grids
         gi = 120
@@ -372,20 +360,20 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.leg.mgr.remove_on(
-                'report_angles', self.on_report_angles)
-            self.controller.leg.mgr.remove_on(
-                'report_xyz', self.on_report_xyz)
-            self.controller.leg.mgr.remove_on(
-                'report_adc', self.on_report_adc)
-        super(PIDTab, self).set_leg_index(index)  # update index
+            self.controller.leg.remove_on(
+                'angles', self.on_angles)
+            self.controller.leg.remove_on(
+                'xyz', self.on_xyz)
+            self.controller.leg.remove_on(
+                'adc', self.on_adc)
+        super(LegTab, self).set_leg_index(index)  # update index
         if index is not None:
-            self.controller.leg.mgr.on(
-                'report_angles', self.on_report_angles)
-            self.controller.leg.mgr.on(
-                'report_xyz', self.on_report_xyz)
-            self.controller.leg.mgr.on(
-                'report_adc', self.on_report_adc)
+            self.controller.leg.on(
+                'angles', self.on_angles)
+            self.controller.leg.on(
+                'xyz', self.on_xyz)
+            self.controller.leg.on(
+                'adc', self.on_adc)
 
     def on_gl_menu(self, point):
         self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
@@ -425,23 +413,23 @@ class LegTab(Tab):
                     self.angles[i] < self.limits[i][1]):
                 self.deltas[i] *= -1
 
-    def on_report_angles(self, h, t, k, c, v):
+    def on_angles(self, angles):
         # TODO h, t, k readouts
         # TODO what to do when v is False?
-        self.plot_leg(h.value, t.value, k.value)
-        self.ui.legLLineEdit.setText('%0.2f' % c.value)
+        self.plot_leg(angles['hip'], angles['thigh'], angles['knee'])
+        self.ui.legLLineEdit.setText('%0.2f' % angles['calf'])
 
-    def on_report_xyz(self, x, y, z):
-        self.ui.legXLineEdit.setText('%0.2f' % x.value)
-        self.ui.legYLineEdit.setText('%0.2f' % y.value)
-        self.ui.legZLineEdit.setText('%0.2f' % z.value)
+    def on_xyz(self, xyz):
+        self.ui.legXLineEdit.setText('%0.2f' % xyz['x'])
+        self.ui.legYLineEdit.setText('%0.2f' % xyz['y'])
+        self.ui.legZLineEdit.setText('%0.2f' % xyz['z'])
         # TODO restriction?
 
-    def on_report_adc(self, h, t, k, c):
-        self.ui.hipADCProgress.setValue(h.value)
-        self.ui.thighADCProgress.setValue(t.value)
-        self.ui.kneeADCProgress.setValue(k.value)
-        self.ui.calfADCProgress.setValue(c.value)
+    def on_adc(self, adc):
+        self.ui.hipADCProgress.setValue(adc['hip'])
+        self.ui.thighADCProgress.setValue(adc['thigh'])
+        self.ui.kneeADCProgress.setValue(adc['knee'])
+        self.ui.calfADCProgress.setValue(adc['calf'])
 
     def start_showing(self):
         if self.controller is None:
@@ -491,12 +479,15 @@ def load_ui(controller=None):
     ui.setupUi(MainWindow)
     # setup menu
     if controller is not None:
-        ui._legMenu_actions = []
+        ui._legsMenu_actions = []
         for leg in controller.legs:
+            ln = consts.LEG_NAME_BY_NUMBER[leg]
+            print(ln)
             a = QtGui.QAction(
-                consts.LEG_NAME_BY_NUMBER[leg],
-                triggered=lambda i=leg: controller.set_leg(i))
-            ui._legMenu_actions.append(a)
+                consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
+            a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
+            ui._legsMenu_actions.append(a)
+            ui.legsMenu.addAction(a)
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui, controller))
     tm.add_tab('Leg', LegTab(ui, controller))

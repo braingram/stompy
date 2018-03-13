@@ -26,6 +26,8 @@ leg_to_body_transforms = {
         -92.6, 23, 0, 0, 0, 125, degrees=True),
     consts.LEG_RR: transforms.affine_3d(
         -92.6, -23, 0, 0, 0, -125, degrees=True),
+    consts.LEG_FAKE: transforms.affine_3d(
+        0., 0., 0., 0., 0., 0., degrees=True),
 }
 
 leg_to_body_rotations = {
@@ -35,6 +37,7 @@ leg_to_body_rotations = {
     consts.LEG_MR: transforms.rotation_3d(0, 0, -90, degrees=True),
     consts.LEG_RL: transforms.rotation_3d(0, 0, 125, degrees=True),
     consts.LEG_RR: transforms.rotation_3d(0, 0, -125, degrees=True),
+    consts.LEG_FAKE: transforms.rotation_3d(0, 0, 0, degrees=True),
 }
 
 
