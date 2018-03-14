@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Mar 13 18:59:07 2018
+# Created: Tue Mar 13 19:47:47 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -352,6 +352,12 @@ class Ui_MainWindow(object):
         self.tabs.addTab(self.PIDTab, _fromUtf8(""))
         self.bodyTab = QtGui.QWidget()
         self.bodyTab.setObjectName(_fromUtf8("bodyTab"))
+        self.verticalLayout_3 = QtGui.QVBoxLayout(self.bodyTab)
+        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
+        self.bodyGLWidget = GLViewWidget(self.bodyTab)
+        self.bodyGLWidget.setMinimumSize(QtCore.QSize(0, 0))
+        self.bodyGLWidget.setObjectName(_fromUtf8("bodyGLWidget"))
+        self.verticalLayout_3.addWidget(self.bodyGLWidget)
         self.tabs.addTab(self.bodyTab, _fromUtf8(""))
         self.walkTab = QtGui.QWidget()
         self.walkTab.setObjectName(_fromUtf8("walkTab"))
@@ -371,7 +377,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.legsMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(1)
+        self.tabs.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

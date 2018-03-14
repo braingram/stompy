@@ -14,6 +14,16 @@ from .. import kinematics
 from .. import signaler
 
 
+neighbors = {
+    1: [2, 6],
+    2: [1, 3],
+    3: [2, 4],
+    4: [3, 5],
+    5: [4, 6],
+    6: [5, 1],
+}
+
+
 class Foot(signaler.Signaler):
     r_max = 0.9
     r_thresh = 0.2
@@ -48,6 +58,7 @@ class Foot(signaler.Signaler):
         self.idr = 0.
 
     def set_state(self, state):
+        print("%s: %s[%s]" % (self.leg_number, state, self.state))
         self.state = state
         self.trigger('state', state)
 
@@ -155,22 +166,51 @@ class Foot(signaler.Signaler):
         return {
             'state': ns,
             'plan': self.plans[ns],
+            'leg_number': self.leg_number,
         }
 
 
 class Body(signaler.Signaler):
-    def __init__(self):
+    def __init__(self, legs):
+        """Takes leg controllers"""
         super(Body, self).__init__()
         self.max_feet_up = 1
         self.last_lift_times = {}
-        self.feet = {}
+        self.legs = legs
+        for i in self.legs:
+            self.legs[i].on('request', lambda r, ln=i: self.on_request(r, ln))
 
-    def process_request(self, leg_number, request):
+    def on_request(self, request, leg_number):
         # is leg_number requesting halt?
-        #   yes: stop all legs in stance
+        if request['state'] == 'halt':
+            # accept halt
+            request['accept']()
+            # stop all legs in stance
+            for i in self.legs:
+                l = self.legs[i]
+                # reset plan to 0, 0
+                l.res.set_target(0, 0, consts.PLAN_LEG_FRAME)
+                if i != request['leg_number']:
+                    l.send_plan(**l.res.plans[l.res.state])
+            return
         # is leg_number asking to lift?
-        #   yes: check n_feet up, check neighbors
-        #   no: allow transition
-        # is >1 leg restricted?
+        if request['state'] == 'lift':
+            # check n_feet up
+            states = {
+                self.legs[i].leg_number: self.legs[i].res.state
+                for i in self.legs}
+            n_up = len([s for s in states.values() if s != 'stance'])
+            # check if neighbors are up
+            ns = neighbors[request['leg_number']]
+            n_states = [self.legs[n].res.state for n in ns]
+            ns_up = len([s for s in n_states if s != 'stance'])
+            if len(ns_up) == 0 and n_up < self.max_feet_up:
+                request['accept']()
+            # else don't allow the request
+            return
+        request['accept']()
+        # TODO is >1 leg restricted?
+        #   [how to do this with current setup?]
+        #   [maybe wait to get a few feet worth of data]
         #   yes: lift last recently moved
-        pass
+        # TODO scale speed by max restriction

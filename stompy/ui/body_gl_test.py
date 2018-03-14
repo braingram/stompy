@@ -128,7 +128,8 @@ def update(angles=angles, items=items, deltas=deltas):
         for i in xrange(len(limits)):
             if angles[leg][i] > limits[i][0] or angles[leg][i] < limits[i][1]:
                 deltas[leg][i] *= -1
-                print(angles[leg], limits, deltas[leg])
+                #print(angles[leg], limits, deltas[leg])
+    print w.opts
 
 state = [0, ]
 

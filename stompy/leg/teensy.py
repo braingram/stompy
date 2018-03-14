@@ -103,7 +103,7 @@ class LegController(signaler.Signaler):
         log.debug({'enable_pid': value})
 
     def _accept_request(self, r):
-        self.send_plan(r['plan'])
+        self.send_plan(**r['plan'])
         self.res.set_state(r['state'])
         self.res.state = r['state']
 
@@ -117,7 +117,7 @@ class LegController(signaler.Signaler):
         pass
 
     def send_plan(self, *args, **kwargs):
-        if len(args) == 0:
+        if len(args) == 0 and len(kwargs) == 0:
             return self.stop()
         if len(args) == 1 and isinstance(args[0], plans.Plan):
             plan = args[0]
@@ -148,33 +148,59 @@ class FakeTeensy(LegController):
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
         self.angles = {
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
+        x, y, z = list(kinematics.leg.angles_to_points(0, 0, 0))[-1]
         self.xyz = {
-            'time': time.time(), 'x': 0, 'y': 0, 'z': 0}
+            'time': time.time(), 'x': x, 'y': y, 'z': z}
         self._last_update = time.time()
         self._plan = None
 
-    def _new_plan(self, p):
+    def _new_plan(self, pp):
+        # if body frame, plan packing converted to leg
+        m, f, lx, ly, lz, ax, ay, az, s = pp
+        p = plans.Plan(m, f, (lx, ly, lz), (ax, ay, az), s)
+        if m != consts.PLAN_STOP_MODE:
+            if f != consts.PLAN_LEG_FRAME:
+                raise NotImplementedError('fake following of non-leg plans')
         self._plan = p
-        # TODO if body frame, convert to leg
 
     def _follow_plan(self, t, dt):
         self.xyz['time'] = t
         self.angles['time'] = t
         if self._plan is None:
             return
-        # TODO set angles and x, y, z
         if self._plan.mode == consts.PLAN_STOP_MODE:
             return
-        # TODO if leg plan follow in xyz
-        # TODO if joint plan follow in angles
-        elif self._plan.mode == consts.PLAN_VELOCITY_MODE:
-            pass
+        if self._plan.frame != consts.PLAN_LEG_FRAME:
+            raise NotImplementedError('fake following of non-leg plans')
+        if self._plan.mode == consts.PLAN_VELOCITY_MODE:
+            lx, ly, lz = self._plan.linear
+            self.xyz['x'] += lx * dt * self._plan.speed
+            self.xyz['y'] += ly * dt * self._plan.speed
+            self.xyz['z'] += lz * dt * self._plan.speed
         elif self._plan.mode == consts.PLAN_TARGET_MODE:
-            pass
-        h, t, k = 0., 0., 0.
-        x, y, z = list(kinematics.leg.angles_to_points(h, t, k))
-        self.xyz.update({'x': x, 'y': y, 'z': z})
-        self.angles.update({'hip': h, 'thigh': t, 'knee': k})
+            tx, ty, tz = self._plan.linear
+            lx = tx - self.xyz['x']
+            ly = ty - self.xyz['y']
+            lz = tz - self.xyz['z']
+            l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
+            if l == 0:
+                lx, ly, lz = 0., 0., 0.
+            else:
+                lx /= l
+                ly /= l
+                lz /= l
+            self.xyz['x'] += lx * dt * self._plan.speed
+            self.xyz['y'] += ly * dt * self._plan.speed
+            self.xyz['z'] += lz * dt * self._plan.speed
+        hip, thigh, knee = kinematics.leg.point_to_angles(
+            self.xyz['x'], self.xyz['y'], self.xyz['z'])
+        self.angles.update({'hip': hip, 'thigh': thigh, 'knee': knee})
+        print(self.leg_number, self._plan.mode, self.angles, self.xyz)
+        # get angles from x, y, z
+        #h, t, k = 0., 0., 0.
+        #x, y, z = list(kinematics.leg.angles_to_points(h, t, k))
+        #self.xyz.update({'x': x, 'y': y, 'z': z})
+        #self.angles.update({'hip': h, 'thigh': t, 'knee': k})
 
     def update(self):
         t = time.time()
@@ -199,6 +225,7 @@ class FakeTeensy(LegController):
             self.trigger('pid', self.pid)
             self.trigger('angles', self.angles)
             self.trigger('xyz', self.xyz)
+            self._last_update = t
 
 
 class Teensy(LegController):
@@ -252,7 +279,7 @@ class Teensy(LegController):
         self.trigger('adc', self.adc)
 
     def _accept_request(self, r):
-        self.send_plan(r['plan'])
+        self.send_plan(**r['plan'])
         self.res.set_state(r['state'])
         self.res.state = r['state']
 

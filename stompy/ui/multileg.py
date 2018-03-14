@@ -445,6 +445,147 @@ class LegTab(Tab):
             self.timer.stop()
 
 
+class BodyTab(Tab):
+    views = {
+        'side': {
+            'center': QtGui.QVector3D(0, 0, 0),
+            'azimuth': 90,
+            'elevation': 0,
+            'distance': 15000,
+            'fov': 1,
+        },
+        'top': {
+            'center': QtGui.QVector3D(0, 0, 0),
+            'azimuth': 90,
+            'elevation': 90,
+            'distance': 15000,
+            'fov': 1,
+        },
+    }
+
+    def __init__(self, ui, controller):
+        super(BodyTab, self).__init__(ui, controller)
+        self.gl_widget = ui.bodyGLWidget
+
+        # add grids
+        gi = 120
+        self.grids = {}
+        self.grids['x'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['x'].setSize(gi, gi, 1)
+        self.grids['x'].setSpacing(6, 6, 1)
+        self.grids['x'].rotate(90, 0, 1, 0)
+        #self.grids['x'].translate(-25, 0, 0)
+        self.gl_widget.addItem(self.grids['x'])
+        self.grids['y'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['y'].setSize(gi, gi, 1)
+        self.grids['y'].setSpacing(6, 6, 1)
+        self.grids['y'].rotate(90, 1, 0, 0)
+        self.grids['y'].translate(gi / 2, 0, 0)
+        self.gl_widget.addItem(self.grids['y'])
+        self.grids['z'] = pyqtgraph.opengl.GLGridItem()
+        self.grids['z'].setSize(gi, gi, 1)
+        self.grids['z'].setSpacing(6, 6, 1)
+        self.grids['z'].translate(gi / 2, 0, 0)
+        self.gl_widget.addItem(self.grids['z'])
+
+        # add legs
+        self.links = {}
+        for leg_number in self.controller.legs:
+            pts = numpy.array([
+                [0., 0., 0.], ] + list(
+                    kinematics.leg.angles_to_points(0., 0., 0.)))
+            pts = kinematics.body.leg_to_body_array(
+                leg_number, pts)
+            hip_link = pyqtgraph.opengl.GLLinePlotItem(
+                pos=numpy.array([pts[0], pts[1]]), color=[1., 0., 0., 1.],
+                width=5, antialias=True)
+            thigh_link = pyqtgraph.opengl.GLLinePlotItem(
+                pos=numpy.array([pts[1], pts[2]]), color=[0., 1., 0., 1.],
+                width=5, antialias=True)
+            knee_link = pyqtgraph.opengl.GLLinePlotItem(
+                pos=numpy.array([pts[2], pts[3]]), color=[0., 0., 1., 1.],
+                width=5, antialias=True)
+            calf_link = pyqtgraph.opengl.GLScatterPlotItem(
+                pos=pts[3], color=[1., 0.5, 0., 1.], size=1., pxMode=True)
+            self.gl_widget.addItem(hip_link)
+            self.gl_widget.addItem(thigh_link)
+            self.gl_widget.addItem(knee_link)
+            self.gl_widget.addItem(calf_link)
+            self.links[leg_number] = {
+                'hip': hip_link, 'thigh': thigh_link, 'knee': knee_link,
+                'calf': calf_link}
+
+        # add context menu
+        self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.gl_widget.customContextMenuRequested.connect(self.on_gl_menu)
+        self.gl_menu = QtGui.QMenu(self.gl_widget)
+        sva = QtGui.QAction('Side view', self.gl_widget)
+        sva.triggered.connect(self.show_side_view)
+        self.gl_menu.addAction(sva)
+        tva = QtGui.QAction('Top view', self.gl_widget)
+        tva.triggered.connect(self.show_top_view)
+        self.gl_menu.addAction(tva)
+        self.gl_menu.addSeparator()
+        sga = QtGui.QAction('Show grids', self.gl_widget)
+        sga.triggered.connect(self.show_grids)
+        self.gl_menu.addAction(sga)
+        hga = QtGui.QAction('Hide grids', self.gl_widget)
+        hga.triggered.connect(self.hide_grids)
+        self.gl_menu.addAction(hga)
+        #self.gl_menu.triggered[QtGui.QAction].connect(self.on_gl_menu_action)
+
+        # attach to all legs
+        #self.controller.legs[i]
+        for leg_number in self.controller.legs:
+            self.controller.legs[leg_number].on(
+                'angles', lambda a, i=leg_number: self.on_angles(a, i))
+            self.controller.legs[leg_number].on(
+                'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+        self.show_top_view()
+
+    def on_gl_menu(self, point):
+        self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
+
+    def show_grids(self):
+        for k in self.grids:
+            self.grids[k].setVisible(True)
+
+    def hide_grids(self):
+        for k in self.grids:
+            self.grids[k].setVisible(False)
+
+    def show_side_view(self):
+        self.gl_widget.opts.update(self.views['side'])
+        self.gl_widget.update()
+
+    def show_top_view(self):
+        self.gl_widget.opts.update(self.views['top'])
+        self.gl_widget.update()
+
+    def plot_leg(self, leg_number, hip, thigh, knee, calf):
+
+        pts = [[0., 0., 0.], ] + list(
+            kinematics.leg.angles_to_points(hip, thigh, knee))
+        pts = kinematics.body.leg_to_body_array(leg_number, pts)
+        self.links[leg_number]['hip'].setData(
+            pos=numpy.array([pts[0], pts[1]]))
+        self.links[leg_number]['thigh'].setData(
+            pos=numpy.array([pts[1], pts[2]]))
+        self.links[leg_number]['knee'].setData(
+            pos=numpy.array([pts[2], pts[3]]))
+        self.links[leg_number]['calf'].setData(
+            pos=pts[3], size=calf/50.)
+
+    def on_angles(self, angles, leg_number):
+        self.plot_leg(
+            leg_number, angles['hip'], angles['thigh'], angles['knee'],
+            angles['calf'])
+
+    def on_xyz(self, xyz, leg_number):
+        # TODO restriction?
+        pass
+
+
 class TabManager(object):
     def __init__(self, tab_widget):
         self.tab_widget = tab_widget
@@ -481,8 +622,6 @@ def load_ui(controller=None):
     if controller is not None:
         ui._legsMenu_actions = []
         for leg in controller.legs:
-            ln = consts.LEG_NAME_BY_NUMBER[leg]
-            print(ln)
             a = QtGui.QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
             a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
@@ -491,6 +630,7 @@ def load_ui(controller=None):
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui, controller))
     tm.add_tab('Leg', LegTab(ui, controller))
+    tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
     MainWindow.show()
     timer = None

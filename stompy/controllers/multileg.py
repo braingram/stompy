@@ -15,6 +15,7 @@ frame/mode
 """
 
 from .. import consts
+from .. import leg
 from .. import log
 from .. import signaler
 
@@ -30,6 +31,7 @@ class MultiLeg(signaler.Signaler):
     def __init__(self, legs, joy):
         super(MultiLeg, self).__init__()
         self.legs = legs
+        self.res = leg.restriction.Body(legs)
         self.leg = None
         self.leg_index = None
         # self.conn = leg_teensy
