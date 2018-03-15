@@ -183,19 +183,21 @@ class FakeTeensy(LegController):
             ly = ty - self.xyz['y']
             lz = tz - self.xyz['z']
             l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
-            if l == 0:
-                lx, ly, lz = 0., 0., 0.
+            if l < self._plan.speed or l < 0.5:
+                self.xyz['x'] = tx
+                self.xyz['y'] = ty
+                self.xyz['z'] = tz
             else:
                 lx /= l
                 ly /= l
                 lz /= l
-            self.xyz['x'] += lx * dt * self._plan.speed
-            self.xyz['y'] += ly * dt * self._plan.speed
-            self.xyz['z'] += lz * dt * self._plan.speed
+                self.xyz['x'] += lx * dt * self._plan.speed
+                self.xyz['y'] += ly * dt * self._plan.speed
+                self.xyz['z'] += lz * dt * self._plan.speed
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
         self.angles.update({'hip': hip, 'thigh': thigh, 'knee': knee})
-        print(self.leg_number, self._plan.mode, self.angles, self.xyz)
+        #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
         # get angles from x, y, z
         #h, t, k = 0., 0., 0.
         #x, y, z = list(kinematics.leg.angles_to_points(h, t, k))

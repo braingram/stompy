@@ -65,20 +65,23 @@ class Foot(signaler.Signaler):
     def set_target(self, tx, ty, frame):
         if frame == consts.PLAN_BODY_FRAME:
             # convert x, y to foot?
-            tlx, tly, _ = kinematics.body.body_to_leg(
+            tlx, tly, _ = kinematics.body.body_to_leg_rotation(
                 self.leg_number, tx, ty, 0.)
             tbx, tby = tx, ty
         elif frame == consts.PLAN_LEG_FRAME:
             tlx, tly = tx, ty
-            tbx, tby, _ = kinematics.body.leg_to_body(
+            tbx, tby, _ = kinematics.body.leg_to_body_rotation(
                 self.leg_number, tx, ty, 0.)
         else:
             raise ValueError("Invalid target frame: %s" % frame)
         # compute foot target (to tell when swing is done)
         self.leg_frame_target = (tlx, tly)
         self.swing_target = (
-            tlx * self.step_size,
-            tly * self.step_size)
+            self.center[0] + tlx * self.step_size,
+            self.center[1] + tly * self.step_size)
+        #print(
+        #    self.leg_number, self.leg_frame_target, self.swing_target,
+        #    tlx, tly, self.center)
         # compute plans (swing, lift, lower, stance)
         self.plans = {
             'halt': {'mode': consts.PLAN_STOP_MODE},
@@ -204,7 +207,7 @@ class Body(signaler.Signaler):
             ns = neighbors[request['leg_number']]
             n_states = [self.legs[n].res.state for n in ns]
             ns_up = len([s for s in n_states if s != 'stance'])
-            if len(ns_up) == 0 and n_up < self.max_feet_up:
+            if ns_up == 0 and n_up < self.max_feet_up:
                 request['accept']()
             # else don't allow the request
             return

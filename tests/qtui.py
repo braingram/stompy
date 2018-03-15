@@ -22,14 +22,22 @@ c = stompy.controllers.multileg.MultiLeg(legs, joy)
 
 # send initial target
 for i in legs:
-    legs[i].res.set_target(-1, 0, stompy.consts.PLAN_BODY_FRAME)
-    legs[i].send_plan(**legs[i].res.plans['swing'])
-    # update leg until close to target
-for i in xrange(10):
+    x, y, = legs[i].res.center
+    #z = legs[i].res.lift_height
+    z = 0
+    legs[i].send_plan(
+        frame=stompy.consts.PLAN_LEG_FRAME,
+        mode=stompy.consts.PLAN_TARGET_MODE,
+        linear=(x, y, z),
+        speed=5.)
+# update leg until close to target
+for i in xrange(50):
     for ln in legs:
         legs[ln].update()
     time.sleep(0.101)
 for ln in legs:
-    legs[ln].res.set_state('swing')
+    legs[ln].res.set_target(-1, 0, stompy.consts.PLAN_BODY_FRAME)
+    legs[ln].send_plan(**legs[ln].res.plans['stance'])
+    legs[ln].res.set_state('stance')
 
 stompy.ui.multileg.run_ui(stompy.ui.multileg.load_ui(c))
