@@ -7,6 +7,8 @@ restriction will be updated with foot coordinates
 it will produce 'requests' for plans that will be 'accepted'
 """
 
+import time
+
 import numpy
 
 from .. import consts
@@ -25,275 +27,228 @@ neighbors = {
 
 
 class Foot(signaler.Signaler):
-    r_max = 0.9
-    r_thresh = 0.2
-    dr_smooth = 0.5  # should be 0 -> 0.9999: higher = more dr smoothing
+    stance_velocity = 4.  # TODO make these configurable and body wide
+    lift_velocity = 4.
+    lower_velocity = -4.
+    swing_velocity = 8.
+    step_size = 30.
 
-    radius = 42.0
-    r_eps = numpy.log(0.1) / radius
-
-    # TODO make these properties that cause plans to be re-sent
-    stance_velocity = 4.0
-    velocity_scale = 1.0
-
-    step_size = 30.0
-    swing_velocity = 8.0
-    lower_velocity = -4.0
-    lift_velocity = 4.0
-
-    lower_height = -15.0
-    lift_height = -5.0
-
-    close_enough = 5.0
-
-    def __init__(self, leg_number):
+    def __init__(
+            self, leg, radius=42, eps=0.1, center=(66., 0.), dr_smooth=0.5,
+            close_enough=5., lift_height=-5.0, lower_height=-15.0):
         super(Foot, self).__init__()
-        self.leg_number = leg_number
-        self.center = (66., 0.)
-        self.halted = False
-        self._do_halt = False
-        self.state = None  # disabled
-        self.leg_frame_target = None
-        self.body_frame_target = None
-        self.last_r = None
-        self.last_time = None
-        self.dr = 0.
-        self.idr = 0.
-        self.plans = {}
-        self.halted_plans = {}
+        self.leg = leg
+        self.leg.on('xyz', self.on_xyz)
+        self.leg.on('angles', self.on_angles)
+        self.radius = radius
+        self.eps = eps
+        self.r_eps = numpy.log(eps) / self.radius
+        self.center = center
+        self.last_lift_time = time.time()
+        self.leg_target = None
+        self.body_target = None
+        self.swing_target = None
+        self.lift_height = lift_height
+        self.lower_height = lower_height
+        self.close_enough = close_enough
+        # stance -> lift -> swing -> lower -> wait
+        self.state = None
+        self.restriction = None
+        self.dr_smooth = dr_smooth
+        self.xyz = None
+        self.angles = None
 
-    def set_state(self, state):
-        print("%s: %s[%s]" % (self.leg_number, state, self.state))
-        self.state = state
-        self.trigger('state', state)
-        if state == 'halt':
-            self.halted = True
-
-    def halt(self):
-        print("halt[%s,%s]" % (self.leg_number, self.state))
-        self._do_halt = True
-        self.halted = True
-
-    def unhalt(self):
-        self._do_halt = False
-        self.halted = False
-
-    def get_target(self):
-        return (
-            self.body_frame_target[0], self.body_frame_target[1],
-            consts.PLAN_BODY_FRAME)
-
-    def set_target(self, tx, ty, frame):
-        if frame == consts.PLAN_BODY_FRAME:
-            # convert x, y to foot?
-            tlx, tly, _ = kinematics.body.body_to_leg_rotation(
-                self.leg_number, tx, ty, 0.)
-            tbx, tby = tx, ty
-        elif frame == consts.PLAN_LEG_FRAME:
-            tlx, tly = tx, ty
-            tbx, tby, _ = kinematics.body.leg_to_body_rotation(
-                self.leg_number, tx, ty, 0.)
-        else:
-            raise ValueError("Invalid target frame: %s" % frame)
-        # compute foot target (to tell when swing is done)
-        self.leg_frame_target = (tlx, tly)
-        self.body_frame_target = (tbx, tby)
-        self.swing_target = (
-            self.center[0] + tlx * self.step_size,
-            self.center[1] + tly * self.step_size)
-        #print(
-        #    self.leg_number, self.leg_frame_target, self.swing_target,
-        #    tlx, tly, self.center)
-        # compute plans (swing, lift, lower, stance)
-        self.plans = {
-            'halt': {'mode': consts.PLAN_STOP_MODE},
-            'swing': {
-                'mode': consts.PLAN_TARGET_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (
+    def send_plan(self):
+        print("res.send_plan: %s" % self.state)
+        if self.state is None:
+            # TODO always stop on disable?
+            self.leg.send_plan(mode=consts.PLAN_STOP_MODE)
+        elif self.state in ('stance', 'wait'):
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_LEG_FRAME,
+                linear=(-self.leg_target[0], -self.leg_target[1], 0.),
+                speed=self.stance_velocity)
+        elif self.state == 'lift':
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_LEG_FRAME,
+                linear=(
+                    -self.leg_target[0] * self.stance_velocity,
+                    -self.leg_target[1] * self.stance_velocity,
+                    self.lift_velocity),
+                speed=1.)
+        elif self.state == 'swing':
+            self.leg.send_plan(
+                mode=consts.PLAN_TARGET_MODE,
+                frame=consts.PLAN_LEG_FRAME,
+                linear=(
                     self.swing_target[0],
                     self.swing_target[1],
                     self.lift_height),
-                'speed': self.swing_velocity,
-            },
-            'lift': {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (
-                    -tlx * self.stance_velocity,
-                    -tly * self.stance_velocity,
-                    self.lift_velocity),
-                'speed': 1.,
-            },
-            'lower': {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (
-                    -tlx * self.stance_velocity,
-                    -tly * self.stance_velocity,
-                    self.lower_velocity),
-                'speed': 1.,
-            },
-            'stance': {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (-tlx, -tly, 0.),
-                'speed': self.stance_velocity,
-            },
-        }
-        self.halted_plans = {
-            'lift': {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (
-                    0,
-                    0,
-                    self.lift_velocity),
-                'speed': 1.,
-            },
-            'lower': {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_LEG_FRAME,
-                'linear': (
-                    0,
-                    0,
-                    self.lower_velocity),
-                'speed': 1.,
-            },
-            'swing': self.plans['swing'],
-            'stance': self.plans['halt'],
-            'halt': self.plans['halt'],
-        }
-
-    def calculate_restriction(self, x, y, z, t):
-        cx, cy = self.center
-        d = ((cx - x) ** 2. + (cy - y) ** 2.) ** 0.5
-        self.r = numpy.exp(-self.r_eps * (d - self.radius))
-        if self.last_r is not None:
-            if (self.last_t >= t):
-                raise ValueError(
-                    "Time is incorrect: %s >= %s" % (self.last_t, t))
-            self.idr = (self.r - self.last_r) / (t - self.last_t)
-            self.dr = (
-                self.dr * self.dr_smooth + self.idr * (1. - self.dr_smooth))
-        self.last_r = self.r
-        self.last_t = t
-
-    def update(self, x, y, z, t):
-        if self._do_halt:
-            print("update[%s], _do_halt" % self.leg_number)
-        #if self.halted:
-        #    print("update[%s], halted" % self.leg_number)
-        self.calculate_restriction(x, y, z, t)
-        if self.state is None:
-            return None
-        ns = None
-        if self.state == 'swing':
-            # check against target position
-            tx, ty = self.swing_target
-            d = ((tx - x) ** 2. + (ty - y) ** 2.) ** 0.5
-            # TODO also check for increase in distance
-            if d < self.close_enough:
-                # if there, move to lower
-                ns = 'lower'
+                speed=self.swing_velocity)
         elif self.state == 'lower':
-            # lower leg until z at lower_height
-            if z <= self.lower_height:
-                # if there, enter stance
-                ns = 'stance'
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_LEG_FRAME,
+                linear=(
+                    -self.leg_target[0] * self.stance_velocity,
+                    -self.leg_target[1] * self.stance_velocity,
+                    self.lower_velocity),
+                speed=1.)
+
+    def set_target(self, xy, update_swing=True):
+        self.body_target = xy
+        lx, ly, _ = kinematics.body.body_to_leg_rotation(
+            self.leg.leg_number, xy[0], xy[1], 0.)
+        self.leg_target = (lx, ly)
+        if update_swing:
+            self.swing_target = (
+                self.center[0] + lx * self.step_size,
+                self.center[1] + ly * self.step_size)
+        self.send_plan()
+
+    def set_state(self, state):
+        self.state = state
+        if self.state == 'lift':
+            self.last_lift_time = time.time()
+        self.send_plan()
+        self.trigger('state', state)
+
+    def calculate_restriction(self, xyz):
+        cx, cy = self.center
+        d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
+        r = numpy.exp(-self.r_eps * (d - self.radius))
+        if self.restriction is not None:
+            pt = self.restriction['time']
+            dt = (xyz['time'] - pt)
+            idr = (r - self.restriction['r']) / dt
+            dr = (
+                self.restriction['dr'] * self.dr_smooth +
+                idr * (1. - self.dr_smooth))
+        else:  # first update
+            idr = 0.
+            dr = 0.
+        self.restriction = {
+            'time': xyz['time'], 'r': r, 'dr': dr, 'idr': idr}
+        self.trigger('restriction', self.restriction)
+
+    def _is_swing_done(self, xyz):
+        tx, ty = self.swing_target
+        d = ((tx - xyz['x']) ** 2. + (ty - xyz['y']) ** 2.) ** 0.5
+        # TODO also check for increase in distance
+        return d < self.close_enough
+
+    def on_xyz(self, xyz):
+        self.xyz = xyz
+        if self.angles is not None:
+            self.update()
+
+    def on_angles(self, angles):
+        self.angles = angles
+        if self.xyz is not None:
+            self.update()
+
+    def update(self):
+        # TODO if angles['valid'] is False?
+        self.calculate_restriction(self.xyz)
+        new_state = None
+        if self.state is None:  # restriction control is disabled
+            self.xyz = None
+            self.angles = None
+            return
+        elif self.state == 'swing':
+            if self._is_swing_done(self.xyz):
+                new_state = 'lower'
+        elif self.state == 'lower':
+            # TODO check for loaded >L lbs
+            if self.xyz['z'] < self.lower_height:
+                new_state = 'wait'
+        elif self.state == 'wait':
+            if self.restriction['dr'] > 0:
+                new_state = 'stance'
+        #elif self.state == 'stance'
         elif self.state == 'lift':
-            # lift leg until z at lift_height
-            if z >= self.lift_height:
-                # if there, enter swing
-                ns = 'swing'
-        elif self.state == 'stance':
-            # continue moving until restricted and r is increasing
-            if self.r > self.r_thresh and self.dr >= 0:
-                ns = 'lift'
-        elif self.state == 'halt':
-            ns = 'lift'
-        if self.r > self.r_max and not self.halted:
-            ns = 'halt'
-        # build request
-        if self._do_halt:
-            if ns is None:
-                ns = self.state
-            elif ns == 'lift':
-                ns = 'halt'
-            print("_do_halt %s: %s" % (self.leg_number, ns))
-            self._do_halt = False
-        if ns is None:
-            return None
-        if self.halted:
-            plan = self.halted_plans[ns]
-        else:
-            plan = self.plans[ns]
-        return {
-            'state': ns,
-            'plan': plan,
-            'leg_number': self.leg_number,
-        }
+            # TODO check for unloaded and >Z inches off ground
+            if self.xyz['z'] > self.lift_height:
+                new_state = 'swing'
+        # clear xyz and angles cache
+        self.xyz = None
+        self.angles = None
+        if new_state is not None:
+            self.set_state(new_state)
 
 
 class Body(signaler.Signaler):
-    def __init__(self, legs):
+    def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
+        # TODO enable/disable
         super(Body, self).__init__()
+        self.r_thresh = 0.2
+        self.r_max = 0.9
         self.max_feet_up = 1
-        self.last_lift_times = {}
         self.legs = legs
-        #self.halts = {}
+        self.feet = {}
+        self.halted = False
+        self.enabled = False
+        self.target = None
         for i in self.legs:
-            self.legs[i].on('request', lambda r, ln=i: self.on_request(r, ln))
-            #self.halts[i] = False
+            self.feet[i] = Foot(self.legs[i], **kwargs)
+            #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))
+            self.feet[i].on(
+                'restriction', lambda s, ln=i: self.on_restriction(s, ln))
 
-    def on_request(self, request, leg_number):
-        print("request: %s" % request)
-        # is leg_number requesting halt?
-        if request['state'] == 'halt':
-            #self.halts[request['leg_number']] = True
-            # accept halt
-            request['accept']()
-            # stop all legs in stance
-            for i in self.legs:
-                l = self.legs[i]
-                if i != request['leg_number'] and not l.res.halted:
-                    print("Halting: %s" % i)
-                    l.res.halt()
-                # TODO, fix lift, lower to straight up and down
-                ## reset plan to 0, 0
-                #l.res.set_target(0, 0, consts.PLAN_LEG_FRAME)
-                #if i != request['leg_number']:
-                #    l.send_plan(**l.res.plans[l.res.state])
+    def enable(self, foot_states):
+        self.enabled = True
+        # TODO set foot states, target?
+
+    def set_target(self, xy, update_swing=True):
+        self.target = xy
+        for i in self.feet:
+            self.feet[i].set_target(xy, update_swing=update_swing)
+
+    def disable(self):
+        self.enabled = False
+        for i in self.feet:
+            self.feet[i].set_state(None)
+
+    #def on_state(self, state, leg_number):
+    #    pass
+
+    def on_restriction(self, restriction, leg_number):
+        if not self.enabled:
             return
-        # if all legs are out of halt, unhalt
-        unhalt = True
-        for i in self.legs:
-            if self.legs[i].res.state == 'halt':
-                unhalt = False
-        if unhalt:  # TODO don't do this every request
-            print("UNHALT")
-            for i in self.legs:
-                self.legs[i].res.unhalt()
-        # is leg_number asking to lift?
-        if request['state'] == 'lift':
+        if self.halted and restriction['r'] < self.r_max:
+            # unhalt?
+            maxed = False
+            for i in self.feet:
+                if self.feet[i].restriction['r'] > self.r_max:
+                    maxed = True
+            if not maxed:
+                print("Unhalt")
+                self.halted = False
+                self.set_target(self._pre_halt_target, update_swing=False)
+        if restriction['r'] > self.r_max and not self.halted:
+            # halt!
+            self._pre_halt_target = self.target
+            self.set_target((0., 0.), update_swing=False)
+            self.halted = True
+            print("Halt")
+            return
+        # TODO scale stance speed by restriction?
+        if (
+                restriction['r'] > self.r_thresh and
+                self.feet[leg_number].state == 'stance'):
+            # lift?
             # check n_feet up
-            states = {
-                self.legs[i].leg_number: self.legs[i].res.state
-                for i in self.legs}
+            states = {i: self.feet[i].state for i in self.feet}
             n_up = len([
-                s for s in states.values() if s not in ('stance', 'halt')])
+                s for s in states.values() if s not in ('stance', 'wait')])
             # check if neighbors are up
-            ns = neighbors[request['leg_number']]
-            n_states = [self.legs[n].res.state for n in ns]
-            ns_up = len([s for s in n_states if s not in ('stance', 'halt')])
+            ns = neighbors[leg_number]
+            n_states = [states[n] for n in ns]
+            ns_up = len([s for s in n_states if s not in ('stance', 'wait')])
+            # TODO check if any other feet are restricted:
+            #  yes? pick least recently lifted
             if ns_up == 0 and n_up < self.max_feet_up:
-                request['accept']()
-            # else don't allow the request
-            return
-        request['accept']()
-        # TODO is >1 leg restricted?
-        #   [how to do this with current setup?]
-        #   [maybe wait to get a few feet worth of data]
-        #   yes: lift last recently moved
-        # TODO scale speed by max restriction
+                self.feet[leg_number].set_state('lift')

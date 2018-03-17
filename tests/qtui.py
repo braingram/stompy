@@ -18,9 +18,10 @@ print("Connected to legs: %s" % (lns, ))
 
 c = stompy.controllers.multileg.MultiLeg(legs, joy)
 
-for ln in legs:
-    legs[ln].res.set_target(1.0, 0.0, stompy.consts.PLAN_BODY_FRAME)
-    legs[ln].send_plan(**legs[ln].res.plans['stance'])
-    legs[ln].res.set_state('stance')
+for ln in c.res.feet:
+    # TODO have a way to more easily enable restriction control
+    c.res.feet[ln].state = 'stance'
+c.res.enable(None)
+c.res.set_target((1.0, 0.0))
 
 stompy.ui.multileg.run_ui(stompy.ui.multileg.load_ui(c))

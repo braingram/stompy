@@ -15,7 +15,6 @@ from .. import calibration
 from .. import kinematics
 from . import plans
 from .. import log
-from . import restriction
 from .. import signaler
 
 
@@ -89,7 +88,6 @@ class LegController(signaler.Signaler):
         self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
         log.info({'leg_name': self.leg_name})
 
-        self.res = restriction.Foot(self.leg_number)
         self.adc = {}
         self.angles = {}
         self.xyz = {}
@@ -101,17 +99,6 @@ class LegController(signaler.Signaler):
 
     def enable_pid(self, value):
         log.debug({'enable_pid': value})
-
-    def _accept_request(self, r):
-        self.send_plan(**r['plan'])
-        self.res.set_state(r['state'])
-        self.res.state = r['state']
-
-    def _update_restriction(self, x, y, z, t):
-        request = self.res.update(x, y, z, t)
-        if request is not None:
-            request['accept'] = lambda r=request: self._accept_request(r)
-            self.trigger('request', request)
 
     def update(self):
         pass
@@ -213,14 +200,9 @@ class FakeTeensy(LegController):
         if dt > 0.1:
             # follow plan, update angles
             self._follow_plan(t, dt)
-            # update restriction
-            self._update_restriction(
-                self.xyz['x'], self.xyz['y'], self.xyz['z'], t)
             self.angles['time'] = t
             self.adc['time'] = t
-            self.xyz.update({
-                'r': self.res.r, 'dr': self.res.dr, 'idr': self.res.idr,
-                'time': t})
+            self.xyz.update({'time': t})
 
             # generate events:
             self.pwm['time'] = t
@@ -283,18 +265,11 @@ class Teensy(LegController):
         log.debug({'adc': self.adc})
         self.trigger('adc', self.adc)
 
-    def _accept_request(self, r):
-        self.send_plan(**r['plan'])
-        self.res.set_state(r['state'])
-        self.res.state = r['state']
-
     def on_report_xyz(self, x, y, z):
         t = time.time()
         x, y, z = x.value, y.value, z.value
-        self._update_restriction(x, y, z, t)
         self.xyz = {
             'x': x, 'y': y, 'z': z,
-            'r': self.res.r, 'dr': self.res.dr, 'idr': self.res.idr,
             'time': t}
         log.debug({'xyz': self.xyz})
         self.trigger('xyz', self.xyz)
