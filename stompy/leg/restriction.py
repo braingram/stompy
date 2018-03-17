@@ -27,7 +27,7 @@ neighbors = {
 
 
 class Foot(signaler.Signaler):
-    stance_velocity = 4.  # TODO make these configurable and body wide
+    stance_velocity = 3.  # TODO make these configurable and body wide
     lift_velocity = 4.
     lower_velocity = -4.
     swing_velocity = 8.
@@ -186,7 +186,7 @@ class Body(signaler.Signaler):
         super(Body, self).__init__()
         self.r_thresh = 0.2
         self.r_max = 0.9
-        self.max_feet_up = 1
+        self.max_feet_up = 3
         self.legs = legs
         self.feet = {}
         self.halted = False

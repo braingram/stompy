@@ -186,7 +186,11 @@ class FakeTeensy(LegController):
                 self.xyz['z'] += lz * dt * self._plan.speed
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
-        self.angles.update({'hip': hip, 'thigh': thigh, 'knee': knee})
+        # fake calf loading
+        zl = max(-15, min(-5, self.xyz['z']))
+        calf = -(zl + 5) * 100
+        self.angles.update({
+            'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
         # get angles from x, y, z
         #h, t, k = 0., 0., 0.
