@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import time
-
 import stompy
 import stompy.ui
 
@@ -15,23 +13,13 @@ legs = stompy.leg.teensy.connect_to_teensies()
 if len(legs) == 0:
     raise IOError("No teensies found")
 
-#leg = legs.values()[0]
-#print("Connected to leg: %s" % leg.leg_name)
+lns = sorted(legs.keys())
+print("Connected to legs: %s" % (lns, ))
 
 c = stompy.controllers.multileg.MultiLeg(legs, joy)
 
-# send initial target
-for i in legs:
-    x, y, = legs[i].res.center
-    #z = legs[i].res.lift_height
-    z = 0
-    legs[i].send_plan(
-        frame=stompy.consts.PLAN_LEG_FRAME,
-        mode=stompy.consts.PLAN_TARGET_MODE,
-        linear=(x, y, z),
-        speed=5.)
 for ln in legs:
-    legs[ln].res.set_target(-1, 0, stompy.consts.PLAN_BODY_FRAME)
+    legs[ln].res.set_target(1.0, 0.0, stompy.consts.PLAN_BODY_FRAME)
     legs[ln].send_plan(**legs[ln].res.plans['stance'])
     legs[ln].res.set_state('stance')
 

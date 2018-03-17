@@ -76,7 +76,7 @@ class Foot(signaler.Signaler):
 
     def unhalt(self):
         self._do_halt = False
-        self.halted = True
+        self.halted = False
 
     def get_target(self):
         return (
@@ -248,6 +248,7 @@ class Body(signaler.Signaler):
             #self.halts[i] = False
 
     def on_request(self, request, leg_number):
+        print("request: %s" % request)
         # is leg_number requesting halt?
         if request['state'] == 'halt':
             #self.halts[request['leg_number']] = True
@@ -266,12 +267,12 @@ class Body(signaler.Signaler):
                 #    l.send_plan(**l.res.plans[l.res.state])
             return
         # if all legs are out of halt, unhalt
-        unhalt = False
+        unhalt = True
         for i in self.legs:
-            if self.legs[i].res.halted:
+            if self.legs[i].res.state == 'halt':
                 unhalt = False
-                break
         if unhalt:  # TODO don't do this every request
+            print("UNHALT")
             for i in self.legs:
                 self.legs[i].res.unhalt()
         # is leg_number asking to lift?
