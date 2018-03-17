@@ -117,6 +117,7 @@ class LegController(signaler.Signaler):
         pass
 
     def send_plan(self, *args, **kwargs):
+        print("send_plan[%s]: %s, %s" % (self.leg_number, args, kwargs))
         if len(args) == 0 and len(kwargs) == 0:
             return self.stop()
         if len(args) == 1 and isinstance(args[0], plans.Plan):
@@ -147,8 +148,10 @@ class FakeTeensy(LegController):
         self.adc = {
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
         self.angles = {
-            'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
-        x, y, z = list(kinematics.leg.angles_to_points(0, 0, 0))[-1]
+            'time': time.time(),
+            'hip': 0, 'thigh': 0.117, 'knee': -0.637, 'calf': 0}
+        x, y, z = list(kinematics.leg.angles_to_points(
+            self.angles['hip'], self.angles['thigh'], self.angles['knee']))[-1]
         self.xyz = {
             'time': time.time(), 'x': x, 'y': y, 'z': z}
         self._last_update = time.time()
@@ -183,7 +186,7 @@ class FakeTeensy(LegController):
             ly = ty - self.xyz['y']
             lz = tz - self.xyz['z']
             l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
-            if l < self._plan.speed or l < 0.5:
+            if l < (self._plan.speed * dt) or l < 0.01:
                 self.xyz['x'] = tx
                 self.xyz['y'] = ty
                 self.xyz['z'] = tz

@@ -30,11 +30,6 @@ for i in legs:
         mode=stompy.consts.PLAN_TARGET_MODE,
         linear=(x, y, z),
         speed=5.)
-# update leg until close to target
-for i in xrange(50):
-    for ln in legs:
-        legs[ln].update()
-    time.sleep(0.101)
 for ln in legs:
     legs[ln].res.set_target(-1, 0, stompy.consts.PLAN_BODY_FRAME)
     legs[ln].send_plan(**legs[ln].res.plans['stance'])

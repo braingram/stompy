@@ -50,17 +50,38 @@ class Foot(signaler.Signaler):
         super(Foot, self).__init__()
         self.leg_number = leg_number
         self.center = (66., 0.)
+        self.halted = False
+        self._do_halt = False
         self.state = None  # disabled
         self.leg_frame_target = None
+        self.body_frame_target = None
         self.last_r = None
         self.last_time = None
         self.dr = 0.
         self.idr = 0.
+        self.plans = {}
+        self.halted_plans = {}
 
     def set_state(self, state):
         print("%s: %s[%s]" % (self.leg_number, state, self.state))
         self.state = state
         self.trigger('state', state)
+        if state == 'halt':
+            self.halted = True
+
+    def halt(self):
+        print("halt[%s,%s]" % (self.leg_number, self.state))
+        self._do_halt = True
+        self.halted = True
+
+    def unhalt(self):
+        self._do_halt = False
+        self.halted = True
+
+    def get_target(self):
+        return (
+            self.body_frame_target[0], self.body_frame_target[1],
+            consts.PLAN_BODY_FRAME)
 
     def set_target(self, tx, ty, frame):
         if frame == consts.PLAN_BODY_FRAME:
@@ -76,6 +97,7 @@ class Foot(signaler.Signaler):
             raise ValueError("Invalid target frame: %s" % frame)
         # compute foot target (to tell when swing is done)
         self.leg_frame_target = (tlx, tly)
+        self.body_frame_target = (tbx, tby)
         self.swing_target = (
             self.center[0] + tlx * self.step_size,
             self.center[1] + tly * self.step_size)
@@ -119,6 +141,29 @@ class Foot(signaler.Signaler):
                 'speed': self.stance_velocity,
             },
         }
+        self.halted_plans = {
+            'lift': {
+                'mode': consts.PLAN_VELOCITY_MODE,
+                'frame': consts.PLAN_LEG_FRAME,
+                'linear': (
+                    0,
+                    0,
+                    self.lift_velocity),
+                'speed': 1.,
+            },
+            'lower': {
+                'mode': consts.PLAN_VELOCITY_MODE,
+                'frame': consts.PLAN_LEG_FRAME,
+                'linear': (
+                    0,
+                    0,
+                    self.lower_velocity),
+                'speed': 1.,
+            },
+            'swing': self.plans['swing'],
+            'stance': self.plans['halt'],
+            'halt': self.plans['halt'],
+        }
 
     def calculate_restriction(self, x, y, z, t):
         cx, cy = self.center
@@ -135,6 +180,10 @@ class Foot(signaler.Signaler):
         self.last_t = t
 
     def update(self, x, y, z, t):
+        if self._do_halt:
+            print("update[%s], _do_halt" % self.leg_number)
+        #if self.halted:
+        #    print("update[%s], halted" % self.leg_number)
         self.calculate_restriction(x, y, z, t)
         if self.state is None:
             return None
@@ -159,16 +208,29 @@ class Foot(signaler.Signaler):
                 ns = 'swing'
         elif self.state == 'stance':
             # continue moving until restricted and r is increasing
-            if self.r > self.r_thresh and self.dr > 0:
+            if self.r > self.r_thresh and self.dr >= 0:
                 ns = 'lift'
-        if self.r > self.r_max:
+        elif self.state == 'halt':
+            ns = 'lift'
+        if self.r > self.r_max and not self.halted:
             ns = 'halt'
         # build request
+        if self._do_halt:
+            if ns is None:
+                ns = self.state
+            elif ns == 'lift':
+                ns = 'halt'
+            print("_do_halt %s: %s" % (self.leg_number, ns))
+            self._do_halt = False
         if ns is None:
             return None
+        if self.halted:
+            plan = self.halted_plans[ns]
+        else:
+            plan = self.plans[ns]
         return {
             'state': ns,
-            'plan': self.plans[ns],
+            'plan': plan,
             'leg_number': self.leg_number,
         }
 
@@ -180,33 +242,50 @@ class Body(signaler.Signaler):
         self.max_feet_up = 1
         self.last_lift_times = {}
         self.legs = legs
+        #self.halts = {}
         for i in self.legs:
             self.legs[i].on('request', lambda r, ln=i: self.on_request(r, ln))
+            #self.halts[i] = False
 
     def on_request(self, request, leg_number):
         # is leg_number requesting halt?
         if request['state'] == 'halt':
+            #self.halts[request['leg_number']] = True
             # accept halt
             request['accept']()
             # stop all legs in stance
             for i in self.legs:
                 l = self.legs[i]
-                # reset plan to 0, 0
-                l.res.set_target(0, 0, consts.PLAN_LEG_FRAME)
-                if i != request['leg_number']:
-                    l.send_plan(**l.res.plans[l.res.state])
+                if i != request['leg_number'] and not l.res.halted:
+                    print("Halting: %s" % i)
+                    l.res.halt()
+                # TODO, fix lift, lower to straight up and down
+                ## reset plan to 0, 0
+                #l.res.set_target(0, 0, consts.PLAN_LEG_FRAME)
+                #if i != request['leg_number']:
+                #    l.send_plan(**l.res.plans[l.res.state])
             return
+        # if all legs are out of halt, unhalt
+        unhalt = False
+        for i in self.legs:
+            if self.legs[i].res.halted:
+                unhalt = False
+                break
+        if unhalt:  # TODO don't do this every request
+            for i in self.legs:
+                self.legs[i].res.unhalt()
         # is leg_number asking to lift?
         if request['state'] == 'lift':
             # check n_feet up
             states = {
                 self.legs[i].leg_number: self.legs[i].res.state
                 for i in self.legs}
-            n_up = len([s for s in states.values() if s != 'stance'])
+            n_up = len([
+                s for s in states.values() if s not in ('stance', 'halt')])
             # check if neighbors are up
             ns = neighbors[request['leg_number']]
             n_states = [self.legs[n].res.state for n in ns]
-            ns_up = len([s for s in n_states if s != 'stance'])
+            ns_up = len([s for s in n_states if s not in ('stance', 'halt')])
             if ns_up == 0 and n_up < self.max_feet_up:
                 request['accept']()
             # else don't allow the request
