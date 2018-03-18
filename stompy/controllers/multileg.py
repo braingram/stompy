@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 """
-deadman: one_right [button]
-thumb_left_x/y: move leg in X Y
-one/two_left [axis]: move leg in Z
-arrows up/down: change speed
-arrows left/right: change leg (to front left/front right)
-
-X [button]: switch to sensor coord moves
-square [button]: switch to restriction
-circle [button]: switch to leg coord moves
-triangle [button]: move both legs
-
-frame/mode
+modes: [select button]
+    - leg
+        - raw pwm
+        - sensor frame [cross]
+        - leg frame [circle]
+        - body frame [triangle]
+        - restriction? [square]
+    - body
+        - move body
+        - position legs
+        - restriction
+parameters:
+    - speed scalar [up/down]
+    - leg index [left/right button]
+    - target [thumb_left_x/y, one_left/two_left]
+controls:
+    - deadman
 """
 
 from .. import consts
@@ -20,11 +25,21 @@ from .. import log
 from .. import signaler
 
 
-DEADMAN_KEY = 'one_right'
-
 thumb_mid = 130
 thumb_db = 5  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
+
+
+modes = [
+    'leg_pwm',
+    'leg_sensor',
+    'leg_leg',
+    'leg_body',
+    'leg_restriction',
+    'body_move',
+    'body_position_legs',
+    'body_restriction',
+]
 
 
 class MultiLeg(signaler.Signaler):
@@ -32,25 +47,37 @@ class MultiLeg(signaler.Signaler):
         super(MultiLeg, self).__init__()
         self.legs = legs
         self.res = leg.restriction.Body(legs)
-        self.leg = None
-        self.leg_index = None
+        self.leg_index = sorted(legs)[0]
+        self.leg = self.legs[self.leg_index]
+        self.mode = 'body_move'
         # self.conn = leg_teensy
         self.joy = joy
-        self.stopped = True
+        if self.joy is not None:
+            self.joy.on('button', self.on_button)
+            self.joy.on('axis', self.on_axis)
+        self.deadman = False
+
         # stop all legs
         self.all_legs('set_estop', 1)
-        self.move_frame = consts.PLAN_SENSOR_FRAME
-        self.speeds = {
-            consts.PLAN_SENSOR_FRAME: 1200,
-            consts.PLAN_LEG_FRAME: 1.5,
-        }
-        self.speed_scalar = 1.0
-        self.speed_scalar_range = (0.1, 2.0)
 
-    def all_legs(self, cmd, *args):
-        log.info({"all_legs": (cmd, args)})
+    def set_mode(self, mode):
+        if mode not in modes:
+            raise Exception("Invalid mode: %s" % (mode, ))
+        # handle mode transitions
+        if self.mode == 'body_restriction':
+            self.res.disable()
+        self.mode = mode
+        self.trigger('mode', mode)
+        # handle mode transitions
+        if self.mode == 'body_restriction':
+            self.res.enable(None)
+        else:
+            self.all_legs('stop')
+
+    def all_legs(self, cmd, *args, **kwargs):
+        log.info({"all_legs": (cmd, args, kwargs)})
         for leg in self.legs:
-            getattr(self.legs[leg], cmd)(*args)
+            getattr(self.legs[leg], cmd)(*args, **kwargs)
 
     def set_leg(self, index):
         log.info({"set_leg": index})
@@ -61,55 +88,113 @@ class MultiLeg(signaler.Signaler):
             self.leg = self.legs[index]
         self.trigger('set_leg', index)
 
-    def update(self):
-        if self.joy is not None:
-            evs = self.joy.update()
-        else:
-            evs = []
-        # value by key name, just keep most recent
-        kevs = {}
-        for e in evs:
-            kevs[e['name']] = e['value']
-        self.all_legs('update')
-        if DEADMAN_KEY in kevs:
-            if kevs[DEADMAN_KEY] and self.stopped:  # pressed
+    def on_button(self, event):
+        if event['name'] == 'select' and event['value']:  # advance mode
+            mi = modes.index(self.mode)
+            mi += 1
+            if mi == len(modes):
+                mi = 0
+            self.set_mode(modes[mi])
+        elif event['name'] in ('left', 'right') and event['value']:
+            di = ('left', None, 'right').index(event['name']) - 1
+            inds = sorted(self.legs)
+            if self.leg_index is None:
+                i = 0
+            else:
+                si = inds.index(self.leg_index) + di
+                if si == len(inds):
+                    si = 0
+                elif si < 0:
+                    si = len(inds) - 1
+                i = inds[si]
+            self.set_leg(i)
+        elif event['name'] == 'one_right':
+            if event['value'] and not self.deadman:
                 self.all_legs('set_estop', 0)
                 self.all_legs('enable_pid', True)
-                self.stopped = False
-            elif not kevs[DEADMAN_KEY] and not self.stopped:
-                # released, turn estop back on
+                self.deadman = True
+                self.set_target()
+            elif not event['value'] and self.deadman:
                 self.all_legs('set_estop', 1)
-                self.stopped = True
-        sdt = None
-        if kevs.get('up', False):
-            # increase speed
-            sdt = 0.05
-        if kevs.get('down', False):
-            # decrease speed
-            sdt = -0.05
-        if sdt is not None:
-            self.speed_scalar = max(
-                self.speed_scalar_range[0],
-                min(
-                    self.speed_scalar_range[1],
-                    self.speed_scalar + sdt))
-            log.info({"speed_scalar": self.speed_scalar})
-            print("Speed scalar set to: %s" % self.speed_scalar)
-        new_frame = None
-        if kevs.get('cross', False):
-            new_frame = consts.PLAN_SENSOR_FRAME
-        if kevs.get('circle', False):
-            new_frame = consts.PLAN_LEG_FRAME
-        #if (
-        #        new_frame is not None and
-        #        (new_frame != self.move_frame or self.res.enabled)):
-        if (
-                new_frame is not None and
-                new_frame != self.move_frame):
-            self.all_legs('stop')
-            self.speed_scalar = 1.
-            #self.res.enabled = False
-            self.move_frame = new_frame
-            #print("New frame: %s" % self.move_frame)
-            log.info({"new_frame": new_frame})
-        #  other modes...
+                self.all_legs('stop')
+                self.deadman = False
+        #if event['name'] == 'cross':
+        #if event['name'] == 'circle':
+        #if event['name'] == 'triangle':
+        #if event['name'] == 'square':
+
+    def on_axis(self, event):
+        # check if target vector has changed > some amount
+        # if so, read and send new target
+        if event['name'] in (
+                'thumb_left_x', 'thumb_left_y', 'one_left', 'one_right'):
+            # TODO throttle?
+            if self.deadman:
+                self.set_target()
+
+    def set_target(self, xyz=None):
+        if xyz is None:
+            ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
+            ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
+            az = (
+                self.joy.axes.get('one_left', 0) -
+                self.joy.axes.get('two_left', 0))
+            if abs(ax) < thumb_db:
+                ax = 0
+            if abs(ay) < thumb_db:
+                ay = 0
+            if abs(az) < thumb_db:
+                az = 0
+            #if ax == 0 and ay == 0 and az == 0:
+            #    return
+            ax = max(-1., min(1., ax / float(thumb_scale)))
+            ay = max(-1., min(1., -ay / float(thumb_scale)))
+            az = max(-1., min(1., az / 255.))
+            xyz = (ax, ay, az)
+        if self.mode == 'leg_pwm':
+            if self.leg is None:
+                return
+            # TODO
+        elif self.mode == 'leg_sensor':
+            if self.leg is None:
+                return
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_SENSOR_FRAME,
+                linear=xyz, speed=1200)
+        elif self.mode == 'leg_leg':
+            if self.leg is None:
+                return
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_LEG_FRAME,
+                linear=xyz, speed=3.)
+        elif self.mode == 'leg_body':
+            if self.leg is None:
+                return
+            self.leg.send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_BODY_FRAME,
+                linear=xyz, speed=3.)
+        elif self.mode == 'leg_restriction':
+            if self.leg is None:
+                return
+            # TODO, remove this?
+        elif self.mode == 'body_move':
+            plan = {
+                'mode': consts.PLAN_VELOCITY_MODE,
+                'frame': consts.PLAN_BODY_FRAME,
+                'linear': xyz,
+                'speed': 3.,
+            }
+            self.all_legs('send_plan', **plan)
+        elif self.mode == 'body_position_legs':
+            pass
+            # TODO
+        elif self.mode == 'body_restriction':
+            self.res.set_target(xyz[:2])
+
+    def update(self):
+        if self.joy is not None:
+            self.joy.update()
+        self.all_legs('update')

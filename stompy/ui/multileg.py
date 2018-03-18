@@ -95,7 +95,7 @@ class PIDTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.leg.remove_on(
+            self.controller.legs[self._last_leg_index].remove_on(
                 'pid', self.on_pid)
         super(PIDTab, self).set_leg_index(index)  # update index
         if index is not None:
@@ -139,7 +139,9 @@ class PIDTab(Tab):
         except ValueError:
             return
         self.joint_config = {}
-        if self.controller.leg is None:
+        if (
+                self.controller.leg is None or
+                not hasattr(self.controller.leg, 'mgr')):
             return self.joint_config
         # get all values for this joint
         # P, I, D, min, max
@@ -187,7 +189,9 @@ class PIDTab(Tab):
         self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
 
     def commit_values(self):
-        if self.controller.leg is None:
+        if (
+                self.controller.leg is None or
+                not hasattr(self.controller.leg, 'mgr')):
             return
         # compare to joint config
         # set ui elements by joint_config
@@ -360,11 +364,11 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.leg.remove_on(
+            self.controller.legs[self._last_leg_index].remove_on(
                 'angles', self.on_angles)
-            self.controller.leg.remove_on(
+            self.controller.legs[self._last_leg_index].remove_on(
                 'xyz', self.on_xyz)
-            self.controller.leg.remove_on(
+            self.controller.legs[self._last_leg_index].remove_on(
                 'adc', self.on_adc)
         super(LegTab, self).set_leg_index(index)  # update index
         if index is not None:
@@ -627,6 +631,12 @@ def load_ui(controller=None):
             a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
+        ui.modeLabel.setText("Mode: %s" % controller.mode)
+        ui.legLabel.setText(
+            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.leg_index])
+        controller.on('mode', lambda m: ui.modeLabel.setText("Mode: %s" % m))
+        controller.on('set_leg', lambda m: ui.legLabel.setText(
+            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui, controller))
     tm.add_tab('Leg', LegTab(ui, controller))

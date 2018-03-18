@@ -6,6 +6,8 @@ import struct
 import threading
 import time
 
+from .. import signaler
+
 
 DEFAULT_FN = '/dev/input/by-id/usb-Sony_' \
     'PLAYSTATION_R_3_Controller-event-joystick'
@@ -84,8 +86,9 @@ def available(fn=None):
     return os.path.exists(fn)
 
 
-class PS3Joystick(object):
+class PS3Joystick(signaler.Signaler):
     def __init__(self, fn=None):
+        super(PS3Joystick, self).__init__()
         if fn is None:
             fn = DEFAULT_FN
         self.fn = fn
@@ -124,6 +127,9 @@ class PS3Joystick(object):
             e = self.read_event()
             if e['ev_type'] in self.report_ev_types:
                 evs.append(e)
+                self.trigger('event', e)
+                if 'type' in e:
+                    self.trigger(e['type'], e)
         return evs
 
     def _update_thread_function(self):

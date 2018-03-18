@@ -25,8 +25,6 @@ class Plan(object):
 
     def packed(self, leg_number):
         # convert from body to leg
-        if self.frame == consts.PLAN_BODY_FRAME:
-            return self._body_packed(leg_number)
         if self.linear is None:
             l = (0., 0., 0.)
         else:

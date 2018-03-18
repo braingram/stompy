@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Mar 13 19:47:47 2018
+# Created: Sun Mar 18 13:58:14 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -31,9 +31,18 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.verticalLayout = QtGui.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.horizontalLayout_8 = QtGui.QHBoxLayout()
+        self.horizontalLayout_8.setObjectName(_fromUtf8("horizontalLayout_8"))
         self.estopCheck = QtGui.QCheckBox(self.centralwidget)
         self.estopCheck.setObjectName(_fromUtf8("estopCheck"))
-        self.verticalLayout.addWidget(self.estopCheck)
+        self.horizontalLayout_8.addWidget(self.estopCheck)
+        self.legLabel = QtGui.QLabel(self.centralwidget)
+        self.legLabel.setObjectName(_fromUtf8("legLabel"))
+        self.horizontalLayout_8.addWidget(self.legLabel)
+        self.modeLabel = QtGui.QLabel(self.centralwidget)
+        self.modeLabel.setObjectName(_fromUtf8("modeLabel"))
+        self.horizontalLayout_8.addWidget(self.modeLabel)
+        self.verticalLayout.addLayout(self.horizontalLayout_8)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.tabs = QtGui.QTabWidget(self.centralwidget)
@@ -377,12 +386,14 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.legsMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(2)
+        self.tabs.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
         self.estopCheck.setText(_translate("MainWindow", "CheckBox", None))
+        self.legLabel.setText(_translate("MainWindow", "Leg: ?", None))
+        self.modeLabel.setText(_translate("MainWindow", "Mode: ?", None))
         self.label.setText(_translate("MainWindow", "Hip", None))
         self.hipADCProgress.setFormat(_translate("MainWindow", "%v", None))
         self.label_2.setText(_translate("MainWindow", "Thigh", None))

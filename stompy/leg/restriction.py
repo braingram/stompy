@@ -182,7 +182,6 @@ class Foot(signaler.Signaler):
 class Body(signaler.Signaler):
     def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
-        # TODO enable/disable
         super(Body, self).__init__()
         self.r_thresh = 0.2
         self.r_max = 0.9
