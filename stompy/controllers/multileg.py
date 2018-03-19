@@ -70,7 +70,12 @@ class MultiLeg(signaler.Signaler):
         self.trigger('mode', mode)
         # handle mode transitions
         if self.mode == 'body_restriction':
+            # TODO integrate this with enable
+            for i in self.res.feet:
+                self.res.feet[i].state = 'stance'
             self.res.enable(None)
+            if self.deadman:
+                self.set_target()
         else:
             self.all_legs('stop')
 
