@@ -650,6 +650,12 @@ def load_ui(controller=None):
             a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
+        ui._modesMenu_actions = []
+        for mode in controller.modes:
+            a = QtGui.QAction(mode, ui.modesMenu)
+            a.triggered.connect(lambda a, m=mode: controller.set_mode(m))
+            ui._modesMenu_actions.append(a)
+            ui.modesMenu.addAction(a)
         ui.modeLabel.setText("Mode: %s" % controller.mode)
         ui.legLabel.setText(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.leg_index])

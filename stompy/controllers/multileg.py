@@ -30,19 +30,18 @@ thumb_db = 5  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
 
 
-modes = [
-    'leg_pwm',
-    'leg_sensor',
-    'leg_leg',
-    'leg_body',
-    'leg_restriction',
-    'body_move',
-    'body_position_legs',
-    'body_restriction',
-]
-
-
 class MultiLeg(signaler.Signaler):
+    modes = [
+        'leg_pwm',
+        'leg_sensor',
+        'leg_leg',
+        'leg_body',
+        #'leg_restriction',
+        'body_move',
+        'body_position_legs',
+        'body_restriction',
+    ]
+
     def __init__(self, legs, joy):
         super(MultiLeg, self).__init__()
         self.legs = legs
@@ -71,7 +70,7 @@ class MultiLeg(signaler.Signaler):
                 self.legs[i].set_estop(value)
 
     def set_mode(self, mode):
-        if mode not in modes:
+        if mode not in self.modes:
             raise Exception("Invalid mode: %s" % (mode, ))
         # handle mode transitions
         if self.mode == 'body_restriction':
@@ -105,11 +104,11 @@ class MultiLeg(signaler.Signaler):
 
     def on_button(self, event):
         if event['name'] == 'select' and event['value']:  # advance mode
-            mi = modes.index(self.mode)
+            mi = self.modes.index(self.mode)
             mi += 1
-            if mi == len(modes):
+            if mi == len(self.modes):
                 mi = 0
-            self.set_mode(modes[mi])
+            self.set_mode(self.modes[mi])
         elif event['name'] in ('left', 'right') and event['value']:
             di = ('left', None, 'right').index(event['name']) - 1
             inds = sorted(self.legs)
@@ -194,10 +193,10 @@ class MultiLeg(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,
                 linear=xyz, speed=3.)
-        elif self.mode == 'leg_restriction':
-            if self.leg is None:
-                return
-            # TODO, remove this?
+        #elif self.mode == 'leg_restriction':
+        #    if self.leg is None:
+        #        return
+        #    # TODO, remove this?
         elif self.mode == 'body_move':
             # TODO bring out speed
             plan = {
