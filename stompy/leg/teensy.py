@@ -372,7 +372,8 @@ def connect_to_teensies(ports=None):
         tinfo = find_teensies()
         ports = [i['port'] for i in tinfo]
     if len(ports) == 0:
-        return {ln: FakeTeensy(ln) for ln in range(1, 7)}
+        return {ln: FakeTeensy(ln) for ln in [1, 2, 3, 4, 5, 6]}
+        #return {ln: FakeTeensy(ln) for ln in [1, 3, 4, 6]}
     teensies = [Teensy(p) for p in ports]
     lnd = {}
     for t in teensies:

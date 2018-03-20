@@ -16,16 +16,6 @@ from .. import kinematics
 from .. import signaler
 
 
-neighbors = {
-    1: [2, 6],
-    2: [1, 3],
-    3: [2, 4],
-    4: [3, 5],
-    5: [4, 6],
-    6: [5, 1],
-}
-
-
 class Foot(signaler.Signaler):
     stance_velocity = 3.  # TODO make these configurable and body wide
     lift_velocity = 4.
@@ -183,14 +173,27 @@ class Body(signaler.Signaler):
     def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
         super(Body, self).__init__()
-        self.r_thresh = 0.05
+        self.r_thresh = 0.2
         self.r_max = 0.9
-        self.max_feet_up = 3
+        if len(self.legs) > 5:
+            self.max_feet_up = 3
+        else:
+            self.max_feet_up = 1
         self.legs = legs
         self.feet = {}
         self.halted = False
         self.enabled = False
         self.target = None
+        inds = sorted(self.legs)
+        self.neighbors = {}
+        for (i, n) in enumerate(inds):
+            if i == 0:
+                self.neighbors[n] = [
+                    inds[len(inds) - 1], inds[i+1]]
+            elif i == len(inds) - 1:
+                self.neighbors[n] = [inds[i - 1], inds[0]]
+            else:
+                self.neighbors[n] = [inds[i - 1], inds[i + 1]]
         for i in self.legs:
             self.feet[i] = Foot(self.legs[i], **kwargs)
             #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))
@@ -246,7 +249,7 @@ class Body(signaler.Signaler):
             n_up = len([
                 s for s in states.values() if s not in ('stance', 'wait')])
             # check if neighbors are up
-            ns = neighbors[leg_number]
+            ns = self.neighbors[leg_number]
             n_states = [states[n] for n in ns]
             ns_up = len([s for s in n_states if s not in ('stance', 'wait')])
             # TODO check if any other feet are restricted:
