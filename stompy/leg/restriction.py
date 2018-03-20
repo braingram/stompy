@@ -34,7 +34,7 @@ class Foot(signaler.Signaler):
     step_size = 30.
 
     def __init__(
-            self, leg, radius=42, eps=0.1, center=(66., 0.), dr_smooth=0.5,
+            self, leg, radius=20, eps=0.1, center=(80., 0.), dr_smooth=0.5,
             close_enough=5., lift_height=-5.0, lower_height=-15.0):
         super(Foot, self).__init__()
         self.leg = leg
@@ -183,7 +183,7 @@ class Body(signaler.Signaler):
     def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
         super(Body, self).__init__()
-        self.r_thresh = 0.2
+        self.r_thresh = 0.05
         self.r_max = 0.9
         self.max_feet_up = 3
         self.legs = legs
@@ -214,6 +214,12 @@ class Body(signaler.Signaler):
     #def on_state(self, state, leg_number):
     #    pass
 
+    def halt(self):
+        if not self.halted:
+            self._pre_halt_target = self.target
+            self.set_target((0., 0.), update_swing=False)
+            self.halted = True
+
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
@@ -228,11 +234,7 @@ class Body(signaler.Signaler):
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
         if restriction['r'] > self.r_max and not self.halted:
-            # halt!
-            self._pre_halt_target = self.target
-            self.set_target((0., 0.), update_swing=False)
-            self.halted = True
-            print("Halt")
+            self.halt()
             return
         # TODO scale stance speed by restriction?
         if (

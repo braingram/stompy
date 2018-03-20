@@ -58,7 +58,17 @@ class MultiLeg(signaler.Signaler):
         self.deadman = False
 
         # stop all legs
-        self.all_legs('set_estop', 1)
+        self.all_legs('set_estop', consts.ESTOP_DEFAULT)
+
+        # monitor estop of all legs, broadcast when stopped
+        for i in self.legs:
+            self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
+
+    def on_leg_estop(self, value, leg_number):
+        print("Leg estop: %s, %s" % (leg_number, value))
+        if value:
+            for i in self.legs:
+                self.legs[i].set_estop(value)
 
     def set_mode(self, mode):
         if mode not in modes:
@@ -163,6 +173,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_sensor':
             if self.leg is None:
                 return
+            # TODO bring out speed
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_SENSOR_FRAME,
@@ -170,6 +181,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_leg':
             if self.leg is None:
                 return
+            # TODO bring out speed
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -177,6 +189,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_body':
             if self.leg is None:
                 return
+            # TODO bring out speed
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,
@@ -186,6 +199,7 @@ class MultiLeg(signaler.Signaler):
                 return
             # TODO, remove this?
         elif self.mode == 'body_move':
+            # TODO bring out speed
             plan = {
                 'mode': consts.PLAN_VELOCITY_MODE,
                 'frame': consts.PLAN_BODY_FRAME,

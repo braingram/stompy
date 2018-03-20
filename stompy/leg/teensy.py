@@ -12,6 +12,7 @@ import pycomando
 
 from .. import consts
 from .. import calibration
+from .. import geometry
 from .. import kinematics
 from . import plans
 from .. import log
@@ -88,6 +89,8 @@ class LegController(signaler.Signaler):
         self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
         log.info({'leg_name': self.leg_name})
 
+        self.estop = None
+
         self.adc = {}
         self.angles = {}
         self.xyz = {}
@@ -95,7 +98,10 @@ class LegController(signaler.Signaler):
         self.pwm = {}
 
     def set_estop(self, value):
-        log.info({'estop': value})
+        if value != self.estop:
+            self.estop = value
+            log.info({'estop': value})
+            self.trigger('estop', value)
 
     def enable_pid(self, value):
         log.debug({'enable_pid': value})
@@ -104,7 +110,7 @@ class LegController(signaler.Signaler):
         pass
 
     def send_plan(self, *args, **kwargs):
-        print("send_plan[%s]: %s, %s" % (self.leg_number, args, kwargs))
+        #print("send_plan[%s]: %s, %s" % (self.leg_number, args, kwargs))
         if len(args) == 0 and len(kwargs) == 0:
             return self.stop()
         if len(args) == 1 and isinstance(args[0], plans.Plan):
@@ -125,6 +131,7 @@ class FakeTeensy(LegController):
         super(FakeTeensy, self).__init__(leg_number)
         self.on('plan', self._new_plan)
 
+        self.estop = True
         self.pwm = {'hip': 0, 'thigh': 0, 'knee': 0, 'time': time.time()}
         self.pid = {
             'time': time.time(),
@@ -136,7 +143,7 @@ class FakeTeensy(LegController):
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
         self.angles = {
             'time': time.time(),
-            'hip': 0, 'thigh': 0.117, 'knee': -0.637, 'calf': 0}
+            'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
         x, y, z = list(kinematics.leg.angles_to_points(
             self.angles['hip'], self.angles['thigh'], self.angles['knee']))[-1]
         self.xyz = {
@@ -156,7 +163,7 @@ class FakeTeensy(LegController):
     def _follow_plan(self, t, dt):
         self.xyz['time'] = t
         self.angles['time'] = t
-        if self._plan is None:
+        if self.estop or self._plan is None:
             return
         if self._plan.mode == consts.PLAN_STOP_MODE:
             return
@@ -186,6 +193,40 @@ class FakeTeensy(LegController):
                 self.xyz['z'] += lz * dt * self._plan.speed
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
+        # check if angles are in limits, if not, stop
+        if self.leg_number in (2, 5):
+            hmin = geometry.HIP_MIDDLE_MIN_ANGLE
+            hmax = geometry.HIP_MIDDLE_MAX_ANGLE
+        else:
+            hmin = geometry.HIP_MIN_ANGLE
+            hmax = geometry.HIP_MAX_ANGLE
+        in_limits = True
+        if hip < hmin:
+            hip = hmin
+            in_limits = False
+        if hip > hmax:
+            hip = hmax
+            in_limits = False
+        if thigh < geometry.THIGH_MIN_ANGLE:
+            thigh = geometry.THIGH_MIN_ANGLE
+            in_limits = False
+        if thigh > geometry.THIGH_MAX_ANGLE:
+            thigh = geometry.THIGH_MAX_ANGLE
+            in_limits = False
+        if knee < geometry.KNEE_MIN_ANGLE:
+            knee = geometry.KNEE_MIN_ANGLE
+            in_limits = False
+        if knee > geometry.KNEE_MAX_ANGLE:
+            knee = geometry.KNEE_MAX_ANGLE
+            in_limits = False
+        if not in_limits:
+            x, y, z = list(
+                kinematics.leg.angles_to_points(hip, thigh, knee))[-1]
+            self.xyz['x'] = x
+            self.xyz['y'] = y
+            self.xyz['z'] = z
+            # raise estop
+            self.set_estop(consts.ESTOP_HOLD)
         # fake calf loading
         zl = max(-15, min(-5, self.xyz['z']))
         calf = -(zl + 5) * 100

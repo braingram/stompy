@@ -336,9 +336,15 @@ class LegTab(Tab):
         self.knee_link = pyqtgraph.opengl.GLLinePlotItem(
             pos=numpy.array([pts[1], pts[2]]), color=[0., 0., 1., 1.],
             width=5, antialias=True)
+        lpts = kinematics.leg.limits_at_z_3d(
+            pts[2][2], self._last_leg_index)
+        self.limit_link = pyqtgraph.opengl.GLLinePlotItem(
+            pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
+            width=1, antialias=True)
         self.gl_widget.addItem(self.hip_link)
         self.gl_widget.addItem(self.thigh_link)
         self.gl_widget.addItem(self.knee_link)
+        self.gl_widget.addItem(self.limit_link)
 
         # make context menu
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -407,6 +413,9 @@ class LegTab(Tab):
         self.hip_link.setData(pos=numpy.array([[0, 0, 0], pts[0]]))
         self.thigh_link.setData(pos=numpy.array([pts[0], pts[1]]))
         self.knee_link.setData(pos=numpy.array([pts[1], pts[2]]))
+        lpts = kinematics.leg.limits_at_z_3d(
+            pts[2][2], self._last_leg_index)
+        self.limit_link.setData(pos=numpy.array(lpts))
 
     def update_timer(self):
         self.plot_leg(self.angles[0], self.angles[1], self.angles[2])
@@ -511,13 +520,19 @@ class BodyTab(Tab):
                 width=5, antialias=True)
             calf_link = pyqtgraph.opengl.GLScatterPlotItem(
                 pos=pts[3], color=[1., 0.5, 0., 1.], size=1., pxMode=True)
+            lpts = kinematics.leg.limits_at_z_3d(
+                pts[3][2], leg_number)
+            limit_link = pyqtgraph.opengl.GLLinePlotItem(
+                pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
+                width=1, antialias=True)
             self.gl_widget.addItem(hip_link)
             self.gl_widget.addItem(thigh_link)
             self.gl_widget.addItem(knee_link)
             self.gl_widget.addItem(calf_link)
+            self.gl_widget.addItem(limit_link)
             self.links[leg_number] = {
                 'hip': hip_link, 'thigh': thigh_link, 'knee': knee_link,
-                'calf': calf_link}
+                'calf': calf_link, 'limit': limit_link}
 
         # add context menu
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -579,6 +594,10 @@ class BodyTab(Tab):
             pos=numpy.array([pts[2], pts[3]]))
         self.links[leg_number]['calf'].setData(
             pos=pts[3], size=calf/50.)
+        lpts = kinematics.body.leg_to_body_array(
+            leg_number, kinematics.leg.limits_at_z_3d(
+                pts[3][2], leg_number))
+        self.links[leg_number]['limit'].setData(pos=lpts)
 
     def on_angles(self, angles, leg_number):
         self.plot_leg(
