@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Mar 20 19:42:35 2018
+# Created: Tue Mar 20 20:13:52 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -389,7 +389,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.modesMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(2)
+        self.tabs.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

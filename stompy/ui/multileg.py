@@ -287,16 +287,16 @@ class LegTab(Tab):
     views = {
         'side': {
             'center': QtGui.QVector3D(60, 0, 0),
-            'azimuth': 90,
+            'azimuth': -90,
             'elevation': 0,
-            'distance': 9000,
+            'distance': 13000,
             'fov': 1,
         },
         'top': {
             'center': QtGui.QVector3D(60, 0, 0),
-            'azimuth': 90,
+            'azimuth': -90,
             'elevation': 90,
-            'distance': 9000,
+            'distance': 12000,
             'fov': 1,
         },
     }
@@ -336,15 +336,19 @@ class LegTab(Tab):
         self.knee_link = pyqtgraph.opengl.GLLinePlotItem(
             pos=numpy.array([pts[1], pts[2]]), color=[0., 0., 1., 1.],
             width=5, antialias=True)
-        lpts = kinematics.leg.limits_at_z_3d(
-            pts[2][2], self._last_leg_index)
-        self.limit_link = pyqtgraph.opengl.GLLinePlotItem(
-            pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
-            width=1, antialias=True)
+        self.limit_links = []
+        for z in [pts[2][2] - 6, pts[2][2], pts[2][2] + 6]:
+            lpts = kinematics.leg.limits_at_z_3d(
+                z, self._last_leg_index)
+            if lpts is None:
+                lpts = [[0, 0, 0], [1, 1, 1]]
+            self.limit_links.append(pyqtgraph.opengl.GLLinePlotItem(
+                pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
+                width=1, antialias=True))
+            self.gl_widget.addItem(self.limit_links[-1])
         self.gl_widget.addItem(self.hip_link)
         self.gl_widget.addItem(self.thigh_link)
         self.gl_widget.addItem(self.knee_link)
-        self.gl_widget.addItem(self.limit_link)
 
         # make context menu
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -415,7 +419,11 @@ class LegTab(Tab):
         self.knee_link.setData(pos=numpy.array([pts[1], pts[2]]))
         lpts = kinematics.leg.limits_at_z_3d(
             pts[2][2], self._last_leg_index)
-        self.limit_link.setData(pos=numpy.array(lpts))
+        for (i, z) in enumerate([pts[2][2] - 6, pts[2][2], pts[2][2] + 6]):
+            lpts = kinematics.leg.limits_at_z_3d(
+                z, self._last_leg_index)
+            if lpts is not None:
+                self.limit_links[i].setData(pos=numpy.array(lpts))
 
     def update_timer(self):
         self.plot_leg(self.angles[0], self.angles[1], self.angles[2])
@@ -536,19 +544,23 @@ class BodyTab(Tab):
                 width=5, antialias=True)
             calf_link = pyqtgraph.opengl.GLScatterPlotItem(
                 pos=pts[3], color=[1., 0.5, 0., 1.], size=1., pxMode=True)
-            lpts = kinematics.leg.limits_at_z_3d(
-                pts[3][2], leg_number)
-            limit_link = pyqtgraph.opengl.GLLinePlotItem(
-                pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
-                width=1, antialias=True)
+            limit_links = []
+            for z in [pts[3][2] - 6, pts[3][2], pts[3][2] + 6]:
+                lpts = kinematics.leg.limits_at_z_3d(
+                    z, leg_number)
+                if lpts is None:
+                    lpts = [[0, 0, 0], [1, 1, 1]]
+                limit_links.append(pyqtgraph.opengl.GLLinePlotItem(
+                    pos=numpy.array(lpts), color=[0., 1., 1., 0.5],
+                    width=1, antialias=True))
+                self.gl_widget.addItem(limit_links[-1])
             self.gl_widget.addItem(hip_link)
             self.gl_widget.addItem(thigh_link)
             self.gl_widget.addItem(knee_link)
             self.gl_widget.addItem(calf_link)
-            self.gl_widget.addItem(limit_link)
             self.links[leg_number] = {
                 'hip': hip_link, 'thigh': thigh_link, 'knee': knee_link,
-                'calf': calf_link, 'limit': limit_link}
+                'calf': calf_link, 'limit': limit_links}
 
         # add context menu
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -610,10 +622,12 @@ class BodyTab(Tab):
             pos=numpy.array([pts[2], pts[3]]))
         self.links[leg_number]['calf'].setData(
             pos=pts[3], size=calf/50.)
-        lpts = kinematics.body.leg_to_body_array(
-            leg_number, kinematics.leg.limits_at_z_3d(
-                pts[3][2], leg_number))
-        self.links[leg_number]['limit'].setData(pos=lpts)
+        for (i, z) in enumerate([pts[3][2] - 6, pts[3][2], pts[3][2] + 6]):
+            lpts = numpy.array(kinematics.leg.limits_at_z_3d(z, leg_number))
+            if lpts is not None:
+                lpts = kinematics.body.leg_to_body_array(leg_number, lpts)
+                self.links[leg_number]['limit'][i].setData(
+                    pos=numpy.array(lpts))
 
     def on_angles(self, angles, leg_number):
         self.plot_leg(

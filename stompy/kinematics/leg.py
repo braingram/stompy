@@ -138,7 +138,7 @@ def limits_at_z_2d(z):
      find point on thigh_max at z (with smallest x)
     """
     if z > z_max or z < z_min:
-        return None
+        return None, None
     # right point
     if z > 0:
         # use right of knee_max
@@ -164,6 +164,8 @@ def limits_at_z_2d(z):
 
 def limits_at_z_3d(z, leg_number, n_slices=11, wrap=True):
     l, r = limits_at_z_2d(z)
+    if l is None or r is None:
+        return None
     if leg_number in consts.MIDDLE_LEGS:
         hmin, hmax = (
             geometry.HIP_MIDDLE_MIN_ANGLE, geometry.HIP_MIDDLE_MAX_ANGLE)
