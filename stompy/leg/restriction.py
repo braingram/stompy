@@ -21,7 +21,7 @@ class Foot(signaler.Signaler):
     lift_velocity = 4.
     lower_velocity = -4.
     swing_velocity = 8.
-    step_size = 30.
+    step_size = 25.
 
     def __init__(
             self, leg, radius=20, eps=0.1, center=(80., 0.), dr_smooth=0.5,
@@ -175,11 +175,11 @@ class Body(signaler.Signaler):
         super(Body, self).__init__()
         self.r_thresh = 0.2
         self.r_max = 0.9
+        self.legs = legs
         if len(self.legs) > 5:
             self.max_feet_up = 3
         else:
             self.max_feet_up = 1
-        self.legs = legs
         self.feet = {}
         self.halted = False
         self.enabled = False

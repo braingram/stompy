@@ -19,6 +19,8 @@ controls:
     - deadman
 """
 
+import numpy
+
 from .. import consts
 from .. import leg
 from .. import log
@@ -202,7 +204,7 @@ class MultiLeg(signaler.Signaler):
             plan = {
                 'mode': consts.PLAN_VELOCITY_MODE,
                 'frame': consts.PLAN_BODY_FRAME,
-                'linear': xyz,
+                'linear': -numpy.array(xyz),
                 'speed': 3.,
             }
             self.all_legs('send_plan', **plan)
@@ -210,7 +212,7 @@ class MultiLeg(signaler.Signaler):
             pass
             # TODO
         elif self.mode == 'body_restriction':
-            self.res.set_target(xyz[:2])
+            self.res.set_target(numpy.array(xyz[:2]))
 
     def update(self):
         if self.joy is not None:

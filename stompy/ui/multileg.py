@@ -460,18 +460,18 @@ class LegTab(Tab):
 
 class BodyTab(Tab):
     views = {
-        'side': {
+        'back': {
             'center': QtGui.QVector3D(0, 0, 0),
-            'azimuth': 90,
+            'azimuth': -90,
             'elevation': 0,
-            'distance': 15000,
+            'distance': 30000,
             'fov': 1,
         },
         'top': {
             'center': QtGui.QVector3D(0, 0, 0),
-            'azimuth': 90,
+            'azimuth': -90,
             'elevation': 90,
-            'distance': 15000,
+            'distance': 40000,
             'fov': 1,
         },
     }
@@ -481,25 +481,41 @@ class BodyTab(Tab):
         self.gl_widget = ui.bodyGLWidget
 
         # add grids
-        gi = 120
+        gs = 12
+        gi = gs * 30
         self.grids = {}
         self.grids['x'] = pyqtgraph.opengl.GLGridItem()
         self.grids['x'].setSize(gi, gi, 1)
-        self.grids['x'].setSpacing(6, 6, 1)
+        self.grids['x'].setSpacing(gs, gs, 1)
         self.grids['x'].rotate(90, 0, 1, 0)
-        #self.grids['x'].translate(-25, 0, 0)
+        #self.grids['x'].translate(gi / 2, 0, 0)
         self.gl_widget.addItem(self.grids['x'])
         self.grids['y'] = pyqtgraph.opengl.GLGridItem()
         self.grids['y'].setSize(gi, gi, 1)
-        self.grids['y'].setSpacing(6, 6, 1)
+        self.grids['y'].setSpacing(gs, gs, 1)
         self.grids['y'].rotate(90, 1, 0, 0)
-        self.grids['y'].translate(gi / 2, 0, 0)
+        #self.grids['y'].translate(gi / 2, 0, 0)
         self.gl_widget.addItem(self.grids['y'])
         self.grids['z'] = pyqtgraph.opengl.GLGridItem()
         self.grids['z'].setSize(gi, gi, 1)
-        self.grids['z'].setSpacing(6, 6, 1)
-        self.grids['z'].translate(gi / 2, 0, 0)
+        self.grids['z'].setSpacing(gs, gs, 1)
+        #self.grids['z'].translate(gi / 2, 0, 0)
         self.gl_widget.addItem(self.grids['z'])
+
+        # add origin
+        d = 12
+        x_link = pyqtgraph.opengl.GLLinePlotItem(
+            pos=numpy.array([[0, 0, 0], [d, 0, 0]]), color=[1., 0., 0., 1.],
+            width=2, antialias=True)
+        self.gl_widget.addItem(x_link)
+        y_link = pyqtgraph.opengl.GLLinePlotItem(
+            pos=numpy.array([[0, 0, 0], [0, d, 0]]), color=[0., 1., 0., 1.],
+            width=2, antialias=True)
+        self.gl_widget.addItem(y_link)
+        z_link = pyqtgraph.opengl.GLLinePlotItem(
+            pos=numpy.array([[0, 0, 0], [0, 0, d]]), color=[0., 0., 1., 1.],
+            width=2, antialias=True)
+        self.gl_widget.addItem(z_link)
 
         # add legs
         self.links = {}
@@ -538,8 +554,8 @@ class BodyTab(Tab):
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.gl_widget.customContextMenuRequested.connect(self.on_gl_menu)
         self.gl_menu = QtGui.QMenu(self.gl_widget)
-        sva = QtGui.QAction('Side view', self.gl_widget)
-        sva.triggered.connect(self.show_side_view)
+        sva = QtGui.QAction('Back view', self.gl_widget)
+        sva.triggered.connect(self.show_back_view)
         self.gl_menu.addAction(sva)
         tva = QtGui.QAction('Top view', self.gl_widget)
         tva.triggered.connect(self.show_top_view)
@@ -573,8 +589,8 @@ class BodyTab(Tab):
         for k in self.grids:
             self.grids[k].setVisible(False)
 
-    def show_side_view(self):
-        self.gl_widget.opts.update(self.views['side'])
+    def show_back_view(self):
+        self.gl_widget.opts.update(self.views['back'])
         self.gl_widget.update()
 
     def show_top_view(self):

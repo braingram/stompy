@@ -13,30 +13,60 @@ from .. import consts
 from .. import transforms
 
 
+# rotations
+FLR = 145
+FRR = 35
+MLR = 180
+MRR = 0
+RLR = -145
+RRR = -35
+
+#FLR = 55
+#FRR = -55
+#MLR = 90
+#MRR = -90
+#RLR = 125
+#RRR = -125
+
+# translations
+FLT = (-23, 92.6)
+FRT = (23, 92.6)
+MLT = (-27, 0)
+MRT = (27, 0)
+RLT = (-23, -92.6)
+RRT = (23, -92.6)
+
+#FLT = (92.6, 23)
+#FRT = (92.6, -23)
+#MLT = (0, 27)
+#MRT = (0, -27)
+#RLT = (-92.6, 23)
+#RRT = (-92.6, -23)
+
 leg_to_body_transforms = {
     consts.LEG_FL: transforms.affine_3d(
-        92.6, 23, 0, 0, 0, 55, degrees=True),
+        FLT[0], FLT[1], 0, 0, 0, FLR, degrees=True),
     consts.LEG_FR: transforms.affine_3d(
-        92.6, -23, 0, 0, 0, -55, degrees=True),
+        FRT[0], FRT[1], 0, 0, 0, FRR, degrees=True),
     consts.LEG_ML: transforms.affine_3d(
-        0., 27, 0, 0, 0, 90, degrees=True),
+        MLT[0], MLT[1], 0, 0, 0, MLR, degrees=True),
     consts.LEG_MR: transforms.affine_3d(
-        0., -27, 0, 0, 0, -90, degrees=True),
+        MRT[0], MRT[1], 0, 0, 0, MRR, degrees=True),
     consts.LEG_RL: transforms.affine_3d(
-        -92.6, 23, 0, 0, 0, 125, degrees=True),
+        RLT[0], RLT[1], 0, 0, 0, RLR, degrees=True),
     consts.LEG_RR: transforms.affine_3d(
-        -92.6, -23, 0, 0, 0, -125, degrees=True),
+        RRT[0], RRT[1], 0, 0, 0, RRR, degrees=True),
     consts.LEG_FAKE: transforms.affine_3d(
         0., 0., 0., 0., 0., 0., degrees=True),
 }
 
 leg_to_body_rotations = {
-    consts.LEG_FL: transforms.rotation_3d(0, 0, 55, degrees=True),
-    consts.LEG_FR: transforms.rotation_3d(0, 0, -55, degrees=True),
-    consts.LEG_ML: transforms.rotation_3d(0, 0, 90, degrees=True),
-    consts.LEG_MR: transforms.rotation_3d(0, 0, -90, degrees=True),
-    consts.LEG_RL: transforms.rotation_3d(0, 0, 125, degrees=True),
-    consts.LEG_RR: transforms.rotation_3d(0, 0, -125, degrees=True),
+    consts.LEG_FL: transforms.rotation_3d(0, 0, FLR, degrees=True),
+    consts.LEG_FR: transforms.rotation_3d(0, 0, FRR, degrees=True),
+    consts.LEG_ML: transforms.rotation_3d(0, 0, MLR, degrees=True),
+    consts.LEG_MR: transforms.rotation_3d(0, 0, MRR, degrees=True),
+    consts.LEG_RL: transforms.rotation_3d(0, 0, RLR, degrees=True),
+    consts.LEG_RR: transforms.rotation_3d(0, 0, RRR, degrees=True),
     consts.LEG_FAKE: transforms.rotation_3d(0, 0, 0, degrees=True),
 }
 
