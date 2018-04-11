@@ -4,6 +4,7 @@ Write timestamped dicts to pickle file
 """
 
 import atexit
+import datetime
 import glob
 import logging
 import os
@@ -80,8 +81,12 @@ class Logger(object):
     def debug(self, event):
         self.log(event, logging.DEBUG)
 
+start_time = datetime.datetime.now()
+log_directory = os.path.join(
+    'stompy_logs', start_time.strftime('%y%m%d_%H%M%S'))
+base_log_directory = os.path.join(log_directory, 'base')
 
-logger = Logger(os.path.join('stompy_logs', str(int(time.time()))))
+logger = Logger(base_log_directory)
 
 critical = logger.critical
 error = logger.error
@@ -90,3 +95,11 @@ info = logger.info
 debug = logger.debug
 
 atexit.register(logger._write_events)
+
+
+def make_logger(name):
+    ldir = os.path.join(log_directory, name)
+    print("Making logger: %s" % ldir)
+    l = Logger(ldir)
+    atexit.register(l._write_events)
+    return l

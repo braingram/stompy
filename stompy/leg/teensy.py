@@ -83,11 +83,13 @@ class LegController(signaler.Signaler):
     def __init__(self, leg_number):
         super(LegController, self).__init__()
         self.leg_number = leg_number
-        log.info({'leg_number': self.leg_number})
+        #log.info({'leg_number': self.leg_number})
         logger.debug("leg number = %s" % (self.leg_number, ))
 
         self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
-        log.info({'leg_name': self.leg_name})
+        #log.info({'leg_name': self.leg_name})
+
+        self.log = log.make_logger(self.leg_name)
 
         self.estop = None
 
@@ -100,11 +102,11 @@ class LegController(signaler.Signaler):
     def set_estop(self, value):
         if value != self.estop:
             self.estop = value
-            log.info({'estop': value})
+            self.log.info({'estop': value})
             self.trigger('estop', value)
 
     def enable_pid(self, value):
-        log.debug({'enable_pid': value})
+        self.log.debug({'enable_pid': value})
 
     def update(self):
         pass
@@ -120,7 +122,7 @@ class LegController(signaler.Signaler):
 
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
-        log.info({'plan': pp})
+        self.log.info({'plan': pp})
         self.trigger('plan', pp)
 
     def stop(self):
@@ -280,7 +282,7 @@ class Teensy(LegController):
 
         # load calibration setup
         for v in calibration.setup.get(self.leg_number, []):
-            log.debug({'calibration': v})
+            self.log.debug({'calibration': v})
             f, args = v
             logger.debug("Calibration: %s, %s" % (f, args))
             self.mgr.trigger(f, *args)
@@ -298,7 +300,7 @@ class Teensy(LegController):
 
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
-        log.info({'plan': pp})
+        self.log.info({'plan': pp})
         self.trigger('plan', pp)
         self.mgr.trigger('plan', *pp)
 
@@ -315,7 +317,7 @@ class Teensy(LegController):
             'hip': hip.value, 'thigh': thigh.value,
             'knee': knee.value, 'calf': calf.value,
             'time': time.time()}
-        log.debug({'adc': self.adc})
+        self.log.debug({'adc': self.adc})
         self.trigger('adc', self.adc)
 
     def on_report_xyz(self, x, y, z):
@@ -324,7 +326,7 @@ class Teensy(LegController):
         self.xyz = {
             'x': x, 'y': y, 'z': z,
             'time': t}
-        log.debug({'xyz': self.xyz})
+        self.log.debug({'xyz': self.xyz})
         self.trigger('xyz', self.xyz)
 
     def on_report_angles(self, h, t, k, c, v):
@@ -332,7 +334,7 @@ class Teensy(LegController):
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'calf': c.value,
             'valid': bool(v), 'time': time.time()}
-        log.debug({'angles': self.angles})
+        self.log.debug({'angles': self.angles})
         self.trigger('angles', self.angles)
 
     def on_report_pid(self, ho, to, ko, hs, ts, ks, he, te, ke):
@@ -353,14 +355,14 @@ class Teensy(LegController):
                 'thigh': te.value,
                 'knee': ke.value,
             }}
-        log.debug({'pid': self.pid})
+        self.log.debug({'pid': self.pid})
         self.trigger('pid', self.pid)
 
     def on_report_pwm(self, h, t, k):
         self.pwm = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'time': time.time()}
-        log.debug({'pwm': self.pwm})
+        self.log.debug({'pwm': self.pwm})
         self.trigger('pwm', self.pwm)
 
     def send_heartbeat(self):
