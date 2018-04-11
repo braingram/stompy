@@ -83,7 +83,9 @@ class Logger(object):
 
 start_time = datetime.datetime.now()
 log_directory = os.path.join(
-    'stompy_logs', start_time.strftime('%y%m%d_%H%M%S'))
+    os.path.expanduser('~'),
+    '.stompy', 'logs',
+    start_time.strftime('%y%m%d_%H%M%S'))
 base_log_directory = os.path.join(log_directory, 'base')
 
 logger = Logger(base_log_directory)
