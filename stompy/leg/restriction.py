@@ -186,14 +186,15 @@ class Body(signaler.Signaler):
         self.target = None
         inds = sorted(self.legs)
         self.neighbors = {}
-        for (i, n) in enumerate(inds):
-            if i == 0:
-                self.neighbors[n] = [
-                    inds[len(inds) - 1], inds[i+1]]
-            elif i == len(inds) - 1:
-                self.neighbors[n] = [inds[i - 1], inds[0]]
-            else:
-                self.neighbors[n] = [inds[i - 1], inds[i + 1]]
+        if len(inds) > 1:
+            for (i, n) in enumerate(inds):
+                if i == 0:
+                    self.neighbors[n] = [
+                        inds[len(inds) - 1], inds[i+1]]
+                elif i == len(inds) - 1:
+                    self.neighbors[n] = [inds[i - 1], inds[0]]
+                else:
+                    self.neighbors[n] = [inds[i - 1], inds[i + 1]]
         for i in self.legs:
             self.feet[i] = Foot(self.legs[i], **kwargs)
             #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))

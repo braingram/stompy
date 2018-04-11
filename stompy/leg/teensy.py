@@ -109,15 +109,17 @@ class LegController(signaler.Signaler):
     def update(self):
         pass
 
-    def send_plan(self, *args, **kwargs):
-        #print("send_plan[%s]: %s, %s" % (self.leg_number, args, kwargs))
+    def _pack_plan(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
-            return self.stop()
+            plan = plans.stop()
         if len(args) == 1 and isinstance(args[0], plans.Plan):
             plan = args[0]
         else:
             plan = plans.Plan(*args, **kwargs)
-        pp = plan.packed(self.leg_number)
+        return plan.packed(self.leg_number)
+
+    def send_plan(self, *args, **kwargs):
+        pp = self._pack_plan(*args, **kwargs)
         log.info({'plan': pp})
         self.trigger('plan', pp)
 
@@ -293,6 +295,12 @@ class Teensy(LegController):
         self.mgr.on('report_pid', self.on_report_pid)
         self.mgr.on('report_pwm', self.on_report_pwm)
         self.mgr.on('report_adc', self.on_report_adc)
+
+    def send_plan(self, *args, **kwargs):
+        pp = self._pack_plan(*args, **kwargs)
+        log.info({'plan': pp})
+        self.trigger('plan', pp)
+        self.mgr.trigger('plan', *pp)
 
     def set_estop(self, value):
         self.mgr.trigger('estop', value)
