@@ -250,6 +250,8 @@ class Body(signaler.Signaler):
             n_up = len([
                 s for s in states.values() if s not in ('stance', 'wait')])
             # check if neighbors are up
+            if len(self.neighbors.get(leg_number, [])) == 0:
+                return
             ns = self.neighbors[leg_number]
             n_states = [states[n] for n in ns]
             ns_up = len([s for s in n_states if s not in ('stance', 'wait')])

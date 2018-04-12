@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# TODO store in ~/.stompy/calibrations/<leg>?
 setup = {
     1: [  # fl calibration: 180114
         # hip was swapped (min length = max val), swapped lengths

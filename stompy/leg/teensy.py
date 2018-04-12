@@ -300,6 +300,7 @@ class Teensy(LegController):
 
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
+        print("plan: %s" % pp)
         self.log.info({'plan': pp})
         self.trigger('plan', pp)
         self.mgr.trigger('plan', *pp)
