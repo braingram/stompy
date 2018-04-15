@@ -623,9 +623,10 @@ class BodyTab(Tab):
         self.links[leg_number]['calf'].setData(
             pos=pts[3], size=calf/50.)
         for (i, z) in enumerate([pts[3][2] - 6, pts[3][2], pts[3][2] + 6]):
-            lpts = numpy.array(kinematics.leg.limits_at_z_3d(z, leg_number))
+            lpts = kinematics.leg.limits_at_z_3d(z, leg_number)
             if lpts is not None:
-                lpts = kinematics.body.leg_to_body_array(leg_number, lpts)
+                lpts = kinematics.body.leg_to_body_array(
+                    leg_number, numpy.array(lpts))
                 self.links[leg_number]['limit'][i].setData(
                     pos=numpy.array(lpts))
 

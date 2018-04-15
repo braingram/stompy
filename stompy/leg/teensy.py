@@ -120,6 +120,11 @@ class LegController(signaler.Signaler):
             plan = plans.Plan(*args, **kwargs)
         return plan.packed(self.leg_number)
 
+    def set_pwm(self, hip, thigh, knee):
+        self.log.info({'set_pwm': {
+            'hip': hip, 'thigh': thigh, 'knee': knee}})
+        self.trigger('set_pwm', (hip, thigh, knee))
+
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
         self.log.info({'plan': pp})
@@ -287,8 +292,11 @@ class Teensy(LegController):
             logger.debug("Calibration: %s, %s" % (f, args))
             self.mgr.trigger(f, *args)
 
+        self.mgr.on('estop', self.on_estop)
+
         # disable leg
         self.set_estop(consts.ESTOP_DEFAULT)
+
         # send first heartbeat
         self.send_heartbeat()
 
@@ -298,9 +306,12 @@ class Teensy(LegController):
         self.mgr.on('report_pwm', self.on_report_pwm)
         self.mgr.on('report_adc', self.on_report_adc)
 
+    def on_estop(self, severity):
+        super(Teensy, self).set_estop(severity.value)
+
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
-        print("plan: %s" % pp)
+        #print("plan: %s" % pp)
         self.log.info({'plan': pp})
         self.trigger('plan', pp)
         self.mgr.trigger('plan', *pp)
@@ -308,6 +319,10 @@ class Teensy(LegController):
     def set_estop(self, value):
         self.mgr.trigger('estop', value)
         super(Teensy, self).set_estop(value)
+
+    def set_pwm(self, hip, thigh, knee):
+        self.mgr.trigger('pwm', hip, thigh, knee)
+        super(Teensy, self).set_pwm(hip, thigh, knee)
 
     def enable_pid(self, value):
         self.mgr.trigger('enable_pid', value)

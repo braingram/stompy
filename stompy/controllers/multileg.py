@@ -38,6 +38,7 @@ class MultiLeg(signaler.Signaler):
         'leg_sensor',
         'leg_leg',
         'leg_body',
+        'leg_calibration',
         #'leg_restriction',
         'body_move',
         'body_position_legs',
@@ -69,13 +70,14 @@ class MultiLeg(signaler.Signaler):
         print("Leg estop: %s, %s" % (leg_number, value))
         if value:
             for i in self.legs:
-                self.legs[i].set_estop(value)
+                if i != leg_number:
+                    self.legs[i].set_estop(value)
 
     def set_mode(self, mode):
         if mode not in self.modes:
             raise Exception("Invalid mode: %s" % (mode, ))
         # handle mode transitions
-        if self.mode == 'body_restriction':
+        if self.mode != 'body_restriction':
             self.res.disable()
         self.mode = mode
         self.trigger('mode', mode)
@@ -87,6 +89,8 @@ class MultiLeg(signaler.Signaler):
             self.res.enable(None)
             if self.deadman:
                 self.set_target()
+        elif self.mode == 'leg_pwm':
+            self.all_legs('enable_pid', False)
         else:
             self.all_legs('stop')
 
@@ -127,7 +131,8 @@ class MultiLeg(signaler.Signaler):
         elif event['name'] == 'one_right':
             if event['value'] and not self.deadman:
                 self.all_legs('set_estop', 0)
-                self.all_legs('enable_pid', True)
+                if self.mode != 'leg_pwm':
+                    self.all_legs('enable_pid', True)
                 self.deadman = True
                 self.set_target()
             elif not event['value'] and self.deadman:
@@ -170,7 +175,12 @@ class MultiLeg(signaler.Signaler):
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
-            # TODO
+            # TODO bring out speed
+            speed = 0.6
+            self.leg.set_pwm(
+                xyz[0] * speed,
+                xyz[1] * speed,
+                xyz[2] * speed)
         elif self.mode == 'leg_sensor':
             if self.leg is None:
                 return
@@ -195,6 +205,8 @@ class MultiLeg(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,
                 linear=xyz, speed=3.)
+        elif self.mode == 'leg_calibration':
+            pass
         #elif self.mode == 'leg_restriction':
         #    if self.leg is None:
         #        return
@@ -217,4 +229,6 @@ class MultiLeg(signaler.Signaler):
     def update(self):
         if self.joy is not None:
             self.joy.update()
+        if self.mode == 'leg_calibration':
+            pass
         self.all_legs('update')
