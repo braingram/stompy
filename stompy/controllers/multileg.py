@@ -197,6 +197,11 @@ class MultiLeg(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=xyz, speed=3.)
+            #self.leg.send_plan(
+            #    mode=consts.PLAN_ARC_MODE,
+            #    frame=consts.PLAN_LEG_FRAME,
+            #    linear=[0, 0, 0],
+            #    angular=xyz, speed=0.01)
         elif self.mode == 'leg_body':
             if self.leg is None:
                 return

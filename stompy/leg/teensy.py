@@ -200,6 +200,8 @@ class FakeTeensy(LegController):
                 self.xyz['x'] += lx * dt * self._plan.speed
                 self.xyz['y'] += ly * dt * self._plan.speed
                 self.xyz['z'] += lz * dt * self._plan.speed
+        elif self._plan.mode == consts.PLAN_ARC_MODE:
+            raise NotImplementedError()
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
         # check if angles are in limits, if not, stop
