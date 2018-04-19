@@ -21,6 +21,7 @@ controls:
 
 import numpy
 
+from . import calibrator
 from .. import consts
 from .. import leg
 from .. import log
@@ -48,6 +49,7 @@ class MultiLeg(signaler.Signaler):
     def __init__(self, legs, joy):
         super(MultiLeg, self).__init__()
         self.legs = legs
+        self.calibrator = calibrator.CalibrationRoutine()
         self.res = leg.restriction.Body(legs)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
@@ -77,8 +79,10 @@ class MultiLeg(signaler.Signaler):
         if mode not in self.modes:
             raise Exception("Invalid mode: %s" % (mode, ))
         # handle mode transitions
-        if self.mode != 'body_restriction':
+        if self.mode == 'body_restriction':
             self.res.disable()
+        elif self.mode == 'leg_calibration':
+            self.calibrator.detach()
         self.mode = mode
         self.trigger('mode', mode)
         # handle mode transitions
@@ -91,6 +95,8 @@ class MultiLeg(signaler.Signaler):
                 self.set_target()
         elif self.mode == 'leg_pwm':
             self.all_legs('enable_pid', False)
+        elif self.mode == 'leg_calibration':
+            self.calibrator.attach(self.leg)
         else:
             self.all_legs('stop')
 
@@ -104,8 +110,14 @@ class MultiLeg(signaler.Signaler):
         self.leg_index = index
         if self.leg_index is None:
             self.leg = None
+            if self.mode == 'leg_calibration':
+                # disable calibration
+                self.calibrator.detach()
         else:
             self.leg = self.legs[index]
+            if self.mode == 'leg_calibration':
+                # disable, then re-enable calibration
+                self.attach(self.leg)
         self.trigger('set_leg', index)
 
     def on_button(self, event):
@@ -139,10 +151,18 @@ class MultiLeg(signaler.Signaler):
                 self.all_legs('set_estop', 1)
                 self.all_legs('stop')
                 self.deadman = False
-        #if event['name'] == 'cross':
-        #if event['name'] == 'circle':
-        #if event['name'] == 'triangle':
-        #if event['name'] == 'square':
+        elif event['name'] == 'square':
+            if self.mode == 'leg_calibration':
+                self.calibrator.set_subroutine('sensors', 'hip')
+        elif event['name'] == 'circle':
+            if self.mode == 'leg_calibration':
+                self.calibrator.set_subroutine('sensors', 'thigh')
+        elif event['name'] == 'cross':
+            if self.mode == 'leg_calibration':
+                self.calibrator.set_subroutine('sensors', 'knee')
+        #elif event['name'] == 'triangle':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('calf')
 
     def on_axis(self, event):
         # check if target vector has changed > some amount
