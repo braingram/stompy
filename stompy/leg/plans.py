@@ -50,7 +50,13 @@ class Plan(object):
                         leg_number, l[0], l[1], l[2])
                 elif self.mode == consts.PLAN_ARC_MODE:
                     # arc: raise NotImplementedError()
-                    raise NotImplementedError()
+                    # linear: translate to leg
+                    # angular: rotate to leg
+                    # speed: keep the same
+                    l = kinematics.body.body_to_leg(
+                        leg_number, l[0], l[1], l[2])
+                    a = kinematics.body.body_to_leg_rotation(
+                        leg_number, a[0], a[1], a[2])
             f = consts.PLAN_LEG_FRAME
         return [
             self.mode, f,

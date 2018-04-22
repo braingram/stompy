@@ -87,7 +87,6 @@ class MultiLeg(signaler.Signaler):
         log.info({"set_speed": self.speed_scalar})
         self.trigger('speed', self.speed_scalar)
         # TODO resend target?
-        #self.res.set_speed(self.speed_scalar)
         if self.mode == 'body_restriction':
             self.res.set_speed(self.speed_scalar)
 
@@ -261,10 +260,6 @@ class MultiLeg(signaler.Signaler):
                 linear=xyz, speed=speed)
         elif self.mode == 'leg_calibration':
             pass
-        #elif self.mode == 'leg_restriction':
-        #    if self.leg is None:
-        #        return
-        #    # TODO, remove this?
         elif self.mode == 'body_move':
             speed = self.speed_scalar * self.speeds['body']
             plan = {
@@ -273,6 +268,12 @@ class MultiLeg(signaler.Signaler):
                 'linear': -numpy.array(xyz),
                 'speed': speed,
             }
+            #plan = {
+            #    'mode': consts.PLAN_ARC_MODE,
+            #    'frame': consts.PLAN_BODY_FRAME,
+            #    'linear': (0, 0, 0),
+            #    'angular': -numpy.array(xyz),
+            #    'speed': 0.01}
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_position_legs':
             pass

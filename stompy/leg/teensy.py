@@ -14,9 +14,10 @@ from .. import consts
 from .. import calibration
 from .. import geometry
 from .. import kinematics
-from . import plans
 from .. import log
+from . import plans
 from .. import signaler
+from .. import transforms
 
 
 logger = logging.getLogger(__name__)
@@ -201,7 +202,18 @@ class FakeTeensy(LegController):
                 self.xyz['y'] += ly * dt * self._plan.speed
                 self.xyz['z'] += lz * dt * self._plan.speed
         elif self._plan.mode == consts.PLAN_ARC_MODE:
-            raise NotImplementedError()
+            lx, ly, lz = self._plan.linear
+            ax, ay, az = self._plan.angular
+            ax *= self._plan.speed * dt
+            ay *= self._plan.speed * dt
+            az *= self._plan.speed * dt
+            T = transforms.rotation_about_point_3d(
+                lx, ly, lz, ax, ay, az, degrees=False)
+            nx, ny, nz = transforms.transform_3d(
+                T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
+            self.xyz['x'] = nx
+            self.xyz['y'] = ny
+            self.xyz['z'] = nz
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
         # check if angles are in limits, if not, stop
