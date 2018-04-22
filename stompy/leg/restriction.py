@@ -16,18 +16,34 @@ from .. import kinematics
 from .. import signaler
 
 
-class Foot(signaler.Signaler):
-    stance_velocity = 3.  # TODO make these configurable and body wide
-    lift_velocity = 4.
-    lower_velocity = -4.
-    swing_velocity = 8.
-    step_size = 25.
+class RestrictionConfig(signaler.Signaler):
+    def __init__(self):
+        super(RestrictionConfig, self).__init__()
+        self.speeds = {
+            'stance': 3.,
+            'lift': 4.,
+            'lower': 3.,
+            'swing': 4.}
+        self.step_size = 25.
+        self.r_thresh = 0.2
+        self.r_max = 0.9
+        self.max_feet_up = 0
+        self.speed_scalar = 1.
 
+    def get_speed(self, mode):
+        if mode not in self.speeds:
+            raise ValueError("Invalid restriction speed mode: %s" % mode)
+        return self.speeds[mode] * self.speed_scalar
+
+
+class Foot(signaler.Signaler):
     def __init__(
-            self, leg, radius=20, eps=0.1, center=(80., 0.), dr_smooth=0.5,
+            self, leg, cfg,
+            radius=20, eps=0.1, center=(80., 0.), dr_smooth=0.5,
             close_enough=5., lift_height=-5.0, lower_height=-15.0):
         super(Foot, self).__init__()
         self.leg = leg
+        self.cfg = cfg
         self.leg.on('xyz', self.on_xyz)
         self.leg.on('angles', self.on_angles)
         self.radius = radius
@@ -58,15 +74,16 @@ class Foot(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=(-self.leg_target[0], -self.leg_target[1], 0.),
-                speed=self.stance_velocity)
+                speed=self.cfg.get_speed('stance'))
         elif self.state == 'lift':
+            v = self.cfg.get_speed('stance')
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=(
-                    -self.leg_target[0] * self.stance_velocity,
-                    -self.leg_target[1] * self.stance_velocity,
-                    self.lift_velocity),
+                    -self.leg_target[0] * v,
+                    -self.leg_target[1] * v,
+                    self.cfg.get_speed('lift')),
                 speed=1.)
         elif self.state == 'swing':
             self.leg.send_plan(
@@ -76,15 +93,16 @@ class Foot(signaler.Signaler):
                     self.swing_target[0],
                     self.swing_target[1],
                     self.lift_height),
-                speed=self.swing_velocity)
+                speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
+            v = self.cfg.get_speed('stance')
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=(
-                    -self.leg_target[0] * self.stance_velocity,
-                    -self.leg_target[1] * self.stance_velocity,
-                    self.lower_velocity),
+                    -self.leg_target[0] * v,
+                    -self.leg_target[1] * v,
+                    self.cfg.get_speed('lower')),
                 speed=1.)
 
     def set_target(self, xy, update_swing=True):
@@ -94,8 +112,8 @@ class Foot(signaler.Signaler):
         self.leg_target = (lx, ly)
         if update_swing:
             self.swing_target = (
-                self.center[0] + lx * self.step_size,
-                self.center[1] + ly * self.step_size)
+                self.center[0] + lx * self.cfg.step_size,
+                self.center[1] + ly * self.cfg.step_size)
         self.send_plan()
 
     def set_state(self, state):
@@ -173,13 +191,16 @@ class Body(signaler.Signaler):
     def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
         super(Body, self).__init__()
-        self.r_thresh = 0.2
-        self.r_max = 0.9
+        self.cfg = RestrictionConfig()
+        #self.r_thresh = 0.2
+        #self.r_max = 0.9
         self.legs = legs
         if len(self.legs) > 5:
-            self.max_feet_up = 3
+            #self.max_feet_up = 3
+            self.cfg.max_feet_up = 3
         else:
-            self.max_feet_up = 1
+            #self.max_feet_up = 1
+            self.cfg.max_feet_up = 1
         self.feet = {}
         self.halted = False
         self.enabled = False
@@ -196,7 +217,7 @@ class Body(signaler.Signaler):
                 else:
                     self.neighbors[n] = [inds[i - 1], inds[i + 1]]
         for i in self.legs:
-            self.feet[i] = Foot(self.legs[i], **kwargs)
+            self.feet[i] = Foot(self.legs[i], self.cfg, **kwargs)
             #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
@@ -204,6 +225,10 @@ class Body(signaler.Signaler):
     def enable(self, foot_states):
         self.enabled = True
         # TODO set foot states, target?
+
+    def set_speed(self, speed_scalar):
+        self.cfg.speed_scalar = speed_scalar
+        self.set_target(self.target)
 
     def set_target(self, xy, update_swing=True):
         self.target = xy
@@ -227,22 +252,22 @@ class Body(signaler.Signaler):
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
-        if self.halted and restriction['r'] < self.r_max:
+        if self.halted and restriction['r'] < self.cfg.r_max:
             # unhalt?
             maxed = False
             for i in self.feet:
-                if self.feet[i].restriction['r'] > self.r_max:
+                if self.feet[i].restriction['r'] > self.cfg.r_max:
                     maxed = True
             if not maxed:
                 print("Unhalt")
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
-        if restriction['r'] > self.r_max and not self.halted:
+        if restriction['r'] > self.cfg.r_max and not self.halted:
             self.halt()
             return
         # TODO scale stance speed by restriction?
         if (
-                restriction['r'] > self.r_thresh and
+                restriction['r'] > self.cfg.r_thresh and
                 self.feet[leg_number].state == 'stance'):
             # lift?
             # check n_feet up
@@ -257,5 +282,5 @@ class Body(signaler.Signaler):
             ns_up = len([s for s in n_states if s not in ('stance', 'wait')])
             # TODO check if any other feet are restricted:
             #  yes? pick least recently lifted
-            if ns_up == 0 and n_up < self.max_feet_up:
+            if ns_up == 0 and n_up < self.cfg.max_feet_up:
                 self.feet[leg_number].set_state('lift')

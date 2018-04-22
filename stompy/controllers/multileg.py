@@ -54,6 +54,15 @@ class MultiLeg(signaler.Signaler):
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
         self.mode = 'body_move'
+        self.speeds = {
+            'raw': 0.6,
+            'sensor': 1200,
+            'leg': 3.0,
+            'body': 3.0,
+        }
+        self.speed_scalar = 1.0
+        self.speed_step = 0.05
+        self.speed_scalar_range = (0.1, 2.0)
         # self.conn = leg_teensy
         self.joy = joy
         if self.joy is not None:
@@ -68,6 +77,20 @@ class MultiLeg(signaler.Signaler):
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
 
+    def set_speed(self, speed):
+        old_speed = self.speed_scalar
+        self.speed_scalar = max(
+            self.speed_scalar_range[0],
+            min(self.speed_scalar_range[1], speed))
+        if old_speed == self.speed_scalar:
+            return
+        log.info({"set_speed": self.speed_scalar})
+        self.trigger('speed', self.speed_scalar)
+        # TODO resend target?
+        #self.res.set_speed(self.speed_scalar)
+        if self.mode == 'body_restriction':
+            self.res.set_speed(self.speed_scalar)
+
     def on_leg_estop(self, value, leg_number):
         print("Leg estop: %s, %s" % (leg_number, value))
         if value:
@@ -78,6 +101,8 @@ class MultiLeg(signaler.Signaler):
     def set_mode(self, mode):
         if mode not in self.modes:
             raise Exception("Invalid mode: %s" % (mode, ))
+        # always reset speed scalar
+        self.set_speed(1.)
         # handle mode transitions
         if self.mode == 'body_restriction':
             self.res.disable()
@@ -127,6 +152,11 @@ class MultiLeg(signaler.Signaler):
             if mi == len(self.modes):
                 mi = 0
             self.set_mode(self.modes[mi])
+        elif event['name'] == 'up':
+            # increase speed scalar
+            self.set_speed(self.speed_scalar + self.speed_step)
+        elif event['name'] == 'down':
+            self.set_speed(self.speed_scalar - self.speed_step)
         elif event['name'] in ('left', 'right') and event['value']:
             di = ('left', None, 'right').index(event['name']) - 1
             inds = sorted(self.legs)
@@ -195,8 +225,7 @@ class MultiLeg(signaler.Signaler):
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
-            # TODO bring out speed
-            speed = 0.6
+            speed = self.speed_scalar * self.speeds['raw']
             self.leg.set_pwm(
                 xyz[0] * speed,
                 xyz[1] * speed,
@@ -204,19 +233,19 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_sensor':
             if self.leg is None:
                 return
-            # TODO bring out speed
+            speed = self.speed_scalar * self.speeds['sensor']
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_SENSOR_FRAME,
-                linear=xyz, speed=1200)
+                linear=xyz, speed=speed)
         elif self.mode == 'leg_leg':
             if self.leg is None:
                 return
-            # TODO bring out speed
+            speed = self.speed_scalar * self.speeds['leg']
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
-                linear=xyz, speed=3.)
+                linear=xyz, speed=speed)
             #self.leg.send_plan(
             #    mode=consts.PLAN_ARC_MODE,
             #    frame=consts.PLAN_LEG_FRAME,
@@ -225,11 +254,11 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_body':
             if self.leg is None:
                 return
-            # TODO bring out speed
+            speed = self.speed_scalar * self.speeds['body']
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,
-                linear=xyz, speed=3.)
+                linear=xyz, speed=speed)
         elif self.mode == 'leg_calibration':
             pass
         #elif self.mode == 'leg_restriction':
@@ -237,12 +266,12 @@ class MultiLeg(signaler.Signaler):
         #        return
         #    # TODO, remove this?
         elif self.mode == 'body_move':
-            # TODO bring out speed
+            speed = self.speed_scalar * self.speeds['body']
             plan = {
                 'mode': consts.PLAN_VELOCITY_MODE,
                 'frame': consts.PLAN_BODY_FRAME,
                 'linear': -numpy.array(xyz),
-                'speed': 3.,
+                'speed': speed,
             }
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_position_legs':
