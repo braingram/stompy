@@ -12,7 +12,23 @@ import cPickle as pickle
 import time
 
 
-def load_dir(d):
+def find_newest_log():
+    ld = os.path.expanduser('~/.stompy/logs')
+    return sorted([
+        os.path.join(ld, d) for d in os.listdir(ld)
+        if os.path.isdir(os.path.join(ld, d))])[-1]
+
+
+def load_dir(d=None):
+    if d is None:
+        d = find_newest_log()
+    ld = os.path.expanduser(d)
+    sds = [
+        i for i in os.listdir(ld)
+        if os.path.isdir(os.path.join(ld, i))]
+    # update for per-leg logs
+    if len(sds):
+        return {sd: load_dir(os.path.join(ld, sd)) for sd in sds}
     fns = glob.glob(os.path.join(d, '*.p'))
     fns = sorted(
         fns, key=lambda fn: int(
@@ -22,6 +38,29 @@ def load_dir(d):
         with open(fn, 'rb') as f:
             evs.extend(pickle.load(f))
     return evs
+
+
+def find_adc_limits(d=None, joints=None, legs=None):
+    if isinstance(d, (str, unicode)) or d is None:
+        d = load_dir(d)
+    if joints is None:
+        joints = ['hip', 'thigh', 'knee', 'calf']
+    if legs is None:
+        legs = d.keys()
+        if 'base' in legs:
+            legs.remove('base')
+    adc_limits = {}
+    for leg in legs:
+        ld = d[leg]
+        angles = [i['adc'] for i in ld if 'adc' in i]
+        adc_limits[leg] = {}
+        for j in joints:
+            vs = [i[j] for i in angles]
+            adc_limits[leg][j] = {
+                'min': min(vs),
+                'max': max(vs),
+            }
+    return adc_limits
 
 
 class Logger(object):
