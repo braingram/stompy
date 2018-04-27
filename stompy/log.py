@@ -11,6 +11,8 @@ import os
 import cPickle as pickle
 import time
 
+import pylab
+
 
 def find_newest_log():
     ld = os.path.expanduser('~/.stompy/logs')
@@ -38,6 +40,62 @@ def load_dir(d=None):
         with open(fn, 'rb') as f:
             evs.extend(pickle.load(f))
     return evs
+
+
+def _dget(d, k):
+    if '.' not in k:
+        return d[k]
+    ts = k.split('.')
+    return _dget(d[ts[0]], '.'.join(ts[1:]))
+
+
+get_by_key = lambda d, k: [i[k] for i in d if k in i]
+
+
+def plot_key(data, key, subkeys=None, show=True, name=None, legend=True):
+    if isinstance(data, (str, unicode)):
+        if name is None:
+            name = data
+        data = load_dir(data)
+    legs = sorted(data.keys())
+    if 'base' in legs:
+        legs.remove('base')
+    ld = {l: get_by_key(data[l], key) for l in legs}
+    if subkeys is None:
+        # get keys from first event
+        e = ld.values()[0][0]
+        ks = e.keys()
+        if 'time' in ks:
+            ks.remove('time')
+        subkeys = []
+        for k in ks:
+            if isinstance(e[k], dict):
+                for sk in e[k]:
+                    subkeys.append('%s.%s' % (k, sk))
+            else:
+                subkeys.append(k)
+        subkeys.sort()
+        #print("Found subkeys: %s" % (subkeys, ))
+    subkeys = list(subkeys)
+    nsk = len(subkeys)
+    for i in xrange(len(subkeys)):
+        if i == 0:
+            ax = pylab.subplot(nsk, 1, 1 + i)
+        else:
+            pylab.subplot(nsk, 1, 1 + i, sharex=ax)
+        for l in legs:
+            pylab.plot(
+                [e['time'] for e in ld[l]],
+                [_dget(e, subkeys[i]) for e in ld[l]], label=l)
+        pylab.ylabel(subkeys[i])
+    if name is not None:
+        pylab.suptitle("%s: %s" % (name, key))
+    else:
+        pylab.suptitle(key)
+    if legend:
+        pylab.legend()
+    if show:
+        pylab.show()
 
 
 def find_adc_limits(d=None, joints=None, legs=None):
