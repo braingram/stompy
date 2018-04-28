@@ -39,7 +39,7 @@ class MultiLeg(signaler.Signaler):
         'leg_sensor',
         'leg_leg',
         'leg_body',
-        'leg_calibration',
+        #'leg_calibration',
         #'leg_restriction',
         'body_move',
         'body_position_legs',
@@ -206,6 +206,8 @@ class MultiLeg(signaler.Signaler):
         if xyz is None:
             ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
             ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
+            aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
+            ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
             az = (
                 self.joy.axes.get('one_left', 0) -
                 self.joy.axes.get('two_left', 0))
@@ -215,11 +217,17 @@ class MultiLeg(signaler.Signaler):
                 ay = 0
             if abs(az) < thumb_db:
                 az = 0
+            if abs(aa) < thumb_db:
+                aa = 0
+            if abs(ab < thumb_db):
+                ab = 0
             #if ax == 0 and ay == 0 and az == 0:
             #    return
             ax = max(-1., min(1., ax / float(thumb_scale)))
             ay = max(-1., min(1., -ay / float(thumb_scale)))
             az = max(-1., min(1., az / 255.))
+            aa = max(-1., min(1., aa / float(thumb_scale)))
+            ab = max(-1., min(1., -ab / float(thumb_scale)))
             xyz = (ax, ay, az)
         if self.mode == 'leg_pwm':
             if self.leg is None:
@@ -261,19 +269,22 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_calibration':
             pass
         elif self.mode == 'body_move':
-            speed = self.speed_scalar * self.speeds['body']
-            plan = {
-                'mode': consts.PLAN_VELOCITY_MODE,
-                'frame': consts.PLAN_BODY_FRAME,
-                'linear': -numpy.array(xyz),
-                'speed': speed,
-            }
-            #plan = {
-            #    'mode': consts.PLAN_ARC_MODE,
-            #    'frame': consts.PLAN_BODY_FRAME,
-            #    'linear': (0, 0, 0),
-            #    'angular': -numpy.array(xyz),
-            #    'speed': 0.01}
+            if self.joy.keys.get('circle', 0) == 0:
+                speed = self.speed_scalar * self.speeds['body']
+                plan = {
+                    'mode': consts.PLAN_VELOCITY_MODE,
+                    'frame': consts.PLAN_BODY_FRAME,
+                    'linear': -numpy.array(xyz),
+                    'speed': speed,
+                }
+            else:
+                speed = self.speed_scalar * 0.01
+                plan = {
+                    'mode': consts.PLAN_ARC_MODE,
+                    'frame': consts.PLAN_BODY_FRAME,
+                    'linear': (0, 0, 0),
+                    'angular': -numpy.array(xyz),
+                    'speed': speed}
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_position_legs':
             pass
