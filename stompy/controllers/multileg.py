@@ -278,6 +278,8 @@ class MultiLeg(signaler.Signaler):
                     'speed': speed,
                 }
             else:
+                # swap x and y
+                xyz = [xyz[1], xyz[0], xyz[2]]
                 speed = self.speed_scalar * 0.01
                 plan = {
                     'mode': consts.PLAN_ARC_MODE,
