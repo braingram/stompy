@@ -19,6 +19,8 @@ controls:
     - deadman
 """
 
+import time
+
 import numpy
 
 from . import calibrator
@@ -42,7 +44,7 @@ class MultiLeg(signaler.Signaler):
         #'leg_calibration',
         #'leg_restriction',
         'body_move',
-        'body_position_legs',
+        #'body_position_legs',
         'body_restriction',
     ]
 
@@ -55,7 +57,7 @@ class MultiLeg(signaler.Signaler):
         self.leg = self.legs[self.leg_index]
         self.mode = 'body_move'
         self.speeds = {
-            'raw': 0.6,
+            'raw': 0.5,
             'sensor': 1200,
             'leg': 3.0,
             'body': 3.0,
@@ -69,6 +71,9 @@ class MultiLeg(signaler.Signaler):
             self.joy.on('button', self.on_button)
             self.joy.on('axis', self.on_axis)
         self.deadman = False
+        self.joystick_move_throttle = 0.5
+        self.last_joystick_move = time.time()
+        self.reset_joystick_move_throttle()
 
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
@@ -76,6 +81,10 @@ class MultiLeg(signaler.Signaler):
         # monitor estop of all legs, broadcast when stopped
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
+
+    def reset_joystick_move_throttle(self):
+        self.last_joystick_move = (
+            time.time() - self.joystick_move_throttle * 2.)
 
     def set_speed(self, speed):
         old_speed = self.speed_scalar
@@ -197,9 +206,14 @@ class MultiLeg(signaler.Signaler):
         # check if target vector has changed > some amount
         # if so, read and send new target
         if event['name'] in (
-                'thumb_left_x', 'thumb_left_y', 'one_left', 'one_right'):
-            # TODO throttle?
-            if self.deadman:
+                'thumb_left_x', 'thumb_left_y',
+                'thumb_right_x', 'thumb_right_y',
+                'one_left', 'two_left'):
+            if (
+                    self.deadman and (
+                        time.time() - self.last_joystick_move
+                        < self.joystick_move_throttle)):
+                self.last_joystick_move = time.time()
                 self.set_target()
 
     def set_target(self, xyz=None):
