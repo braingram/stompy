@@ -21,7 +21,8 @@ setup = {
         ('pwm_limits', (1, 1638, 8192, 1638, 8192)),
         ('pwm_limits', (2, 1638, 8192, 1638, 8192)),
         ('adc_limits', (0, 8030, 47620)),
-        ('adc_limits', (1, 3131, 61003)),  # TODO fix top
+        #('adc_limits', (1, 3131, 61003)),  # min/max didn't max out
+        ('adc_limits', (1, 3131, 61189)),  # spi 4147
         ('adc_limits', (2, 7954, 58132)),
         ('pid_config', (0, 1.0, 1.0, 0.0, -8192, 8192)),
         ('pid_config', (1, 2.0, 3.0, 0.0, -8192, 8192)),
@@ -33,7 +34,7 @@ setup = {
         ('pwm_limits', (1, 1638, 8192, 1638, 8192)),
         ('pwm_limits', (2, 1638, 8192, 1638, 8192)),
         ('adc_limits', (0, 4205, 44824)),
-        ('adc_limits', (1, 2057, 60996)),
+        ('adc_limits', (1, 2057, 60996)),  # min/max was able to max thigh
         ('adc_limits', (2, 7789, 59447)),
         ('pid_config', (0, 1.0, 1.0, 0.0, -8192, 8192)),
         ('pid_config', (1, 2.0, 3.0, 0.0, -8192, 8192)),
@@ -45,7 +46,8 @@ setup = {
         ('pwm_limits', (1, 1638, 8192, 1638, 8192)),
         ('pwm_limits', (2, 1638, 8192, 1638, 8192)),
         ('adc_limits', (0, 6897, 46052)),
-        ('adc_limits', (1, 3063, 58042)),
+        #('adc_limits', (1, 3063, 58042)),  # min/max didn't max out
+        ('adc_limits', (1, 3063, 61121)),  # spi 4147
         ('adc_limits', (2, 8876, 59055)),
         ('pid_config', (0, 1.0, 1.0, 0.0, -8192, 8192)),
         ('pid_config', (1, 2.0, 3.0, 0.0, -8192, 8192)),
