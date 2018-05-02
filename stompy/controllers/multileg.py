@@ -71,7 +71,7 @@ class MultiLeg(signaler.Signaler):
             self.joy.on('button', self.on_button)
             self.joy.on('axis', self.on_axis)
         self.deadman = False
-        self.joystick_move_throttle = 0.5
+        self.joystick_move_throttle = 0.25
         self.last_joystick_move = time.time()
         self.reset_joystick_move_throttle()
 
@@ -212,8 +212,9 @@ class MultiLeg(signaler.Signaler):
             if (
                     self.deadman and (
                         time.time() - self.last_joystick_move
-                        < self.joystick_move_throttle)):
+                        > self.joystick_move_throttle)):
                 self.last_joystick_move = time.time()
+                print("New joystick update: %s" % self.last_joystick_move)
                 self.set_target()
 
     def set_target(self, xyz=None):
