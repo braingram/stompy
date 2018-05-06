@@ -209,10 +209,11 @@ class MultiLeg(signaler.Signaler):
                 'thumb_left_x', 'thumb_left_y',
                 'thumb_right_x', 'thumb_right_y',
                 'one_left', 'two_left'):
-            if (
-                    self.deadman and (
-                        time.time() - self.last_joystick_move
-                        > self.joystick_move_throttle)):
+            #if (
+            #        self.deadman and (
+            #            time.time() - self.last_joystick_move
+            #            > self.joystick_move_throttle)):
+            if self.deadman:
                 self.last_joystick_move = time.time()
                 print("New joystick update: %s" % self.last_joystick_move)
                 self.set_target()
