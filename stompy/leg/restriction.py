@@ -39,8 +39,8 @@ class RestrictionConfig(signaler.Signaler):
 class Foot(signaler.Signaler):
     def __init__(
             self, leg, cfg,
-            radius=20, eps=0.1, center=(80., 0.), dr_smooth=0.5,
-            close_enough=5., lift_height=-5.0, lower_height=-15.0):
+            radius=20, eps=0.1, center=(55., 0.), dr_smooth=0.5,
+            close_enough=5., lift_height=8.0, lower_height=-50.0):
         super(Foot, self).__init__()
         self.leg = leg
         self.cfg = cfg
@@ -55,6 +55,8 @@ class Foot(signaler.Signaler):
         self.body_target = None
         self.swing_target = None
         self.lift_height = lift_height
+        self.unloaded_height = None
+        self.unloaded_weight = 50
         self.lower_height = lower_height
         self.close_enough = close_enough
         # stance -> lift -> swing -> lower -> wait
@@ -86,13 +88,14 @@ class Foot(signaler.Signaler):
                     self.cfg.get_speed('lift')),
                 speed=1.)
         elif self.state == 'swing':
+            z = self.unloaded_height + self.lift_height
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=(
                     self.swing_target[0],
                     self.swing_target[1],
-                    self.lift_height),
+                    z),
                 speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
             v = self.cfg.get_speed('stance')
@@ -102,7 +105,7 @@ class Foot(signaler.Signaler):
                 linear=(
                     -self.leg_target[0] * v,
                     -self.leg_target[1] * v,
-                    self.cfg.get_speed('lower')),
+                    -self.cfg.get_speed('lower')),
                 speed=1.)
 
     def set_target(self, xy, update_swing=True):
@@ -119,6 +122,7 @@ class Foot(signaler.Signaler):
     def set_state(self, state):
         self.state = state
         if self.state == 'lift':
+            self.unloaded_height = None
             self.last_lift_time = time.time()
         self.send_plan()
         self.trigger('state', state)
@@ -177,9 +181,17 @@ class Foot(signaler.Signaler):
                 new_state = 'stance'
         #elif self.state == 'stance'
         elif self.state == 'lift':
-            # TODO check for unloaded and >Z inches off ground
-            if self.xyz['z'] > self.lift_height:
+            # check for unloaded and >Z inches off ground
+            if (
+                    self.unloaded_height is None and
+                    self.angles['calf'] < self.unloaded_weight):
+                self.unloaded_height = self.xyz['z']
+            if (
+                    self.unloaded_height is not None and
+                    self.xyz['z'] > (self.unloaded_height + self.lift_height)):
                 new_state = 'swing'
+            #if self.xyz['z'] > self.lift_height:
+            #    new_state = 'swing'
         # clear xyz and angles cache
         self.xyz = None
         self.angles = None
@@ -221,6 +233,7 @@ class Body(signaler.Signaler):
             #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
+        self.disable()
 
     def enable(self, foot_states):
         self.enabled = True

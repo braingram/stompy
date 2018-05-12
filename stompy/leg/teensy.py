@@ -251,8 +251,8 @@ class FakeTeensy(LegController):
             # raise estop
             self.set_estop(consts.ESTOP_HOLD)
         # fake calf loading
-        zl = max(-15, min(-5, self.xyz['z']))
-        calf = -(zl + 5) * 100
+        zl = max(-45, min(-40, self.xyz['z']))
+        calf = -(zl + 40) * 400
         self.angles.update({
             'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
