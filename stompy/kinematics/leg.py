@@ -6,6 +6,14 @@ from .. import consts
 from .. import geometry
 
 
+def angles_to_calf_angle(hip, thigh, knee):
+    _, p1, p2 = angles_to_points(hip, thigh, knee)
+    dx = p2[0] - p1[0]
+    # invert dz to fix quadrant
+    dz = -(p2[2] - p1[2])
+    return numpy.arctan2(dx, dz)
+
+
 def angles_to_points(hip, thigh, knee):
     x = geometry.HIP_LENGTH
     z = 0

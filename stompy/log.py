@@ -49,7 +49,17 @@ def _dget(d, k):
     return _dget(d[ts[0]], '.'.join(ts[1:]))
 
 
-get_by_key = lambda d, k: [i[k] for i in d if k in i]
+def get_by_key(d, k, legs=None, remove_empty=True):
+    if isinstance(d, (list, tuple)):
+        return [i[k] for i in d if k in i]
+    if legs is None:
+        legs = sorted(d.keys())
+    ld = {l: get_by_key(d[l], k) for l in legs}
+    if remove_empty:
+        for l in legs:
+            if len(ld[l]) == 0:
+                del ld[l]
+    return ld
 
 
 def plot_key(data, key, subkeys=None, show=True, name=None, legend=True):
