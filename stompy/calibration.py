@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import numpy
+
+
 # TODO store in ~/.stompy/calibrations/<leg>?
 setup = {
     1: [  # fl calibration: 180114
@@ -49,6 +52,7 @@ setup = {
         #('adc_limits', (1, 3063, 58042)),  # min/max didn't max out
         ('adc_limits', (1, 3063, 61121)),  # spi 4147
         ('adc_limits', (2, 8876, 59055)),
+        ('calf_scale', (-0.000028211981, 2.6897063780175259)),
         ('pid_config', (0, 1.0, 1.0, 0.0, -8192, 8192)),
         ('pid_config', (1, 2.0, 3.0, 0.0, -8192, 8192)),
         ('pid_config', (2, 2.0, 3.0, 0.0, -8192, 8192)),
@@ -92,3 +96,21 @@ setup = {
         # calf scale
     ],
 }
+
+
+def generate_calf_calibration(load0, value0, load1, value1, slope=None):
+    a = 8.
+    b = 18.
+    bl = 18.
+    in2lb = 600.
+    tc = lambda lb: numpy.arccos(
+        (a * a + b * b - (bl - lb / in2lb) ** 2.) / (2 * a * b))
+    c0 = tc(load0)
+    c1 = tc(load1)
+    print(c0, c1)
+    # c0 = v * slope + offset
+    if slope is None:  # else only use load0, value0
+        slope = (c0 - c1) / (value0 - value1)
+    # offset = c - v * slope
+    offset = c0 - value0 * slope
+    return slope, offset
