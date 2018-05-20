@@ -321,6 +321,7 @@ class Teensy(LegController):
         self.mgr.on('report_adc', self.on_report_adc)
 
     def on_estop(self, severity):
+        #print("Received estop: %s" % severity)
         super(Teensy, self).set_estop(severity.value)
 
     def send_plan(self, *args, **kwargs):

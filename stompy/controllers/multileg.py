@@ -61,6 +61,7 @@ class MultiLeg(signaler.Signaler):
             'sensor': 1200,
             'leg': 3.0,
             'body': 3.0,
+            'body_angular': 0.005,
         }
         self.speed_scalar = 1.0
         self.speed_step = 0.05
@@ -296,7 +297,8 @@ class MultiLeg(signaler.Signaler):
             else:
                 # swap x and y
                 xyz = [xyz[1], xyz[0], xyz[2]]
-                speed = self.speed_scalar * 0.01
+                #speed = self.speed_scalar * 0.01
+                speed = self.speed_scalar * self.speeds['body_angular']
                 plan = {
                     'mode': consts.PLAN_ARC_MODE,
                     'frame': consts.PLAN_BODY_FRAME,

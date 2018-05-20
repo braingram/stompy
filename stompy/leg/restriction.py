@@ -56,7 +56,7 @@ class Foot(signaler.Signaler):
         self.swing_target = None
         self.lift_height = lift_height
         self.unloaded_height = None
-        self.unloaded_weight = 50
+        self.unloaded_weight = 200
         self.lower_height = lower_height
         self.close_enough = close_enough
         # stance -> lift -> swing -> lower -> wait
@@ -207,12 +207,13 @@ class Body(signaler.Signaler):
         #self.r_thresh = 0.2
         #self.r_max = 0.9
         self.legs = legs
-        if len(self.legs) > 5:
-            #self.max_feet_up = 3
-            self.cfg.max_feet_up = 3
-        else:
-            #self.max_feet_up = 1
-            self.cfg.max_feet_up = 1
+        self.cfg.max_feet_up = 1
+        #if len(self.legs) > 5:
+        #    #self.max_feet_up = 3
+        #    self.cfg.max_feet_up = 3
+        #else:
+        #    #self.max_feet_up = 1
+        #    self.cfg.max_feet_up = 1
         self.feet = {}
         self.halted = False
         self.enabled = False
