@@ -68,7 +68,7 @@ class Foot(signaler.Signaler):
 
     def send_plan(self):
         print("res.send_plan: %s" % self.state)
-        if self.state is None:
+        if self.state is None or self.leg_target is None:
             # TODO always stop on disable?
             self.leg.send_plan(mode=consts.PLAN_STOP_MODE)
         elif self.state in ('stance', 'wait'):

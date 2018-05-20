@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import traceback
 
 import numpy
 #from PyQt4 import QtCore, QtGui
@@ -702,7 +703,17 @@ def load_ui(controller=None):
     timer = None
     if controller is not None:
         timer = QtCore.QTimer()
-        timer.timeout.connect(controller.update)
+        def update():
+            try:
+                controller.update()
+            except Exception as e:
+                ex_type, ex, tb = sys.exc_info()
+                print("controller update error: %s" % e)
+                traceback.print_tb(tb)
+                # TODO stop updates on error?
+                #timer.stop()
+        #timer.timeout.connect(controller.update)
+        timer.timeout.connect(update)
         timer.start(1)
     return {
         'app': app, 'ui': ui, 'window': MainWindow, 'tab_manager': tm,

@@ -3,7 +3,9 @@
 import glob
 import logging
 import subprocess
+import sys
 import time
+import traceback
 
 import numpy
 import serial
@@ -402,7 +404,18 @@ class Teensy(LegController):
         # print("HB: %s" % self.last_heartbeat)
 
     def update(self):
-        self.com.handle_stream()
+        try:
+            self.com.handle_stream()
+        except Exception as e:
+            ex_type, ex, tb = sys.exc_info()
+            print("Leg %s handle stream error: %s" % (self.leg_number, e))
+            tbs = '\n'.join(traceback.format_tb(tb))
+            self.log.error("handle_stream error: %s" % e)
+            print(tbs)
+            self.log.error({'error': {
+                'traceback': tbs,
+                'exception': e}})
+            raise e
         if time.time() - self.last_heartbeat > consts.HEARTBEAT_PERIOD:
             self.send_heartbeat()
 
