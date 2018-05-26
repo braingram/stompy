@@ -63,6 +63,15 @@ class MultiLeg(signaler.Signaler):
             'body': 3.0,
             'body_angular': 0.005,
         }
+        if len(self.legs) == 1 and 7 in self.legs:
+            self.speeds = {
+                'raw': 0.5,
+                #'sensor': 65535,
+                'sensor': 48000,
+                'leg': 3.0,
+                'body': 3.0,
+                'body_angular': 0.005,
+            }
         self.speed_scalar = 1.0
         self.speed_step = 0.05
         self.speed_scalar_range = (0.1, 2.0)
@@ -72,7 +81,7 @@ class MultiLeg(signaler.Signaler):
             self.joy.on('button', self.on_button)
             self.joy.on('axis', self.on_axis)
         self.deadman = False
-        self.joystick_move_throttle = 0.25
+        self.joystick_move_throttle = 0.1
         self.last_joystick_move = time.time()
         self.reset_joystick_move_throttle()
 
@@ -164,8 +173,10 @@ class MultiLeg(signaler.Signaler):
         elif event['name'] == 'up':
             # increase speed scalar
             self.set_speed(self.speed_scalar + self.speed_step)
+            print("new speed: ", self.speed_scalar)
         elif event['name'] == 'down':
             self.set_speed(self.speed_scalar - self.speed_step)
+            print("new speed: ", self.speed_scalar)
         elif event['name'] in ('left', 'right') and event['value']:
             di = ('left', None, 'right').index(event['name']) - 1
             inds = sorted(self.legs)
@@ -214,10 +225,16 @@ class MultiLeg(signaler.Signaler):
             #        self.deadman and (
             #            time.time() - self.last_joystick_move
             #            > self.joystick_move_throttle)):
+            #t = time.time()
+            #jt = (t - self.last_joystick_move)
+            #jt = self.joystick_move_throttle + 1
+            #if self.deadman and jt > self.joystick_move_throttle:
             if self.deadman:
-                self.last_joystick_move = time.time()
-                print("New joystick update: %s" % self.last_joystick_move)
+                #print(
+                #    "New joystick update: %s[%s]" %
+                #    (self.last_joystick_move, jt))
                 self.set_target()
+                #self.last_joystick_move = t
 
     def set_target(self, xyz=None):
         if xyz is None:
