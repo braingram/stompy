@@ -67,6 +67,7 @@ setup = {
         ('adc_limits', (0, 7072, 52161)),
         ('adc_limits', (1, 3587, 59747)),
         ('adc_limits', (2, 9040, 59069)),
+        ('calf_scale', (-0.000028211981, 2.6522690792305257)),
         ('pid_config', (0, 1.0, 1.0, 0.0, -8192, 8192)),
         ('pid_config', (1, 2.0, 3.0, 0.0, -8192, 8192)),
         ('pid_config', (2, 2.0, 3.0, 0.0, -8192, 8192)),
@@ -110,11 +111,11 @@ def generate_calf_calibration(load0, value0, load1, value1, slope=None):
     tc = lambda lb: numpy.arccos(
         (a * a + b * b - (bl - lb / in2lb) ** 2.) / (2 * a * b))
     c0 = tc(load0)
-    c1 = tc(load1)
-    print(c0, c1)
     # c0 = v * slope + offset
     if slope is None:  # else only use load0, value0
+        c1 = tc(load1)
         slope = (c0 - c1) / (value0 - value1)
+    # print(c0, c1)
     # offset = c - v * slope
     offset = c0 - value0 * slope
     return slope, offset
