@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>756</width>
-    <height>600</height>
+    <width>804</width>
+    <height>584</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,11 @@
      <layout class="QHBoxLayout" name="horizontalLayout_8">
       <item>
        <widget class="QCheckBox" name="estopCheck">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
-         <string>CheckBox</string>
+         <string>Estop</string>
         </property>
        </widget>
       </item>
@@ -45,7 +48,7 @@
       <item>
        <widget class="QTabWidget" name="tabs">
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="legTab">
          <attribute name="title">
@@ -245,6 +248,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
            <widget class="PlotWidget" name="pidPlotWidget">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -275,6 +281,9 @@
                 </item>
                 <item>
                  <widget class="QDoubleSpinBox" name="pidPSpin">
+                  <property name="decimals">
+                   <number>4</number>
+                  </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
                   </property>
@@ -293,6 +302,9 @@
                 </item>
                 <item>
                  <widget class="QDoubleSpinBox" name="pidISpin">
+                  <property name="decimals">
+                   <number>4</number>
+                  </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
                   </property>
@@ -311,6 +323,9 @@
                 </item>
                 <item>
                  <widget class="QDoubleSpinBox" name="pidDSpin">
+                  <property name="decimals">
+                   <number>4</number>
+                  </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
                   </property>
@@ -356,6 +371,9 @@
                 </item>
                 <item>
                  <widget class="QDoubleSpinBox" name="pidMaxSpin">
+                  <property name="decimals">
+                   <number>2</number>
+                  </property>
                   <property name="minimum">
                    <double>-8192.000000000000000</double>
                   </property>
@@ -408,7 +426,7 @@
                 <item>
                  <widget class="QLabel" name="label_26">
                   <property name="text">
-                   <string>Extend min</string>
+                   <string>Extend</string>
                   </property>
                  </widget>
                 </item>
@@ -419,17 +437,6 @@
                   </property>
                   <property name="maximum">
                    <double>8192.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_22">
-                <item>
-                 <widget class="QLabel" name="label_27">
-                  <property name="text">
-                   <string>Extend max</string>
                   </property>
                  </widget>
                 </item>
@@ -450,7 +457,7 @@
                 <item>
                  <widget class="QLabel" name="label_28">
                   <property name="text">
-                   <string>Retract min</string>
+                   <string>Retract</string>
                   </property>
                  </widget>
                 </item>
@@ -464,19 +471,46 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="retractMaxSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_30">
+               <widget class="QLabel" name="label_27">
+                <property name="text">
+                 <string>Seed time</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_27">
                 <item>
                  <widget class="QLabel" name="label_33">
                   <property name="text">
-                   <string>Retract max</string>
+                   <string>Micros</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QDoubleSpinBox" name="retractMaxSpin">
+                 <widget class="QDoubleSpinBox" name="seedSpin">
+                  <property name="decimals">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <double>8192.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="seedFutureSpin">
                   <property name="decimals">
                    <number>0</number>
                   </property>
@@ -498,7 +532,7 @@
                 <property name="sizeHint" stdset="0">
                  <size>
                   <width>20</width>
-                  <height>0</height>
+                  <height>13</height>
                  </size>
                 </property>
                </spacer>
@@ -665,18 +699,227 @@
          </layout>
         </widget>
         <widget class="QWidget" name="bodyTab">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <attribute name="title">
           <string>Body</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QHBoxLayout" name="horizontalLayout_14">
           <item>
-           <widget class="GLViewWidget" name="bodyGLWidget">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
+           <widget class="QSplitter" name="splitter">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <widget class="GLViewWidget" name="bodyGLWidget">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>2</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </widget>
+            <widget class="QTreeWidget" name="configTree">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="alternatingRowColors">
+              <bool>true</bool>
+             </property>
+             <property name="autoExpandDelay">
+              <number>0</number>
+             </property>
+             <attribute name="headerCascadingSectionResizes">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="headerStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <column>
+              <property name="text">
+               <string>Name</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Value</string>
+              </property>
+             </column>
+             <item>
+              <property name="text">
+               <string>controller.speeds</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <item>
+               <property name="text">
+                <string>raw</string>
+               </property>
+               <property name="text">
+                <string>0.5</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>sensor</string>
+               </property>
+               <property name="text">
+                <string>1200</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>leg</string>
+               </property>
+               <property name="text">
+                <string>3.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>body</string>
+               </property>
+               <property name="text">
+                <string>3.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>body_angular</string>
+               </property>
+               <property name="text">
+                <string>0.005</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.speeds</string>
+              </property>
+              <item>
+               <property name="text">
+                <string>lift</string>
+               </property>
+               <property name="text">
+                <string>4.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>lower</string>
+               </property>
+               <property name="text">
+                <string>3.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>stance</string>
+               </property>
+               <property name="text">
+                <string>3.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>swing</string>
+               </property>
+               <property name="text">
+                <string>4.0</string>
+               </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
+              </item>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.step_size</string>
+              </property>
+              <property name="text">
+               <string>25</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.r_thresh</string>
+              </property>
+              <property name="text">
+               <string>0.2</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.r_max</string>
+              </property>
+              <property name="text">
+               <string>0.9</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.max_feet_up</string>
+              </property>
+              <property name="text">
+               <string>0</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+            </widget>
            </widget>
           </item>
          </layout>
@@ -697,7 +940,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>756</width>
+     <width>804</width>
      <height>25</height>
     </rect>
    </property>

@@ -699,10 +699,54 @@ def load_ui(controller=None):
     tm.add_tab('Leg', LegTab(ui, controller))
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
+    # TODO update tree widget to show values from python
+    ui.configTree.resizeColumnToContents(0)
+    # listen for configTree changes
+
+    def item_changed(item):
+        # TODO recurse through parents
+        parent = item.parent()
+        if parent is not None:
+            parent = str(parent.text(0))
+        attr, value = str(item.text(0)), str(item.text(1))
+        print(parent, attr, value)
+        if parent is not None:
+            attr = '.'.join((parent, attr))
+        # get old value
+        ts = attr.split('.')
+        obj = controller
+        assert ts[0] == 'controller'
+        ts = ts[1:]
+        while len(ts) > 1:
+            obj = getattr(obj, ts.pop(0))
+        attr = ts[0]
+        if isinstance(obj, dict):
+            old_value = obj[attr]
+        else:
+            old_value = getattr(obj, attr)
+        print("Old value: %s" % old_value)
+        try:
+            value = type(old_value)(value)
+        except Exception as e:
+            print("Error converting value %s: %s [%s]" % (attr, value, e))
+            item.setText(1, str(old_value))
+            return
+        try:
+            if isinstance(obj, dict):
+                obj[attr] = value
+            else:
+                setattr(obj, attr, value)
+        except Exception as e:
+            print("Error setting config %s = %s [%s]" % (attr, value, e))
+            item.setText(1, str(old_value))
+            return
+
+    ui.configTree.itemChanged.connect(item_changed)
     MainWindow.show()
     timer = None
     if controller is not None:
         timer = QtCore.QTimer()
+
         def update():
             try:
                 controller.update()
