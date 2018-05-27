@@ -62,7 +62,9 @@ def get_by_key(d, k, legs=None, remove_empty=True):
     return ld
 
 
-def plot_key(data, key, subkeys=None, show=True, name=None, legend=True):
+def plot_key(
+        data, key, subkeys=None, show=True, name=None, legend=True,
+        normalize_time=True):
     if isinstance(data, (str, unicode)):
         if name is None:
             name = data
@@ -88,6 +90,11 @@ def plot_key(data, key, subkeys=None, show=True, name=None, legend=True):
         #print("Found subkeys: %s" % (subkeys, ))
     subkeys = list(subkeys)
     nsk = len(subkeys)
+    if normalize_time:
+        # get initial time
+        t0 = min([ld[l][0]['time'] for l in legs])
+    else:
+        t0 = 0
     for i in xrange(len(subkeys)):
         if i == 0:
             ax = pylab.subplot(nsk, 1, 1 + i)
@@ -95,7 +102,7 @@ def plot_key(data, key, subkeys=None, show=True, name=None, legend=True):
             pylab.subplot(nsk, 1, 1 + i, sharex=ax)
         for l in legs:
             pylab.plot(
-                [e['time'] for e in ld[l]],
+                [e['time'] - t0 for e in ld[l]],
                 [_dget(e, subkeys[i]) for e in ld[l]], label=l)
         pylab.ylabel(subkeys[i])
     if name is not None:
