@@ -141,7 +141,7 @@ Wire Wire Line
 Wire Wire Line
 	3800 3050 4050 3050
 Wire Wire Line
-	3800 2350 3900 2350
+	3800 2350 4800 2350
 Wire Wire Line
 	3800 2250 3900 2250
 Wire Wire Line
@@ -178,7 +178,7 @@ Text Label 3900 2150 0    60   ~ 0
 THIGH0
 Text Label 3900 2250 0    60   ~ 0
 HIP1
-Text Label 3900 2350 0    60   ~ 0
+Text Label 4800 2350 0    60   ~ 0
 MDISABLE
 $Comp
 L GND #PWR06
@@ -472,4 +472,67 @@ F 3 "" H 5450 5400 50  0001 C CNN
 	1    5450 5400
 	1    0    0    -1  
 $EndComp
+$Comp
+L Conn_01x03_Male J3
+U 1 1 5B09DE9E
+P 2600 4550
+F 0 "J3" H 2600 4750 50  0000 C CNN
+F 1 "SPI" H 2600 4350 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x03_Pitch2.54mm" H 2600 4550 50  0001 C CNN
+F 3 "" H 2600 4550 50  0001 C CNN
+	1    2600 4550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2800 4450 3550 4450
+Wire Wire Line
+	2800 4550 3050 4550
+Wire Wire Line
+	2800 4650 3050 4650
+Text Label 3050 4650 0    60   ~ 0
+SPI_DO
+Text Label 3050 4550 0    60   ~ 0
+SPI_CLK
+$Comp
+L GND #PWR019
+U 1 1 5B09E09B
+P 3550 4450
+F 0 "#PWR019" H 3550 4200 50  0001 C CNN
+F 1 "GND" H 3550 4300 50  0000 C CNN
+F 2 "" H 3550 4450 50  0001 C CNN
+F 3 "" H 3550 4450 50  0001 C CNN
+	1    3550 4450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6800 2850 6250 2850
+Text Label 6250 2850 0    60   ~ 0
+SPI_DO
+Wire Wire Line
+	6800 3650 6250 3650
+Text Label 6250 3650 0    60   ~ 0
+SPI_CLK
+$Comp
+L R R3
+U 1 1 5B0AA829
+P 4500 2200
+F 0 "R3" V 4580 2200 50  0000 C CNN
+F 1 "1K" V 4500 2200 50  0000 C CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" V 4430 2200 50  0001 C CNN
+F 3 "" H 4500 2200 50  0001 C CNN
+	1    4500 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L +3.3V #PWR020
+U 1 1 5B0AA9A7
+P 4500 2050
+F 0 "#PWR020" H 4500 1900 50  0001 C CNN
+F 1 "+3.3V" H 4500 2190 50  0000 C CNN
+F 2 "" H 4500 2050 50  0001 C CNN
+F 3 "" H 4500 2050 50  0001 C CNN
+	1    4500 2050
+	1    0    0    -1  
+$EndComp
+Connection ~ 4500 2350
 $EndSCHEMATC
