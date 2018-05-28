@@ -41,6 +41,7 @@ cmds = {
     11: 'pid_seed_time(uint32,uint32)=uint32,uint32',
     12: 'reset_pids(bool)',  # i_only
     13: 'dither(byte,uint32,int)=byte,uint32,int',
+    14: 'following_error_threshold(byte,float)=float',
 
     21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
     22: 'report_pid(bool)='

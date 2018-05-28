@@ -155,6 +155,11 @@ class PIDTab(Tab):
             'max': r[5].value,
         }
 
+        # following error threshold
+        r = self.controller.leg.mgr.blocking_trigger(
+            'following_error_threshold', index)
+        self.joint_config['following_error_threshold'] = r[0].value
+
         # pwm: extend/retract min/max
         r = self.controller.leg.mgr.blocking_trigger('pwm_limits', index)
         self.joint_config['pwm'] = {
@@ -185,6 +190,9 @@ class PIDTab(Tab):
         self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
         self.ui.extendMinSpin.setValue(self.joint_config['pwm']['extend_min'])
         self.ui.extendMaxSpin.setValue(self.joint_config['pwm']['extend_max'])
+        self.ui.pidErrorThresholdSpin.setValue(
+            self.joint_config['following_error_threshold'])
+        self.joint_config['following_error_threshold'] = r[0].value
         self.ui.retractMinSpin.setValue(
             self.joint_config['pwm']['retract_min'])
         self.ui.retractMaxSpin.setValue(
@@ -212,6 +220,8 @@ class PIDTab(Tab):
         values['pid']['d'] = self.ui.pidDSpin.value()
         values['pid']['min'] = self.ui.pidMinSpin.value()
         values['pid']['max'] = self.ui.pidMaxSpin.value()
+        values['following_error_threshold'] = \
+            self.ui.pidErrorThresholdSpin.value()
         values['pwm']['extend_min'] = self.ui.extendMinSpin.value()
         values['pwm']['extend_max'] = self.ui.extendMaxSpin.value()
         values['pwm']['retract_min'] = self.ui.retractMinSpin.value()
@@ -240,6 +250,17 @@ class PIDTab(Tab):
             # print("pid_config", args)
             log.info({'pid_config': args})
             self.controller.leg.mgr.trigger('pid_config', *args)
+
+        v = values['following_error_threshold']
+        j = self.joint_config['following_error_threshold']
+        if (v != j):
+            self.ui.pidErrorThresholdSpin.setValue(
+                self.joint_config['following_error_threshold'])
+            args = (index, v)
+            log.info({'following_error_threshold': args})
+            self.controller.leg.mgr.trigger(
+                'following_error_threshold', *args)
+
         v = values['pwm']
         j = self.joint_config['pwm']
         if (

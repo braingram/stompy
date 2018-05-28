@@ -22,8 +22,8 @@ class RestrictionConfig(signaler.Signaler):
         self.speeds = {
             'stance': 3.,
             'lift': 4.,
-            'lower': 3.,
-            'swing': 4.}
+            'lower': 4.,
+            'swing': 5.}
         self.step_size = 25.
         self.r_thresh = 0.2
         self.r_max = 0.9
@@ -40,7 +40,8 @@ class Foot(signaler.Signaler):
     def __init__(
             self, leg, cfg,
             radius=20, eps=0.1, center=(55., 0.), dr_smooth=0.5,
-            close_enough=5., lift_height=8.0, lower_height=-50.0):
+            close_enough=5., lift_height=8.0, lower_height=-50.0,
+            unloaded_weight=300, loaded_weight=300):
         super(Foot, self).__init__()
         self.leg = leg
         self.cfg = cfg
@@ -56,7 +57,8 @@ class Foot(signaler.Signaler):
         self.swing_target = None
         self.lift_height = lift_height
         self.unloaded_height = None
-        self.unloaded_weight = 200
+        self.unloaded_weight = unloaded_weight
+        self.loaded_weight = loaded_weight
         self.lower_height = lower_height
         self.close_enough = close_enough
         # stance -> lift -> swing -> lower -> wait
@@ -174,7 +176,10 @@ class Foot(signaler.Signaler):
                 new_state = 'lower'
         elif self.state == 'lower':
             # TODO check for loaded >L lbs
-            if self.xyz['z'] < self.lower_height:
+            #if self.xyz['z'] < self.lower_height:
+            if (
+                    self.xyz['z'] < self.lower_height and
+                    self.angles['calf'] > self.loaded_weight):
                 new_state = 'wait'
         elif self.state == 'wait':
             if self.restriction['dr'] > 0:

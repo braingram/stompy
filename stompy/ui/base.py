@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun May 27 12:27:23 2018
+# Created: Sun May 27 20:40:37 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -295,6 +295,17 @@ class Ui_MainWindow(object):
         self.seedFutureSpin.setObjectName(_fromUtf8("seedFutureSpin"))
         self.horizontalLayout_27.addWidget(self.seedFutureSpin)
         self.verticalLayout_4.addLayout(self.horizontalLayout_27)
+        self.horizontalLayout_28 = QtGui.QHBoxLayout()
+        self.horizontalLayout_28.setObjectName(_fromUtf8("horizontalLayout_28"))
+        self.label_34 = QtGui.QLabel(self.PIDTab)
+        self.label_34.setObjectName(_fromUtf8("label_34"))
+        self.horizontalLayout_28.addWidget(self.label_34)
+        self.pidErrorThresholdSpin = QtGui.QDoubleSpinBox(self.PIDTab)
+        self.pidErrorThresholdSpin.setDecimals(4)
+        self.pidErrorThresholdSpin.setSingleStep(0.1)
+        self.pidErrorThresholdSpin.setObjectName(_fromUtf8("pidErrorThresholdSpin"))
+        self.horizontalLayout_28.addWidget(self.pidErrorThresholdSpin)
+        self.verticalLayout_4.addLayout(self.horizontalLayout_28)
         spacerItem1 = QtGui.QSpacerItem(20, 13, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_4.addItem(spacerItem1)
         self.horizontalLayout_2.addLayout(self.verticalLayout_4)
@@ -459,7 +470,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.modesMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(2)
+        self.tabs.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -491,7 +502,8 @@ class Ui_MainWindow(object):
         self.label_26.setText(_translate("MainWindow", "Extend", None))
         self.label_28.setText(_translate("MainWindow", "Retract", None))
         self.label_27.setText(_translate("MainWindow", "Seed time", None))
-        self.label_33.setText(_translate("MainWindow", "Micros", None))
+        self.label_33.setText(_translate("MainWindow", "Millis", None))
+        self.label_34.setText(_translate("MainWindow", "Error Threshold", None))
         self.label_12.setText(_translate("MainWindow", "ADC limits", None))
         self.label_11.setText(_translate("MainWindow", "Min", None))
         self.label_10.setText(_translate("MainWindow", "Max", None))
