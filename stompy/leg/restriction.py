@@ -41,6 +41,7 @@ class Foot(signaler.Signaler):
             self, leg, cfg,
             radius=20, eps=0.1, center=(55., 0.), dr_smooth=0.5,
             close_enough=5., lift_height=8.0, lower_height=-50.0,
+            height_slop=10.,
             unloaded_weight=600, loaded_weight=300):
         super(Foot, self).__init__()
         self.leg = leg
@@ -57,6 +58,7 @@ class Foot(signaler.Signaler):
         self.swing_target = None
         self.lift_height = lift_height
         self.unloaded_height = None
+        self.height_slop = height_slop
         self.unloaded_weight = unloaded_weight
         self.loaded_weight = loaded_weight
         self.lower_height = lower_height
@@ -178,7 +180,9 @@ class Foot(signaler.Signaler):
             # TODO check for loaded >L lbs
             #if self.xyz['z'] < self.lower_height:
             if (
-                    abs(self.xyz['z'] - self.lower_height) < 10. and
+                    (
+                        abs(self.xyz['z'] - self.lower_height) <
+                        self.height_slop) and
                     self.angles['calf'] > self.loaded_weight):
                 new_state = 'wait'
         elif self.state == 'wait':
