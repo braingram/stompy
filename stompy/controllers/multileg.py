@@ -31,7 +31,7 @@ from .. import signaler
 
 
 thumb_mid = 130
-thumb_db = 5  # +-
+thumb_db = 10  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
 
 
@@ -68,8 +68,8 @@ class MultiLeg(signaler.Signaler):
                 'raw': 0.5,
                 #'sensor': 65535,
                 'sensor': 48000,
-                'leg': 3.0,
-                'body': 3.0,
+                'leg': 48.0,
+                'body': 48.0,
                 'body_angular': 0.005,
             }
         self.speed_scalar = 1.0
@@ -81,9 +81,12 @@ class MultiLeg(signaler.Signaler):
             self.joy.on('button', self.on_button)
             self.joy.on('axis', self.on_axis)
         self.deadman = False
-        self.joystick_move_throttle = 0.1
-        self.last_joystick_move = time.time()
-        self.reset_joystick_move_throttle()
+
+        self.last_xyz = None
+        self.joy_smoothing = False
+        self.send_target_dt = 0.05
+        self.update_target_until = time.time() - self.joy.settle_time
+        self.last_target_update = time.time()
 
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
@@ -91,10 +94,6 @@ class MultiLeg(signaler.Signaler):
         # monitor estop of all legs, broadcast when stopped
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
-
-    def reset_joystick_move_throttle(self):
-        self.last_joystick_move = (
-            time.time() - self.joystick_move_throttle * 2.)
 
     def set_speed(self, speed):
         old_speed = self.speed_scalar
@@ -196,11 +195,13 @@ class MultiLeg(signaler.Signaler):
                 if self.mode != 'leg_pwm':
                     self.all_legs('enable_pid', True)
                 self.deadman = True
+                self.joy.reset_smoothing(thumb_mid)
                 self.set_target()
             elif not event['value'] and self.deadman:
                 self.all_legs('set_estop', 1)
                 self.all_legs('stop')
                 self.deadman = False
+                self.update_target_until = time.time() - 1.0
         elif event['name'] == 'square':
             if self.mode == 'leg_calibration':
                 self.calibrator.set_subroutine('sensors', 'hip')
@@ -221,40 +222,57 @@ class MultiLeg(signaler.Signaler):
                 'thumb_left_x', 'thumb_left_y',
                 'thumb_right_x', 'thumb_right_y',
                 'one_left', 'two_left'):
-            #if (
-            #        self.deadman and (
-            #            time.time() - self.last_joystick_move
-            #            > self.joystick_move_throttle)):
-            #t = time.time()
-            #jt = (t - self.last_joystick_move)
-            #jt = self.joystick_move_throttle + 1
-            #if self.deadman and jt > self.joystick_move_throttle:
             if self.deadman:
-                #print(
-                #    "New joystick update: %s[%s]" %
-                #    (self.last_joystick_move, jt))
                 self.set_target()
-                #self.last_joystick_move = t
+                # continue updating target every 0.1 seconds
+                # for another 0.5 seconds
+                self.last_target_update = time.time()
+                if self.joy_smoothing:
+                    self.update_target_until = (
+                        self.last_target_update +
+                        self.joy.settle_time + self.send_target_dt)
+
+    def get_axis(self, name, remove_mid=True):
+        ax = self.joy.smoothed_axes.get(name)
+        if ax is None:
+            return 0
+        v = ax.update() - thumb_mid
+        if abs(v) < thumb_db:
+            return 0
+        if v > 0:
+            return v - thumb_db
+        return v + thumb_db
 
     def set_target(self, xyz=None):
         if xyz is None:
-            ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
-            ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
-            aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
-            ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
             az = (
                 self.joy.axes.get('one_left', 0) -
                 self.joy.axes.get('two_left', 0))
-            if abs(ax) < thumb_db:
-                ax = 0
-            if abs(ay) < thumb_db:
-                ay = 0
             if abs(az) < thumb_db:
                 az = 0
-            if abs(aa) < thumb_db:
-                aa = 0
-            if abs(ab < thumb_db):
-                ab = 0
+            else:
+                if az > 0:
+                    az -= thumb_db
+                else:
+                    az += thumb_db
+            if self.joy_smoothing is False or self.mode == 'leg_pwm':
+                ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
+                ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
+                aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
+                ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
+                if abs(ax) < thumb_db:
+                    ax = 0
+                if abs(ay) < thumb_db:
+                    ay = 0
+                if abs(aa) < thumb_db:
+                    aa = 0
+                if abs(ab < thumb_db):
+                    ab = 0
+            else:
+                ax = self.get_axis('thumb_left_x')
+                ay = self.get_axis('thumb_left_y')
+                aa = self.get_axis('thumb_right_x')
+                ab = self.get_axis('thumb_right_y')
             #if ax == 0 and ay == 0 and az == 0:
             #    return
             ax = max(-1., min(1., ax / float(thumb_scale)))
@@ -263,6 +281,13 @@ class MultiLeg(signaler.Signaler):
             aa = max(-1., min(1., aa / float(thumb_scale)))
             ab = max(-1., min(1., -ab / float(thumb_scale)))
             xyz = (ax, ay, az)
+            if self.last_xyz is not None:
+                if (
+                        numpy.sum(numpy.abs(
+                            numpy.array(self.last_xyz) - numpy.array(xyz)))
+                        < 0.01):
+                    return
+            self.last_xyz = xyz
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
@@ -287,6 +312,7 @@ class MultiLeg(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=xyz, speed=speed)
+            #print("sending plan: %s, %s" % (xyz, speed))
             #self.leg.send_plan(
             #    mode=consts.PLAN_ARC_MODE,
             #    frame=consts.PLAN_LEG_FRAME,
@@ -332,6 +358,13 @@ class MultiLeg(signaler.Signaler):
     def update(self):
         if self.joy is not None:
             self.joy.update()
+        if (
+                self.joy_smoothing and
+                self.last_target_update <= self.update_target_until):
+            t = time.time()
+            if (t - self.last_target_update) >= self.send_target_dt:
+                self.set_target()
+                self.last_target_update = t
         if self.mode == 'leg_calibration':
             pass
         self.all_legs('update')
