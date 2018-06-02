@@ -23,7 +23,7 @@ import time
 
 import numpy
 
-from . import calibrator
+#from . import calibrator
 from .. import consts
 from .. import leg
 from .. import log
@@ -51,7 +51,7 @@ class MultiLeg(signaler.Signaler):
     def __init__(self, legs, joy):
         super(MultiLeg, self).__init__()
         self.legs = legs
-        self.calibrator = calibrator.CalibrationRoutine()
+        #self.calibrator = calibrator.CalibrationRoutine()
         self.res = leg.restriction.Body(legs)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
@@ -123,8 +123,8 @@ class MultiLeg(signaler.Signaler):
         # handle mode transitions
         if self.mode == 'body_restriction':
             self.res.disable()
-        elif self.mode == 'leg_calibration':
-            self.calibrator.detach()
+        #elif self.mode == 'leg_calibration':
+        #    self.calibrator.detach()
         self.mode = mode
         self.trigger('mode', mode)
         # handle mode transitions
@@ -137,8 +137,8 @@ class MultiLeg(signaler.Signaler):
                 self.set_target()
         elif self.mode == 'leg_pwm':
             self.all_legs('enable_pid', False)
-        elif self.mode == 'leg_calibration':
-            self.calibrator.attach(self.leg)
+        #elif self.mode == 'leg_calibration':
+        #    self.calibrator.attach(self.leg)
         else:
             self.all_legs('stop')
 
@@ -150,11 +150,14 @@ class MultiLeg(signaler.Signaler):
     def set_leg(self, index):
         log.info({"set_leg": index})
         self.leg_index = index
+        # reset restriction modifier for leg
+        if self.leg is not None:
+            self.res.feet[self.leg.leg_number].restriction_modifier = 0.
         if self.leg_index is None:
             self.leg = None
-            if self.mode == 'leg_calibration':
-                # disable calibration
-                self.calibrator.detach()
+            #if self.mode == 'leg_calibration':
+            #    # disable calibration
+            #    self.calibrator.detach()
         else:
             self.leg = self.legs[index]
             if self.mode == 'leg_calibration':
@@ -202,15 +205,15 @@ class MultiLeg(signaler.Signaler):
                 self.all_legs('stop')
                 self.deadman = False
                 self.update_target_until = time.time() - 1.0
-        elif event['name'] == 'square':
-            if self.mode == 'leg_calibration':
-                self.calibrator.set_subroutine('sensors', 'hip')
-        elif event['name'] == 'circle':
-            if self.mode == 'leg_calibration':
-                self.calibrator.set_subroutine('sensors', 'thigh')
-        elif event['name'] == 'cross':
-            if self.mode == 'leg_calibration':
-                self.calibrator.set_subroutine('sensors', 'knee')
+        #elif event['name'] == 'square':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('sensors', 'hip')
+        #elif event['name'] == 'circle':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('sensors', 'thigh')
+        #elif event['name'] == 'cross':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('sensors', 'knee')
         #elif event['name'] == 'triangle':
         #    if self.mode == 'leg_calibration':
         #        self.calibrator.set_subroutine('calf')
@@ -231,6 +234,12 @@ class MultiLeg(signaler.Signaler):
                     self.update_target_until = (
                         self.last_target_update +
                         self.joy.settle_time + self.send_target_dt)
+        if event['name'] == 'cross' and self.mode == 'body_restriction':
+            # add restriction to current leg
+            if self.leg is not None:
+                foot = self.res.feet[self.leg.leg_number]
+                foot.restriction_modifier = event['value'] / 255.
+                print("%s" % foot.restriction_modifier)
 
     def get_axis(self, name, remove_mid=True):
         ax = self.joy.smoothed_axes.get(name)

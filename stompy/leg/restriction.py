@@ -69,6 +69,7 @@ class Foot(signaler.Signaler):
         self.dr_smooth = dr_smooth
         self.xyz = None
         self.angles = None
+        self.restriction_modifier = 0.
 
     def send_plan(self):
         print("res.send_plan: %s" % self.state)
@@ -135,6 +136,8 @@ class Foot(signaler.Signaler):
         cx, cy = self.center
         d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
         r = numpy.exp(-self.r_eps * (d - self.radius))
+        # TODO restriction modifier
+        r += self.restriction_modifier
         if self.restriction is not None:
             pt = self.restriction['time']
             dt = (xyz['time'] - pt)
