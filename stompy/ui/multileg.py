@@ -738,7 +738,35 @@ def load_ui(controller=None):
     tm.add_tab('Leg', LegTab(ui, controller))
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
-    # TODO update tree widget to show values from python
+
+    def set_values(item):
+        if item.columnCount() == 2:
+            parent = item.parent()
+            if parent is not None:
+                parent = str(parent.text(0))
+            attr, value = str(item.text(0)), str(item.text(1))
+            if parent is not None:
+                attr = '.'.join((parent, attr))
+            ts = attr.split('.')
+            obj = controller
+            assert ts[0] == 'controller'
+            ts = ts[1:]
+            while len(ts) > 1:
+                obj = getattr(obj, ts.pop(0))
+                if obj is None:
+                    break
+            if obj is not None:
+                attr = ts[0]
+                if isinstance(obj, dict):
+                    old_value = obj[attr]
+                else:
+                    old_value = getattr(obj, attr)
+                item.setText(1, str(old_value))
+        for i in range(item.childCount()):
+            set_values(item.child(i))
+
+    # update tree widget to show values from python
+    set_values(ui.configTree.invisibleRootItem())
     ui.configTree.resizeColumnToContents(0)
     # listen for configTree changes
 

@@ -72,6 +72,11 @@ class MultiLeg(signaler.Signaler):
                 'body': 48.0,
                 'body_angular': 0.005,
             }
+        if all([
+                isinstance(self.legs[k], leg.teensy.FakeTeensy)
+                for k in self.legs]):
+            self.speeds['leg'] = 18
+            self.speeds['body'] = self.speeds['leg']
         self.speed_scalar = 1.0
         self.speed_step = 0.05
         self.speed_scalar_range = (0.1, 2.0)
@@ -85,7 +90,8 @@ class MultiLeg(signaler.Signaler):
         self.last_xyz = None
         self.joy_smoothing = False
         self.send_target_dt = 0.05
-        self.update_target_until = time.time() - self.joy.settle_time
+        st = getattr(self.joy, 'settle_time', 1.)
+        self.update_target_until = time.time() - st
         self.last_target_update = time.time()
 
         # stop all legs

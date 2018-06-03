@@ -20,10 +20,10 @@ class RestrictionConfig(signaler.Signaler):
     def __init__(self):
         super(RestrictionConfig, self).__init__()
         self.speeds = {
-            'stance': 3.,
-            'lift': 4.,
-            'lower': 4.,
-            'swing': 5.}
+            'stance': 6.,
+            'lift': 12.,
+            'lower': 12.,
+            'swing': 18.}
         self.step_size = 25.
         self.r_thresh = 0.2
         self.r_max = 0.9
