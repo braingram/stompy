@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sat Jun  2 08:59:01 2018
+# Created: Tue Jun  5 07:26:18 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -445,12 +445,6 @@ class Ui_MainWindow(object):
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
-        item_0 = QtGui.QTreeWidgetItem(self.configTree)
-        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
-        item_0 = QtGui.QTreeWidgetItem(self.configTree)
-        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
-        item_0 = QtGui.QTreeWidgetItem(self.configTree)
-        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         self.configTree.header().setCascadingSectionResizes(True)
         self.configTree.header().setStretchLastSection(True)
         self.horizontalLayout_14.addWidget(self.splitter)
@@ -553,12 +547,6 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(4).setText(1, _translate("MainWindow", "0.9", None))
         self.configTree.topLevelItem(5).setText(0, _translate("MainWindow", "controller.res.cfg.max_feet_up", None))
         self.configTree.topLevelItem(5).setText(1, _translate("MainWindow", "0", None))
-        self.configTree.topLevelItem(6).setText(0, _translate("MainWindow", "controller.joy.settle_time", None))
-        self.configTree.topLevelItem(6).setText(1, _translate("MainWindow", "0.5", None))
-        self.configTree.topLevelItem(7).setText(0, _translate("MainWindow", "controller.send_target_dt", None))
-        self.configTree.topLevelItem(7).setText(1, _translate("MainWindow", "0.1", None))
-        self.configTree.topLevelItem(8).setText(0, _translate("MainWindow", "controller.joy_smoothing", None))
-        self.configTree.topLevelItem(8).setText(1, _translate("MainWindow", "False", None))
         self.configTree.setSortingEnabled(__sortingEnabled)
         self.tabs.setTabText(self.tabs.indexOf(self.bodyTab), _translate("MainWindow", "Body", None))
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))

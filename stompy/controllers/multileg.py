@@ -88,11 +88,11 @@ class MultiLeg(signaler.Signaler):
         self.deadman = False
 
         self.last_xyz = None
-        self.joy_smoothing = False
-        self.send_target_dt = 0.05
-        st = getattr(self.joy, 'settle_time', 1.)
-        self.update_target_until = time.time() - st
-        self.last_target_update = time.time()
+        #self.joy_smoothing = False
+        #self.send_target_dt = 0.05
+        #st = getattr(self.joy, 'settle_time', 1.)
+        #self.update_target_until = time.time() - st
+        #self.last_target_update = time.time()
 
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
@@ -204,13 +204,14 @@ class MultiLeg(signaler.Signaler):
                 if self.mode != 'leg_pwm':
                     self.all_legs('enable_pid', True)
                 self.deadman = True
-                self.joy.reset_smoothing(thumb_mid)
+                #self.joy.reset_smoothing(thumb_mid)
+                self.last_xyz = None
                 self.set_target()
             elif not event['value'] and self.deadman:
                 self.all_legs('set_estop', 1)
                 self.all_legs('stop')
                 self.deadman = False
-                self.update_target_until = time.time() - 1.0
+                #self.update_target_until = time.time() - 1.0
         #elif event['name'] == 'square':
         #    if self.mode == 'leg_calibration':
         #        self.calibrator.set_subroutine('sensors', 'hip')
@@ -235,11 +236,11 @@ class MultiLeg(signaler.Signaler):
                 self.set_target()
                 # continue updating target every 0.1 seconds
                 # for another 0.5 seconds
-                self.last_target_update = time.time()
-                if self.joy_smoothing:
-                    self.update_target_until = (
-                        self.last_target_update +
-                        self.joy.settle_time + self.send_target_dt)
+                #self.last_target_update = time.time()
+                #if self.joy_smoothing:
+                #    self.update_target_until = (
+                #        self.last_target_update +
+                #        self.joy.settle_time + self.send_target_dt)
         if event['name'] == 'cross' and self.mode == 'body_restriction':
             # add restriction to current leg
             if self.leg is not None:
@@ -247,16 +248,16 @@ class MultiLeg(signaler.Signaler):
                 foot.restriction_modifier = event['value'] / 255.
                 print("%s" % foot.restriction_modifier)
 
-    def get_axis(self, name, remove_mid=True):
-        ax = self.joy.smoothed_axes.get(name)
-        if ax is None:
-            return 0
-        v = ax.update() - thumb_mid
-        if abs(v) < thumb_db:
-            return 0
-        if v > 0:
-            return v - thumb_db
-        return v + thumb_db
+    #def get_axis(self, name, remove_mid=True):
+    #    ax = self.joy.smoothed_axes.get(name)
+    #    if ax is None:
+    #        return 0
+    #    v = ax.update() - thumb_mid
+    #    if abs(v) < thumb_db:
+    #        return 0
+    #    if v > 0:
+    #        return v - thumb_db
+    #    return v + thumb_db
 
     def set_target(self, xyz=None):
         if xyz is None:
@@ -270,24 +271,24 @@ class MultiLeg(signaler.Signaler):
                     az -= thumb_db
                 else:
                     az += thumb_db
-            if self.joy_smoothing is False or self.mode == 'leg_pwm':
-                ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
-                ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
-                aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
-                ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
-                if abs(ax) < thumb_db:
-                    ax = 0
-                if abs(ay) < thumb_db:
-                    ay = 0
-                if abs(aa) < thumb_db:
-                    aa = 0
-                if abs(ab < thumb_db):
-                    ab = 0
-            else:
-                ax = self.get_axis('thumb_left_x')
-                ay = self.get_axis('thumb_left_y')
-                aa = self.get_axis('thumb_right_x')
-                ab = self.get_axis('thumb_right_y')
+            #if self.joy_smoothing is False or self.mode == 'leg_pwm':
+            ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
+            ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
+            aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
+            ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
+            if abs(ax) < thumb_db:
+                ax = 0
+            if abs(ay) < thumb_db:
+                ay = 0
+            if abs(aa) < thumb_db:
+                aa = 0
+            if abs(ab < thumb_db):
+                ab = 0
+            #else:
+            #    ax = self.get_axis('thumb_left_x')
+            #    ay = self.get_axis('thumb_left_y')
+            #    aa = self.get_axis('thumb_right_x')
+            #    ab = self.get_axis('thumb_right_y')
             #if ax == 0 and ay == 0 and az == 0:
             #    return
             ax = max(-1., min(1., ax / float(thumb_scale)))
@@ -373,13 +374,13 @@ class MultiLeg(signaler.Signaler):
     def update(self):
         if self.joy is not None:
             self.joy.update()
-        if (
-                self.joy_smoothing and
-                self.last_target_update <= self.update_target_until):
-            t = time.time()
-            if (t - self.last_target_update) >= self.send_target_dt:
-                self.set_target()
-                self.last_target_update = t
-        if self.mode == 'leg_calibration':
-            pass
+        #if (
+        #        self.joy_smoothing and
+        #        self.last_target_update <= self.update_target_until):
+        #    t = time.time()
+        #    if (t - self.last_target_update) >= self.send_target_dt:
+        #        self.set_target()
+        #        self.last_target_update = t
+        #if self.mode == 'leg_calibration':
+        #    pass
         self.all_legs('update')

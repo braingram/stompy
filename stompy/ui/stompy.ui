@@ -940,39 +940,6 @@
                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
               </property>
              </item>
-             <item>
-              <property name="text">
-               <string>controller.joy.settle_time</string>
-              </property>
-              <property name="text">
-               <string>0.5</string>
-              </property>
-              <property name="flags">
-               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>controller.send_target_dt</string>
-              </property>
-              <property name="text">
-               <string>0.1</string>
-              </property>
-              <property name="flags">
-               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>controller.joy_smoothing</string>
-              </property>
-              <property name="text">
-               <string>False</string>
-              </property>
-              <property name="flags">
-               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
-              </property>
-             </item>
             </widget>
            </widget>
           </item>
