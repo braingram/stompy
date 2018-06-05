@@ -61,7 +61,7 @@ class MultiLeg(signaler.Signaler):
             'sensor': 1200,
             'leg': 3.0,
             'body': 3.0,
-            'body_angular': 0.005,
+            'body_angular': 0.0005,
         }
         if len(self.legs) == 1 and 7 in self.legs:
             self.speeds = {
@@ -70,7 +70,7 @@ class MultiLeg(signaler.Signaler):
                 'sensor': 48000,
                 'leg': 48.0,
                 'body': 48.0,
-                'body_angular': 0.005,
+                'body_angular': 0.0005,
             }
         if all([
                 isinstance(self.legs[k], leg.teensy.FakeTeensy)
