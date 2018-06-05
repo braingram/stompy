@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 """
+left thumb y: forward/backward speed
+right thumb x: turn
+L1/L2: up/down
+if square is down, crab walk using left thumb x/y
+
 at far distance (1000000) angle is very small
 
 Draw origin and lines along x, y and z
@@ -38,6 +43,7 @@ joy_limits = {}
 app = pyqtgraph.Qt.QtGui.QApplication([])
 win = pyqtgraph.opengl.GLViewWidget()
 #w.opts['distance'] = 20
+win.opts.update(azimuth=-90, distance=10)
 win.show()
 
 #g = gl.GLGridItem()
@@ -80,14 +86,9 @@ for k in scene:
         win.addItem(scene[k])
 
 
-def read_axis(k):
-    a = joy.smoothed_axes.get(k, None)
-    if a is None:
-        v = 0.
-    else:
-        v = a.update() - thumb_mid
+def read_thumb_axis(k):
+    v = joy.axes.get(k, thumb_mid) - thumb_mid
     #print(k, v, joy.axes.get(k, None))
-    #v = joy.smoothed_axes.get(k, thumb_mid) - thumb_mid
     if abs(v) < thumb_db:
         return 0.
     return numpy.sign(v) * min(1.0, (abs(v) - thumb_db) / float(thumb_scale))
@@ -96,20 +97,27 @@ def read_axis(k):
 def update():
     joy.update(max_time=0.05)
 
-    #rt = lambda s: (
-    #    (joy.axes.get(s, thumb_mid) - thumb_mid) / float(thumb_scale))
-    ax = -read_axis('thumb_right_x')
-    ay = -read_axis('thumb_left_y')
-    aa = read_axis('thumb_left_x')
-    ab = -read_axis('thumb_right_y')
+    lx = read_thumb_axis('thumb_left_x')
+    ly = read_thumb_axis('thumb_left_y')
+    rx = read_thumb_axis('thumb_right_x')
+    ry = read_thumb_axis('thumb_right_y')
+
+    l1 = joy.axes.get('one_left', 0.)
+    l2 = joy.axes.get('two_left', 0.)
+
+    #ax = -read_thumb_axis('thumb_right_x')
+    #ay = -read_thumb_axis('thumb_left_y')
+    #aa = read_thumb_axis('thumb_left_x')
+    #ab = -read_thumb_axis('thumb_right_y')
+
+    sb = joy.keys.get('square', False)
 
     pl = joy.keys.get('one_right', False)
     for k in (
             'thumb_left_x', 'thumb_left_y', 'thumb_right_x', 'thumb_right_y'):
-        v = joy.smoothed_axes.get(k, None)
+        v = joy.axes.get(k, None)
         if v is None:
             continue
-        v = v.update()
         if k not in joy_limits:
             joy_limits[k] = {'min': v, 'max': v}
         else:
@@ -125,51 +133,69 @@ def update():
     # -1, 0, 1
     #  0
     #radius = numpy.sign(ax) * (1000000. - 1000000. * numpy.abs(ax))
-    aax = numpy.abs(ax)
-    if numpy.abs(ax) < 0.001:  # sign(0.0) == 0.
-        radius = max_radius
-    else:
-        #radius = numpy.sign(ax) * numpy.log(aax) * 500.
-        #radius = numpy.sign(ax) * (2 + ((1 - aax) ** 50.) * 100000.)
-        radius = (
-            numpy.sign(ax) * max_radius / 2. ** (numpy.log2(max_radius) * aax))
-    #speed = numpy.max([abs(v) for v in [ax, ay, aa, ab]])
-    speed = ay * 3.
-    if abs(radius) < 0.1:
-        rspeed = 0.
-    else:
-        rspeed = speed / radius
-    if pl:
-        print("ax:", ax)
-        print("speed:", speed)
-        print("radius:", radius)
-        print("rspeed:", rspeed)
 
-    # can I crab walk and turn at the same time?
-    # - z could move center of rotation rostral or caudal
-    #cx, cy, cz = (-1000000, 0, 0)
-    cx, cy, cz = (radius, 0, 0)
-    rx, ry, rz = (0, 0, rspeed)
+    if not sb:
+        radius_axis = rx
+        if numpy.abs(radius_axis) < 0.001:  # sign(0.0) == 0.
+            radius = max_radius
+        else:
+            radius = (
+                numpy.sign(radius_axis) * max_radius /
+                2. ** (numpy.log2(max_radius) * numpy.abs(radius_axis)))
+        #speed = numpy.max([abs(v) for v in [ax, ay, aa, ab]])
+        speed_axis = ly
+        speed = speed_axis * 3.
+        if abs(radius) < 0.1:
+            rspeed = 0.
+        else:
+            rspeed = speed / radius
+        if pl:
+            print("speed:", speed)
+            print("radius:", radius)
+            print("rspeed:", rspeed)
 
-    T = stompy.transforms.rotation_about_point_3d(
-        cx, cy, cz, rx, ry, rz)
-    npts = 10
-    rs = 1.0 / npts
-    sT = stompy.transforms.rotation_about_point_3d(
-        cx, cy, cz, rx * rs, ry * rs, rz * rs)
-    tx, ty, tz = stompy.transforms.transform_3d(T, 0, 0, 0)
-    # re-compute target
-    # -- update --
-    scene['start'].setData(pos=numpy.array([[cx, cy, cz], [0, 0, 0]]))
-    scene['end'].setData(pos=numpy.array([[0, 0, 0], [tx, ty, tz]]))
-    # TODO break up arc
-    p = [0, 0, 0]
-    pts = []
-    for _ in xrange(npts):
+        # angle axis
+
+        # can I crab walk and turn at the same time?
+        # - z could move center of rotation rostral or caudal
+        #cx, cy, cz = (-1000000, 0, 0)
+        # kinda works, TODO make this work for small radii
+        rs2 = (l1 - l2) / 255. * rspeed
+        cx, cy, cz = (radius, 0, 0)
+        rx, ry, rz = (0, rs2, rspeed)
+
+        T = stompy.transforms.rotation_about_point_3d(
+            cx, cy, cz, rx, ry, rz)
+        npts = 10
+        rs = 1.0 / npts
+        sT = stompy.transforms.rotation_about_point_3d(
+            cx, cy, cz, rx * rs, ry * rs, rz * rs)
+        tx, ty, tz = stompy.transforms.transform_3d(T, 0, 0, 0)
+        # re-compute target
+        # -- update --
+        scene['start'].setData(pos=numpy.array([[cx, cy, cz], [0, 0, 0]]))
+        scene['end'].setData(pos=numpy.array([[0, 0, 0], [tx, ty, tz]]))
+        # TODO break up arc
+        p = [0, 0, 0]
+        pts = []
+        for _ in xrange(npts):
+            pts.append(p)
+            p = stompy.transforms.transform_3d(sT, *p)
         pts.append(p)
-        p = stompy.transforms.transform_3d(sT, *p)
-    pts.append(p)
-    scene['arc'].setData(pos=numpy.array(pts))
+        scene['arc'].setData(pos=numpy.array(pts))
+    else:  # sb == True
+        tx = lx * 3.
+        ty = ly * -3.
+        tz = (l1 - l2) / 255. * 3.
+        T = stompy.transforms.translation_3d(tx, ty, tz)
+        npts = 10
+        p = [0, 0, 0]
+        pts = []
+        for _ in xrange(npts):
+            pts.append(p)
+            p = stompy.transforms.transform_3d(T, *p)
+        pts.append(p)
+        scene['arc'].setData(pos=numpy.array(pts))
 
 
 t = pyqtgraph.Qt.QtCore.QTimer()
