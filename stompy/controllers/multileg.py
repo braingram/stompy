@@ -87,7 +87,7 @@ class MultiLeg(signaler.Signaler):
             self.joy.on('axis', self.on_axis)
         self.deadman = False
 
-        self.last_xyz = None
+        #self.last_xyz = None
         #self.joy_smoothing = False
         #self.send_target_dt = 0.05
         #st = getattr(self.joy, 'settle_time', 1.)
@@ -205,7 +205,7 @@ class MultiLeg(signaler.Signaler):
                     self.all_legs('enable_pid', True)
                 self.deadman = True
                 #self.joy.reset_smoothing(thumb_mid)
-                self.last_xyz = None
+                #self.last_xyz = None
                 self.set_target()
             elif not event['value'] and self.deadman:
                 self.all_legs('set_estop', 1)
@@ -259,51 +259,52 @@ class MultiLeg(signaler.Signaler):
     #        return v - thumb_db
     #    return v + thumb_db
 
-    def set_target(self, xyz=None):
-        if xyz is None:
-            az = (
-                self.joy.axes.get('one_left', 0) -
-                self.joy.axes.get('two_left', 0))
-            if abs(az) < thumb_db:
-                az = 0
+    def set_target(self):
+        # from joystick
+        az = (
+            self.joy.axes.get('one_left', 0) -
+            self.joy.axes.get('two_left', 0))
+        if abs(az) < thumb_db:
+            az = 0
+        else:
+            if az > 0:
+                az -= thumb_db
             else:
-                if az > 0:
-                    az -= thumb_db
-                else:
-                    az += thumb_db
-            #if self.joy_smoothing is False or self.mode == 'leg_pwm':
-            ax = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
-            ay = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
-            aa = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
-            ab = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
-            if abs(ax) < thumb_db:
-                ax = 0
-            if abs(ay) < thumb_db:
-                ay = 0
-            if abs(aa) < thumb_db:
-                aa = 0
-            if abs(ab < thumb_db):
-                ab = 0
-            #else:
-            #    ax = self.get_axis('thumb_left_x')
-            #    ay = self.get_axis('thumb_left_y')
-            #    aa = self.get_axis('thumb_right_x')
-            #    ab = self.get_axis('thumb_right_y')
-            #if ax == 0 and ay == 0 and az == 0:
-            #    return
-            ax = max(-1., min(1., ax / float(thumb_scale)))
-            ay = max(-1., min(1., -ay / float(thumb_scale)))
-            az = max(-1., min(1., az / 255.))
-            aa = max(-1., min(1., aa / float(thumb_scale)))
-            ab = max(-1., min(1., -ab / float(thumb_scale)))
-            xyz = (ax, ay, az)
-            if self.last_xyz is not None:
-                if (
-                        numpy.sum(numpy.abs(
-                            numpy.array(self.last_xyz) - numpy.array(xyz)))
-                        < 0.01):
-                    return
-            self.last_xyz = xyz
+                az += thumb_db
+        #if self.joy_smoothing is False or self.mode == 'leg_pwm':
+        lx = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
+        ly = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
+        rx = self.joy.axes.get('thumb_right_x', thumb_mid) - thumb_mid
+        ry = self.joy.axes.get('thumb_right_y', thumb_mid) - thumb_mid
+        # TODO remove thumb_db from joystick?
+        if abs(lx) < thumb_db:
+            lx = 0
+        if abs(ly) < thumb_db:
+            ly = 0
+        if abs(rx) < thumb_db:
+            rx = 0
+        if abs(ry < thumb_db):
+            ry = 0
+        #else:
+        #    ax = self.get_axis('thumb_left_x')
+        #    ay = self.get_axis('thumb_left_y')
+        #    aa = self.get_axis('thumb_right_x')
+        #    ab = self.get_axis('thumb_right_y')
+        #if ax == 0 and ay == 0 and az == 0:
+        #    return
+        lx = max(-1., min(1., lx / float(thumb_scale)))
+        ly = max(-1., min(1., -ly / float(thumb_scale)))
+        az = max(-1., min(1., az / 255.))
+        rx = max(-1., min(1., rx / float(thumb_scale)))
+        ry = max(-1., min(1., -ry / float(thumb_scale)))
+        xyz = (lx, ly, az)
+        #if self.last_xyz is not None:
+        #    if (
+        #            numpy.sum(numpy.abs(
+        #                numpy.array(self.last_xyz) - numpy.array(xyz)))
+        #            < 0.01):
+        #        return
+        #self.last_xyz = xyz
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
@@ -369,7 +370,9 @@ class MultiLeg(signaler.Signaler):
             pass
             # TODO
         elif self.mode == 'body_restriction':
-            self.res.set_target(numpy.array(xyz[:2]))
+            # pass in rx, ly, az
+            # also pass in mode for crab walking
+            self.res.set_target(numpy.array([rx, ly, az]))
 
     def update(self):
         if self.joy is not None:

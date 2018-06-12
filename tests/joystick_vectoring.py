@@ -160,9 +160,8 @@ def update():
         # - z could move center of rotation rostral or caudal
         #cx, cy, cz = (-1000000, 0, 0)
         # kinda works, TODO make this work for small radii
-        rs2 = (l1 - l2) / 255. * rspeed
         cx, cy, cz = (radius, 0, 0)
-        rx, ry, rz = (0, rs2, rspeed)
+        rx, ry, rz = (0, 0, rspeed)
 
         T = stompy.transforms.rotation_about_point_3d(
             cx, cy, cz, rx, ry, rz)
@@ -177,11 +176,19 @@ def update():
         scene['end'].setData(pos=numpy.array([[0, 0, 0], [tx, ty, tz]]))
         # TODO break up arc
         p = [0, 0, 0]
+        s = 0
         pts = []
         for _ in xrange(npts):
             pts.append(p)
-            p = stompy.transforms.transform_3d(sT, *p)
+            np = stompy.transforms.transform_3d(sT, *p)
+            s += numpy.sum((numpy.array(np)-numpy.array(p)) ** 2.) ** 0.5
+            p = np
         pts.append(p)
+        if pl:
+            print("speed:", speed)
+            print("radius:", radius)
+            print("rspeed:", rspeed)
+            print("arc length:", s)
         scene['arc'].setData(pos=numpy.array(pts))
     else:  # sb == True
         tx = lx * 3.

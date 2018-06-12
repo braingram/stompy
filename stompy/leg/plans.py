@@ -9,6 +9,8 @@ Some example plans:
         [3, 2, 20, 0, -15, 0., 0., 0., 10.]
 """
 
+import numpy
+
 from .. import consts
 from .. import kinematics
 
@@ -16,12 +18,13 @@ from .. import kinematics
 class Plan(object):
     def __init__(
             self, mode=consts.PLAN_STOP_MODE, frame=consts.PLAN_SENSOR_FRAME,
-            linear=None, angular=None, speed=0.):
+            linear=None, angular=None, matrix=None, speed=0.):
         self.mode = mode
         self.frame = frame
         self.linear = linear
         self.angular = angular
         self.speed = speed
+        self.matrix = matrix
 
     def packed(self, leg_number):
         # convert from body to leg
@@ -34,6 +37,7 @@ class Plan(object):
         else:
             a = self.angular
         f = self.frame
+        m = numpy.matrix(self.matrix)
         if f == consts.PLAN_BODY_FRAME:
             if leg_number in kinematics.body.body_to_leg_transforms:
                 # convert from body to leg
@@ -57,12 +61,28 @@ class Plan(object):
                         leg_number, l[0], l[1], l[2])
                     a = kinematics.body.body_to_leg_rotation(
                         leg_number, a[0], a[1], a[2])
+                elif self.mode == consts.PLAN_MATRIX_MODE:
+                    # combine with body transform
+                    m *= kinematics.body.body_to_leg_transforms[leg_number]
             f = consts.PLAN_LEG_FRAME
-        return [
-            self.mode, f,
-            l[0], l[1], l[2],
-            a[0], a[1], a[2],
-            self.speed]
+        if self.mode == consts.PLAN_STOP_MODE:
+            return [self.mode, f, self.speed]
+        if self.mode in (consts.PLAN_TARGET_MODE, consts.PLAN_VELOCITY_MODE):
+            return [self.mode, f, l[0], l[1], l[2], self.speed]
+        if self.mode == consts.PLAN_ARC_MODE:
+            return [
+                self.mode, f,
+                l[0], l[1], l[2],
+                a[0], a[1], a[2],
+                self.speed]
+        if self.mode == consts.PLAN_MATRIX_MODE:
+            return [
+                self.mode, f,
+                m[0, 0], m[0, 1], m[0, 2], m[0, 3],
+                m[1, 0], m[1, 1], m[1, 2], m[1, 3],
+                m[2, 0], m[2, 1], m[2, 2], m[2, 3],
+                m[3, 0], m[3, 1], m[3, 2], m[3, 3],
+                self.speed]
 
 
 def stop():

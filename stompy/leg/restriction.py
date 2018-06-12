@@ -14,6 +14,10 @@ import numpy
 from .. import consts
 from .. import kinematics
 from .. import signaler
+from .. import transforms
+
+
+max_radius = 100000.
 
 
 class RestrictionConfig(signaler.Signaler):
@@ -72,26 +76,41 @@ class Foot(signaler.Signaler):
         self.restriction_modifier = 0.
 
     def send_plan(self):
-        print("res.send_plan: %s" % self.state)
+        print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
         if self.state is None or self.leg_target is None:
             # TODO always stop on disable?
             self.leg.send_plan(mode=consts.PLAN_STOP_MODE)
         elif self.state in ('stance', 'wait'):
+            #self.leg.send_plan(
+            #    mode=consts.PLAN_VELOCITY_MODE,
+            #    frame=consts.PLAN_LEG_FRAME,
+            #    linear=(-self.leg_target[0], -self.leg_target[1], 0.),
+            #    speed=self.cfg.get_speed('stance'))
             self.leg.send_plan(
-                mode=consts.PLAN_VELOCITY_MODE,
+                mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
-                linear=(-self.leg_target[0], -self.leg_target[1], 0.),
-                speed=self.cfg.get_speed('stance'))
+                #matrix=numpy.matrix(numpy.identity(4)),
+                matrix=self.leg_target,
+                speed=0)
         elif self.state == 'lift':
-            v = self.cfg.get_speed('stance')
+            v = self.cfg.get_speed('lift')
+            T = self.leg_target * transforms.translation_3d(0, 0, v * 0.004)
+            #T = self.leg_target
+            #print(self.leg_target, T)
             self.leg.send_plan(
-                mode=consts.PLAN_VELOCITY_MODE,
+                mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
-                linear=(
-                    -self.leg_target[0] * v,
-                    -self.leg_target[1] * v,
-                    self.cfg.get_speed('lift')),
-                speed=1.)
+                matrix=T,
+                speed=0)
+            #v = self.cfg.get_speed('stance')
+            #self.leg.send_plan(
+            #    mode=consts.PLAN_VELOCITY_MODE,
+            #    frame=consts.PLAN_LEG_FRAME,
+            #    linear=(
+            #        -self.leg_target[0] * v,
+            #        -self.leg_target[1] * v,
+            #       self.cfg.get_speed('lift')),
+            #    speed=1.)
         elif self.state == 'swing':
             z = self.unloaded_height + self.lift_height
             self.leg.send_plan(
@@ -103,25 +122,46 @@ class Foot(signaler.Signaler):
                     z),
                 speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
-            v = self.cfg.get_speed('stance')
+            v = -self.cfg.get_speed('lower')
+            T = self.leg_target * transforms.translation_3d(0, 0, v * 0.004)
             self.leg.send_plan(
-                mode=consts.PLAN_VELOCITY_MODE,
+                mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
-                linear=(
-                    -self.leg_target[0] * v,
-                    -self.leg_target[1] * v,
-                    -self.cfg.get_speed('lower')),
-                speed=1.)
+                matrix=T,
+                speed=0)
+            #v = self.cfg.get_speed('stance')
+            #self.leg.send_plan(
+            #    mode=consts.PLAN_VELOCITY_MODE,
+            #    frame=consts.PLAN_LEG_FRAME,
+            #    linear=(
+            #        -self.leg_target[0] * v,
+            #        -self.leg_target[1] * v,
+            #        -self.cfg.get_speed('lower')),
+            #    speed=1.)
 
-    def set_target(self, xy, update_swing=True):
-        self.body_target = xy
-        lx, ly, _ = kinematics.body.body_to_leg_rotation(
-            self.leg.leg_number, xy[0], xy[1], 0.)
-        self.leg_target = (lx, ly)
+    def set_target(self, R, xyz, update_swing=True):
+        # compute swing target
+        # rx, ly, az
+        # convert rx, ly to rotation about point
+        # convert az to velocity (z)
+        # combine rotation and velocity
+        # R = (radius, speed)
+        #lR = kinematics.body.body_to_leg_matrix(self.leg.leg_number, R)
+        rx, ry, rz = kinematics.body.body_to_leg(
+            self.leg.leg_number, R[0], 0, 0)
+        lR = transforms.rotation_about_point_3d(
+            rx, ry, rz, 0, 0, R[1])
+        self.leg_target = lR
+        #self.body_target = xyz
+        #lx, ly, _ = kinematics.body.body_to_leg_rotation(
+        #    self.leg.leg_number, xyz[0], xyz[1], 0.)
+        #self.leg_target = (lx, ly)
         if update_swing:
-            self.swing_target = (
-                self.center[0] + lx * self.cfg.step_size,
-                self.center[1] + ly * self.cfg.step_size)
+            # TODO optimized swing target
+            self.swing_target = (self.center[0], self.center[1])
+            #self.swing_target = (
+            #    self.center[0] + lx * self.cfg.step_size,
+            #    self.center[1] + ly * self.cfg.step_size)
         self.send_plan()
 
     def set_state(self, state):
@@ -257,10 +297,38 @@ class Body(signaler.Signaler):
         self.cfg.speed_scalar = speed_scalar
         self.set_target(self.target)
 
-    def set_target(self, xy, update_swing=True):
-        self.target = xy
+    def set_target(self, xyz, update_swing=True):
+        self.target = xyz
+        # convert target x (rx) y (ry) to rotation about point
+        radius_axis = xyz[0]
+        if numpy.abs(radius_axis) < 0.001:  # sign(0.0) == 0.
+            radius = max_radius
+        else:
+            radius = (
+                numpy.sign(radius_axis) * max_radius /
+                2. ** (numpy.log2(max_radius) * numpy.abs(radius_axis)))
+        # TODO scale to pid future time ms
+        speed = xyz[1] * self.cfg.get_speed('stance') * 0.004
+        if abs(radius) < 0.1:
+            rspeed = 0.
+        else:
+            # find furthest foot
+            x, y, z = (numpy.abs(radius), 0., 0.)
+            mr = None
+            for i in self.feet:
+                tx, ty, tz = kinematics.body.body_to_leg(i, x, y, z)
+                r = tx * tx + ty * ty + tz * tz
+                if mr is None or r > mr:
+                    mr = r
+            mr = numpy.sqrt(mr)
+            rspeed = speed / mr
+        R = (radius, rspeed)
+        #R = transforms.rotation_about_point_3d(
+        #    radius, 0, 0, 0, 0, rspeed)
+        print("Body matrix:", R)
+        # TODO add up/down T
         for i in self.feet:
-            self.feet[i].set_target(xy, update_swing=update_swing)
+            self.feet[i].set_target(R, xyz, update_swing=update_swing)
 
     def disable(self):
         self.enabled = False
@@ -273,7 +341,7 @@ class Body(signaler.Signaler):
     def halt(self):
         if not self.halted:
             self._pre_halt_target = self.target
-            self.set_target((0., 0.), update_swing=False)
+            self.set_target((0., 0., 0.), update_swing=False)
             self.halted = True
 
     def on_restriction(self, restriction, leg_number):

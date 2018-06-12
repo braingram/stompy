@@ -114,3 +114,7 @@ def body_to_leg_rotation(leg, x, y, z):
 
 def body_to_leg_rotation_array(leg, pts):
     return transforms.transform_3d_array(body_to_leg_rotations[leg], pts)
+
+
+#def body_to_leg_matrix(leg, T):
+#    return numpy.matrix(T) * body_to_leg_transforms[leg]
