@@ -2,6 +2,8 @@
 
 import numpy
 
+from . import consts
+
 
 HIP_LENGTH = 11
 THIGH_LENGTH = 54
@@ -64,3 +66,17 @@ THIGH_MIN_ANGLE = thigh_angle(THIGH_CYLINDER_MIN_LENGTH)
 THIGH_MAX_ANGLE = thigh_angle(THIGH_CYLINDER_MAX_LENGTH)
 KNEE_MIN_ANGLE = knee_angle(KNEE_CYLINDER_MIN_LENGTH)
 KNEE_MAX_ANGLE = knee_angle(KNEE_CYLINDER_MAX_LENGTH)
+
+
+def get_limits(leg_number):
+    if leg_number in (consts.LEG_ML, consts.LEG_MR):
+        hmin = HIP_MIDDLE_MIN_ANGLE
+        hmax = HIP_MIDDLE_MAX_ANGLE
+    else:
+        hmin = HIP_MIN_ANGLE
+        hmax = HIP_MAX_ANGLE
+    return {
+        'hip': (hmin, hmax),
+        'thigh': (THIGH_MIN_ANGLE, THIGH_MAX_ANGLE),
+        'knee': (KNEE_MIN_ANGLE, KNEE_MAX_ANGLE),
+    }

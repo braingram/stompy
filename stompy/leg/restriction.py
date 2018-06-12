@@ -12,6 +12,7 @@ import time
 import numpy
 
 from .. import consts
+from .. import geometry
 from .. import kinematics
 from .. import signaler
 from .. import transforms
@@ -43,13 +44,14 @@ class RestrictionConfig(signaler.Signaler):
 class Foot(signaler.Signaler):
     def __init__(
             self, leg, cfg,
-            radius=20, eps=0.1, center=(55., 0.), dr_smooth=0.5,
+            radius=20, eps=0.9, center=(55., 0.), dr_smooth=0.5,
             close_enough=5., lift_height=8.0, lower_height=-50.0,
             height_slop=10.,
             unloaded_weight=600, loaded_weight=300):
         super(Foot, self).__init__()
         self.leg = leg
         self.cfg = cfg
+        self.limits = geometry.get_limits(self.leg.leg_number)
         self.leg.on('xyz', self.on_xyz)
         self.leg.on('angles', self.on_angles)
         self.radius = radius
@@ -172,10 +174,23 @@ class Foot(signaler.Signaler):
         self.send_plan()
         self.trigger('state', state)
 
-    def calculate_restriction(self, xyz):
-        cx, cy = self.center
-        d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
-        r = numpy.exp(-self.r_eps * (d - self.radius))
+    def calculate_restriction(self, xyz, angles):
+        # use angle limits
+        r = 0
+        for j in ('hip', 'thigh', 'knee'):
+            jmin, jmax = self.limits[j]
+            jmid = (jmax + jmin) / 2.
+            if angles[j] > jmid:
+                jl = angles[j] - jmax
+            else:
+                jl = jmin - angles[j]
+            r = max(min(1.0, numpy.exp(self.eps * jl)), r)
+            #if self.leg.leg_number == 1:
+            #    print(j, jl, r)
+        # TODO use calf angle
+        #cx, cy = self.center
+        #d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
+        #r = numpy.exp(-self.r_eps * (d - self.radius))
         # TODO restriction modifier
         r += self.restriction_modifier
         if self.restriction is not None:
@@ -210,7 +225,7 @@ class Foot(signaler.Signaler):
 
     def update(self):
         # TODO if angles['valid'] is False?
-        self.calculate_restriction(self.xyz)
+        self.calculate_restriction(self.xyz, self.angles)
         new_state = None
         if self.state is None:  # restriction control is disabled
             self.xyz = None

@@ -420,6 +420,8 @@ class LegTab(Tab):
                 'xyz', self.on_xyz)
             self.controller.legs[self._last_leg_index].remove_on(
                 'adc', self.on_adc)
+            self.controller.res.feet[self._last_leg_index].remove_on(
+                'restriction', self.on_restriction)
         super(LegTab, self).set_leg_index(index)  # update index
         if index is not None:
             self.controller.leg.on(
@@ -428,6 +430,8 @@ class LegTab(Tab):
                 'xyz', self.on_xyz)
             self.controller.leg.on(
                 'adc', self.on_adc)
+            self.controller.res.feet[self._last_leg_index].on(
+                'restriction', self.on_restriction)
 
     def on_gl_menu(self, point):
         self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
@@ -484,7 +488,9 @@ class LegTab(Tab):
         self.ui.legXLineEdit.setText('%0.2f' % xyz['x'])
         self.ui.legYLineEdit.setText('%0.2f' % xyz['y'])
         self.ui.legZLineEdit.setText('%0.2f' % xyz['z'])
-        # TODO restriction?
+
+    def on_restriction(self, r):
+        self.ui.legRLineEdit.setText('%0.2f' % r['r'])
 
     def on_adc(self, adc):
         self.ui.hipADCProgress.setValue(adc['hip'])
@@ -628,6 +634,9 @@ class BodyTab(Tab):
                 'angles', lambda a, i=leg_number: self.on_angles(a, i))
             self.controller.legs[leg_number].on(
                 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+            self.controller.res.feet[leg_number].on(
+                'restriction',
+                lambda a, i=leg_number: self.on_restriction(a, i))
         self.show_top_view()
 
     def on_gl_menu(self, point):
@@ -676,6 +685,9 @@ class BodyTab(Tab):
             angles['calf'])
 
     def on_xyz(self, xyz, leg_number):
+        pass
+
+    def on_restriction(self, res, leg_number):
         # TODO restriction?
         pass
 
