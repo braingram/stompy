@@ -68,7 +68,8 @@ class Plan(object):
         if self.mode == consts.PLAN_STOP_MODE:
             return [self.mode, f, self.speed]
         if self.mode in (consts.PLAN_TARGET_MODE, consts.PLAN_VELOCITY_MODE):
-            return [self.mode, f, l[0], l[1], l[2], self.speed]
+            return [
+                self.mode, f, l[0], l[1], l[2], self.speed]
         if self.mode == consts.PLAN_ARC_MODE:
             return [
                 self.mode, f,
@@ -83,6 +84,7 @@ class Plan(object):
                 m[2, 0], m[2, 1], m[2, 2], m[2, 3],
                 m[3, 0], m[3, 1], m[3, 2], m[3, 3],
                 self.speed]
+        raise Exception("Unknown mode: %s" % self.mode)
 
 
 def stop():
