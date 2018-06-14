@@ -28,8 +28,8 @@ cmds = {
     0: 'heartbeat',
     1: 'estop(byte)=byte',  # 0 = off, 1 = soft, 2 = hard
     2: 'pwm(float,float,float)=float,float,float',  # hip thigh knee
-    3: 'plan(byte,byte,float,float,float,float,float,float,float)='
-       'byte,byte,float,float,float,float,float,float,float',
+    3: 'plan(byte,byte,float,float,float,float,float,float,float,'
+       'float,float,float,float,float,float,float,float,float,float)',
     4: 'enable_pid(bool)=bool',
     5: 'pid_config(byte,float,float,float,float,float)='
        'byte,float,float,float,float,float',
@@ -367,7 +367,7 @@ class Teensy(LegController):
 
     def send_plan(self, *args, **kwargs):
         pp = self._pack_plan(*args, **kwargs)
-        #print("plan: %s" % pp)
+        print("plan: %s" % pp)
         self.log.info({'plan': pp})
         self.trigger('plan', pp)
         self.mgr.trigger('plan', *pp)
