@@ -181,7 +181,8 @@ class FakeTeensy(LegController):
             m = pp[0]
             f = pp[1]
             s = pp[-1]
-            matrix = numpy.matrix(numpy.reshape(pp[2:-1], (4, 4)))
+            matrix = numpy.matrix(numpy.identity(4))
+            matrix[:3, :] = numpy.matrix(numpy.reshape(pp[2:-1], (3, 4)))
             p = plans.Plan(m, f, matrix=matrix, speed=s)
         if m != consts.PLAN_STOP_MODE:
             if f != consts.PLAN_LEG_FRAME:
@@ -339,6 +340,14 @@ class Teensy(LegController):
         logger.debug("%s Get leg number" % port)
         ln = self.mgr.blocking_trigger('leg_number')[0].value
         super(Teensy, self).__init__(ln)
+
+        self._text = pycomando.protocols.text.TextProtocol()
+
+        def print_text(txt, leg_number=ln):
+            print("DEBUG[%s]:%s" % (leg_number, txt))
+
+        self._text.register_callback(print_text)
+        self.com.register_protocol(1, self._text)
 
         # load calibration setup
         for v in calibration.setup.get(self.leg_number, []):

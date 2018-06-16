@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Jun  5 07:26:18 2018
+# Created: Sat Jun 16 08:32:46 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -437,6 +437,7 @@ class Ui_MainWindow(object):
         item_1.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_1 = QtGui.QTreeWidgetItem(item_0)
         item_1.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
+        item_1 = QtGui.QTreeWidgetItem(item_0)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
@@ -529,7 +530,7 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(0).child(3).setText(0, _translate("MainWindow", "body", None))
         self.configTree.topLevelItem(0).child(3).setText(1, _translate("MainWindow", "3.0", None))
         self.configTree.topLevelItem(0).child(4).setText(0, _translate("MainWindow", "body_angular", None))
-        self.configTree.topLevelItem(0).child(4).setText(1, _translate("MainWindow", "0.005", None))
+        self.configTree.topLevelItem(0).child(4).setText(1, _translate("MainWindow", "0.0005", None))
         self.configTree.topLevelItem(1).setText(0, _translate("MainWindow", "controller.res.cfg.speeds", None))
         self.configTree.topLevelItem(1).child(0).setText(0, _translate("MainWindow", "lift", None))
         self.configTree.topLevelItem(1).child(0).setText(1, _translate("MainWindow", "4.0", None))
@@ -539,6 +540,8 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(1).child(2).setText(1, _translate("MainWindow", "3.0", None))
         self.configTree.topLevelItem(1).child(3).setText(0, _translate("MainWindow", "swing", None))
         self.configTree.topLevelItem(1).child(3).setText(1, _translate("MainWindow", "4.0", None))
+        self.configTree.topLevelItem(1).child(4).setText(0, _translate("MainWindow", "angular", None))
+        self.configTree.topLevelItem(1).child(4).setText(1, _translate("MainWindow", "0.0005", None))
         self.configTree.topLevelItem(2).setText(0, _translate("MainWindow", "controller.res.cfg.step_size", None))
         self.configTree.topLevelItem(2).setText(1, _translate("MainWindow", "25", None))
         self.configTree.topLevelItem(3).setText(0, _translate("MainWindow", "controller.res.cfg.r_thresh", None))

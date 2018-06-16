@@ -28,7 +28,8 @@ class RestrictionConfig(signaler.Signaler):
             'stance': 6.,
             'lift': 6.,
             'lower': 6.,
-            'swing': 12.}
+            'swing': 12.,
+            'angular': 0.0005}
         self.step_size = 25.
         self.r_thresh = 0.2
         self.r_max = 0.9
@@ -336,7 +337,10 @@ class Body(signaler.Signaler):
                 if mr is None or r > mr:
                     mr = r
             mr = numpy.sqrt(mr)
-            rspeed = speed / mr
+            rspeed = speed / mr * numpy.sign(radius)
+            if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
+                rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
+            print(mr, speed, rspeed)
         R = (radius, rspeed)
         #R = transforms.rotation_about_point_3d(
         #    radius, 0, 0, 0, 0, rspeed)
