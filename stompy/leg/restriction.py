@@ -35,6 +35,15 @@ class RestrictionConfig(signaler.Signaler):
         self.r_max = 0.9
         self.max_feet_up = 0
         self.speed_scalar = 1.
+        self.height_slop = 5.
+        self.foot_center = (55., 0.)
+        self.dr_smooth = 0.5
+        self.eps = 0.9
+        self.lift_height = 8.0
+        self.lower_height = -50.0
+        self.unloaded_weight = 600.
+        self.loaded_weight = 300.
+        self.swing_slop = 5.0
 
     def get_speed(self, mode):
         if mode not in self.speeds:
@@ -45,35 +54,37 @@ class RestrictionConfig(signaler.Signaler):
 class Foot(signaler.Signaler):
     def __init__(
             self, leg, cfg,
-            radius=20, eps=0.9, center=(55., 0.), dr_smooth=0.5,
-            close_enough=5., lift_height=8.0, lower_height=-50.0,
-            height_slop=10.,
-            unloaded_weight=600, loaded_weight=300):
+            #radius=20, eps=0.9, center=(55., 0.), dr_smooth=0.5,
+            #eps=0.9, center=(55., 0.), dr_smooth=0.5,
+            #close_enough=5., lift_height=8.0, lower_height=-50.0,
+            #height_slop=5.,
+            #unloaded_weight=600, loaded_weight=300):
+            ):
         super(Foot, self).__init__()
         self.leg = leg
         self.cfg = cfg
         self.limits = geometry.get_limits(self.leg.leg_number)
         self.leg.on('xyz', self.on_xyz)
         self.leg.on('angles', self.on_angles)
-        self.radius = radius
-        self.eps = eps
-        self.r_eps = numpy.log(eps) / self.radius
-        self.center = center
+        #self.radius = radius
+        #self.eps = eps
+        #self.r_eps = numpy.log(eps) / self.radius
+        #self.center = center
         self.last_lift_time = time.time()
         self.leg_target = None
         self.body_target = None
         self.swing_target = None
-        self.lift_height = lift_height
+        #self.lift_height = lift_height
         self.unloaded_height = None
-        self.height_slop = height_slop
-        self.unloaded_weight = unloaded_weight
-        self.loaded_weight = loaded_weight
-        self.lower_height = lower_height
-        self.close_enough = close_enough
+        #self.height_slop = height_slop
+        #self.unloaded_weight = unloaded_weight
+        #self.loaded_weight = loaded_weight
+        #self.lower_height = lower_height
+        #self.close_enough = close_enough
         # stance -> lift -> swing -> lower -> wait
         self.state = None
         self.restriction = None
-        self.dr_smooth = dr_smooth
+        #self.dr_smooth = dr_smooth
         self.xyz = None
         self.angles = None
         self.restriction_modifier = 0.
@@ -115,7 +126,7 @@ class Foot(signaler.Signaler):
             #       self.cfg.get_speed('lift')),
             #    speed=1.)
         elif self.state == 'swing':
-            z = self.unloaded_height + self.lift_height
+            z = self.unloaded_height + self.cfg.lift_height
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -161,7 +172,8 @@ class Foot(signaler.Signaler):
         #self.leg_target = (lx, ly)
         if update_swing:
             # TODO optimized swing target
-            self.swing_target = (self.center[0], self.center[1])
+            self.swing_target = (
+                self.cfg.foot_center[0], self.cfg.foot_center[1])
             #self.swing_target = (
             #    self.center[0] + lx * self.cfg.step_size,
             #    self.center[1] + ly * self.cfg.step_size)
@@ -185,7 +197,7 @@ class Foot(signaler.Signaler):
                 jl = angles[j] - jmax
             else:
                 jl = jmin - angles[j]
-            r = max(min(1.0, numpy.exp(self.eps * jl)), r)
+            r = max(min(1.0, numpy.exp(self.cfg.eps * jl)), r)
             #if self.leg.leg_number == 1:
             #    print(j, jl, r)
         # TODO use calf angle
@@ -199,8 +211,8 @@ class Foot(signaler.Signaler):
             dt = (xyz['time'] - pt)
             idr = (r - self.restriction['r']) / dt
             dr = (
-                self.restriction['dr'] * self.dr_smooth +
-                idr * (1. - self.dr_smooth))
+                self.restriction['dr'] * self.cfg.dr_smooth +
+                idr * (1. - self.cfg.dr_smooth))
         else:  # first update
             idr = 0.
             dr = 0.
@@ -212,7 +224,7 @@ class Foot(signaler.Signaler):
         tx, ty = self.swing_target
         d = ((tx - xyz['x']) ** 2. + (ty - xyz['y']) ** 2.) ** 0.5
         # TODO also check for increase in distance
-        return d < self.close_enough
+        return d < self.cfg.swing_slop
 
     def on_xyz(self, xyz):
         self.xyz = xyz
@@ -240,9 +252,9 @@ class Foot(signaler.Signaler):
             #if self.xyz['z'] < self.lower_height:
             if (
                     (
-                        abs(self.xyz['z'] - self.lower_height) <
-                        self.height_slop) and
-                    self.angles['calf'] > self.loaded_weight):
+                        abs(self.xyz['z'] - self.cfg.lower_height) <
+                        self.cfg.height_slop) and
+                    self.angles['calf'] > self.cfg.loaded_weight):
                 new_state = 'wait'
         elif self.state == 'wait':
             if self.restriction['dr'] > 0:
@@ -252,11 +264,11 @@ class Foot(signaler.Signaler):
             # check for unloaded and >Z inches off ground
             if (
                     self.unloaded_height is None and
-                    self.angles['calf'] < self.unloaded_weight):
+                    self.angles['calf'] < self.cfg.unloaded_weight):
                 self.unloaded_height = self.xyz['z']
             if (
                     self.unloaded_height is not None and
-                    self.xyz['z'] > (self.unloaded_height + self.lift_height)):
+                    self.xyz['z'] > (self.unloaded_height + self.cfg.lift_height)):
                 new_state = 'swing'
             #if self.xyz['z'] > self.lift_height:
             #    new_state = 'swing'
