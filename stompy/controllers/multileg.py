@@ -118,7 +118,7 @@ class MultiLeg(signaler.Signaler):
         print("Leg estop: %s, %s" % (leg_number, value))
         if value:
             for i in self.legs:
-                if i != leg_number:
+                if i != leg_number and self.legs[i].estop == consts.ESTOP_OFF:
                     self.legs[i].set_estop(value)
 
     def set_mode(self, mode):
