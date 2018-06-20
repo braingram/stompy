@@ -36,7 +36,7 @@ class RestrictionConfig(signaler.Signaler):
         self.max_feet_up = 0
         self.speed_scalar = 1.
         self.height_slop = 5.
-        self.foot_center = (55., 0.)
+        self.foot_center = {'x': 55., 'y': 0.}
         self.dr_smooth = 0.5
         self.eps = 0.9
         self.lift_height = 8.0
@@ -173,7 +173,7 @@ class Foot(signaler.Signaler):
         if update_swing:
             # TODO optimized swing target
             self.swing_target = (
-                self.cfg.foot_center[0], self.cfg.foot_center[1])
+                self.cfg.foot_center['x'], self.cfg.foot_center['y'])
             #self.swing_target = (
             #    self.center[0] + lx * self.cfg.step_size,
             #    self.center[1] + ly * self.cfg.step_size)
@@ -268,7 +268,8 @@ class Foot(signaler.Signaler):
                 self.unloaded_height = self.xyz['z']
             if (
                     self.unloaded_height is not None and
-                    self.xyz['z'] > (self.unloaded_height + self.cfg.lift_height)):
+                    self.xyz['z'] > (
+                        self.unloaded_height + self.cfg.lift_height)):
                 new_state = 'swing'
             #if self.xyz['z'] > self.lift_height:
             #    new_state = 'swing'
@@ -407,6 +408,27 @@ class Body(signaler.Signaler):
             n_states = [states[n] for n in ns]
             ns_up = len([s for s in n_states if s not in ('stance', 'wait')])
             # TODO check if any other feet are restricted:
+            #other_restricted = []
+            last_lift_times = {}
+            for ln in self.feet:
+                if ln == leg_number:
+                    last_lift_times[ln] = self.feet[ln].last_lift_time
+                    continue
+                if states[ln] not in ('stance', 'wait'):
+                    continue
+                if self.feet[ln].restriction['r'] > self.cfg.r_thresh:
+                    # found another restricted foot
+                    #other_restricted.append(ln)
+                    last_lift_times[ln] = self.feet[ln].last_lift_time
             #  yes? pick least recently lifted
             if ns_up == 0 and n_up < self.cfg.max_feet_up:
-                self.feet[leg_number].set_state('lift')
+                n_can_lift = self.cfg.max_feet_up - n_up
+                if len(last_lift_times) > n_can_lift:
+                    # only allow this foot if it was moved later than
+                    # the other restricted feet
+                    ln_by_lt = sorted(
+                        last_lift_times, key=lambda ln: last_lift_times[ln])
+                    if leg_number in ln_by_lt[:n_can_lift+1]:
+                        self.feet[leg_number].set_state('lift')
+                else:
+                    self.feet[leg_number].set_state('lift')
