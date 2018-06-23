@@ -53,13 +53,7 @@ class RestrictionConfig(signaler.Signaler):
 
 class Foot(signaler.Signaler):
     def __init__(
-            self, leg, cfg,
-            #radius=20, eps=0.9, center=(55., 0.), dr_smooth=0.5,
-            #eps=0.9, center=(55., 0.), dr_smooth=0.5,
-            #close_enough=5., lift_height=8.0, lower_height=-50.0,
-            #height_slop=5.,
-            #unloaded_weight=600, loaded_weight=300):
-            ):
+            self, leg, cfg):
         super(Foot, self).__init__()
         self.leg = leg
         self.cfg = cfg

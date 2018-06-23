@@ -77,6 +77,38 @@ def circle_intersection(c0, c1):
     return ((x3p, y3p), (x3n, y3n))
 
 
+def circle_line_segment_intersection(c, l0, l1):
+    # l0 = (x, y)
+    # c['center'](x, y), c['radius']
+    cxy = numpy.array(c['center'])  # q
+    cr = c['radius']  # r
+    l0 = numpy.array(l0)  # p1
+    l1 = numpy.array(l1)  # p2
+    v = l1 - l0  # v
+    a = numpy.dot(v, v)
+    b = 2. * numpy.dot(v, (l0 - cxy))
+    c = (
+        numpy.dot(l0, l0) + numpy.dot(cxy, cxy) -
+        2. * numpy.dot(l0, cxy) - (cr * cr))
+
+    #t = (-b +- sqrt(b ** 2 - 4ac)) / 2a
+    disc = (b * b) - 4 * a * c
+    if disc < 0:
+        return None, None
+    disc = numpy.sqrt(disc)
+    t0 = (-b + disc) / (2. * a)
+    t1 = (-b - disc) / (2. * a)
+    if 0 <= t0 <= 1:
+        t0 = l0 + t0 * (l1 - l0)
+    else:
+        t0 = None
+    if 0 <= t1 <= 1:
+        t1 = l0 + t1 * (l1 - l0)
+    else:
+        t1 = None
+    return t0, t1
+
+
 def circle_point_at_y(c, y):
     # (x - cx) ** 2 + (y - cy) ** 2 = r ** 2
     cx, cy = c['center']
