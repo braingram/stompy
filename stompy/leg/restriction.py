@@ -21,6 +21,73 @@ from .. import transforms
 max_radius = 100000.
 
 
+def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
+    # if len(ipts) == 0, return to center?
+    if len(ipts) == 0:
+        return c0
+    # if rspeed > 0: rotating clockwise, find point counterclockwise to 0
+    # if rspeed < 0: rotating counterclockwise, find point clockwise to 0
+    tc = numpy.array(tc)
+    cv = numpy.array(c0) - tc
+    cvn = cv / numpy.linalg.norm(cv)
+    ma = None
+    mi = None
+    mas = None
+    for i in ipts:
+        iv = numpy.array(i) - tc
+        ivn = iv / numpy.linalg.norm(iv)
+        #a = numpy.arctan2(
+        #    numpy.linalg.norm(numpy.cross(iv, cv)), numpy.dot(iv, cv))
+        angle_sign = numpy.sign(numpy.cross(ivn, cvn))
+        if numpy.sign(rspeed) != angle_sign:
+            continue
+        a = numpy.arccos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
+        if ma is None or a < ma:
+            ma = a
+            mi = i
+            mas = angle_sign
+        #a = numpy.arccos(
+        #    numpy.dot(iv, cv) /
+        #    (numpy.linalg.norm(iv) * numpy.linalg.norm(cv)))
+        print(i, a)
+    if ma is None:
+        return c0
+    #return mi
+    pa = -mas * ma * step_ratio
+    # rotate vector from tc to c0 (cv) by angle pa
+    ca = numpy.cos(pa)
+    sa = numpy.sin(pa)
+    x, y = cv
+    return (
+        x * ca - y * sa + tc[0],
+        x * sa + y * ca + tc[1])
+
+
+def calculate_swing_target(
+        tx, ty, z, leg_number, rspeed, step_ratio,
+        min_hip_distance=None):
+    # get x with vertical calf
+    # vertical calf doesn't work with z > -19 or z < -75,
+    # I don't think we can walk with
+    # legs this high/low anyway
+    # TODO cache these, they're used >1 time
+    l, r = kinematics.leg.limits_at_z_2d(z)
+    c0x = kinematics.leg.x_with_vertical_calf(z)
+    if c0x <= l or c0x >= r:
+        c0x, _ = kinematics.leg.xy_center_at_z(z)
+    # calculate target movement circle using center of tx, ty
+    #tc = target_circle(tx, ty, c0x, 0.)
+    tc = {
+        'center': (tx, ty),
+        'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - 0.) ** 2.),
+    }
+    ipts = kinematics.leg.limit_intersections(
+        tc, z, leg_number, min_hip_distance=min_hip_distance)
+    sp = swing_position_from_intersections(
+        [tx, ty], rspeed, [c0x, 0], ipts, step_ratio)
+    return sp
+
+
 class RestrictionConfig(signaler.Signaler):
     def __init__(self):
         super(RestrictionConfig, self).__init__()
@@ -44,6 +111,8 @@ class RestrictionConfig(signaler.Signaler):
         self.unloaded_weight = 600.
         self.loaded_weight = 300.
         self.swing_slop = 5.0
+        self.step_ratio = 0.8
+        self.min_hip_distance = 15.0
 
     def get_speed(self, mode):
         if mode not in self.speeds:
@@ -68,6 +137,7 @@ class Foot(signaler.Signaler):
         self.leg_target = None
         self.body_target = None
         self.swing_target = None
+        self.swing_info = None
         #self.lift_height = lift_height
         self.unloaded_height = None
         #self.height_slop = height_slop
@@ -121,12 +191,17 @@ class Foot(signaler.Signaler):
             #    speed=1.)
         elif self.state == 'swing':
             z = self.unloaded_height + self.cfg.lift_height
+            rx, ry, rspeed = self.swing_info
+            sp = calculate_swing_target(
+                rx, ry, z, self.leg.leg_number, rspeed, self.cfg.step_ratio,
+                min_hip_distance=self.cfg.min_hip_distance)
+            self.swing_target = sp[0], sp[1]
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 linear=(
-                    self.swing_target[0],
-                    self.swing_target[1],
+                    sp[0],
+                    sp[1],
                     z),
                 speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
@@ -166,8 +241,14 @@ class Foot(signaler.Signaler):
         #self.leg_target = (lx, ly)
         if update_swing:
             # TODO optimized swing target
-            self.swing_target = (
-                self.cfg.foot_center['x'], self.cfg.foot_center['y'])
+            #self.swing_target = (
+            #    self.cfg.foot_center['x'], self.cfg.foot_center['y'])
+            # I won't know z until the leg is lifted
+            #sp = calculate_swing_target(
+            #    rx, ry, z, self.leg.leg_number, R[1], self.cfg.step_ratio,
+            #    min_hip_distance=self.cfg.min_hip_distance)
+            self.swing_info = (rx, ry, R[1])
+            self.swing_target = None
             #self.swing_target = (
             #    self.center[0] + lx * self.cfg.step_size,
             #    self.center[1] + ly * self.cfg.step_size)

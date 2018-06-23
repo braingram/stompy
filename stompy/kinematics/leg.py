@@ -6,6 +6,20 @@ from .. import consts
 from .. import geometry
 
 
+def xy_center_at_z(z):
+    l, r = limits_at_z_2d(z)
+    return ((l + r) / 2., 0.)
+
+
+def x_with_vertical_calf(z):
+    return (
+        geometry.HIP_LENGTH +
+        geometry.THIGH_LENGTH *
+        numpy.sqrt(1 - ((
+            z + geometry.KNEE_LENGTH) /
+            geometry.THIGH_LENGTH) ** 2.))
+
+
 def angles_to_calf_angle(hip, thigh, knee):
     _, p1, p2 = angles_to_points(hip, thigh, knee)
     dx = p2[0] - p1[0]
@@ -221,3 +235,56 @@ def limits_at_z_3d(z, leg_number, n_slices=11, wrap=True):
     if wrap:
         return pts[::2] + pts[1::2][::-1] + [pts[0], ]
     return pts
+
+
+def limit_intersections(c, z, leg_number, min_hip_distance=None):
+    # get 'left' [closest to hip] and 'right' circles
+    # get hip limits (sets +-y angle)
+    # TODO account for z translation
+    l, r = limits_at_z_2d(z)
+    # if l is too close to hip, extend it out
+    if min_hip_distance is not None:
+        l = max(l, min_hip_distance)
+    lc = {'center': (0, 0), 'radius': l}
+    rc = {'center': (0, 0), 'radius': r}
+    # intersection with hip lines
+    if leg_number in consts.MIDDLE_LEGS:
+        hmin, hmax = (
+            geometry.HIP_MIDDLE_MIN_ANGLE,
+            geometry.HIP_MIDDLE_MAX_ANGLE)
+    else:
+        hmin, hmax = (
+            geometry.HIP_MIN_ANGLE,
+            geometry.HIP_MAX_ANGLE)
+
+    camin = numpy.cos(hmin)
+    samin = numpy.sin(hmin)
+    camax = numpy.cos(hmax)
+    samax = numpy.sin(hmax)
+    min_lix, min_liy = camin * l, samin * l
+    min_rix, min_riy = camin * r, samin * r
+    max_lix, max_liy = camax * l, samax * l
+    max_rix, max_riy = camax * r, samax * r
+    min_ci = circle_intersection(c, lc)
+    max_ci = circle_intersection(c, rc)
+    min_li0, min_li1 = circle_line_segment_intersection(
+        c, [min_lix, min_liy], [min_rix, min_riy])
+    max_li0, max_li1 = circle_line_segment_intersection(
+        c, [max_lix, max_liy], [max_rix, max_riy])
+    ipts = []
+    for v in (min_li0, min_li1, max_li0, max_li1):
+        if v is not None:
+            ipts.append(v)
+    for ci in (min_ci, max_ci):
+        if ci is not None:
+            for p in ci:
+                if p is None:
+                    continue
+                x, y = p
+                # calculate angle from 0, 0 to x, y
+                # if angle is withing min/max, keep
+                # tan(theta) = y / x
+                a = numpy.arctan2(y, x)
+                if hmin <= a <= hmax:
+                    ipts.append(p)
+    return ipts
