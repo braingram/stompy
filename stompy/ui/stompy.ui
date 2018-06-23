@@ -1069,6 +1069,28 @@
                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
               </property>
              </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.step_ratio</string>
+              </property>
+              <property name="text">
+               <string>0.8</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.min_hip_distance</string>
+              </property>
+              <property name="text">
+               <string>15.0</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
             </widget>
            </widget>
           </item>

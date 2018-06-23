@@ -102,16 +102,16 @@ class RestrictionConfig(signaler.Signaler):
         self.r_max = 0.9
         self.max_feet_up = 0
         self.speed_scalar = 1.
-        self.height_slop = 5.
+        self.height_slop = 3.
         self.foot_center = {'x': 55., 'y': 0.}
         self.dr_smooth = 0.5
         self.eps = 0.9
         self.lift_height = 8.0
-        self.lower_height = -50.0
+        self.lower_height = -55.0
         self.unloaded_weight = 600.
         self.loaded_weight = 300.
         self.swing_slop = 5.0
-        self.step_ratio = 0.8
+        self.step_ratio = 0.6
         self.min_hip_distance = 15.0
 
     def get_speed(self, mode):

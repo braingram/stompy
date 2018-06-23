@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Jun 19 21:05:53 2018
+# Created: Sat Jun 23 14:58:58 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -468,6 +468,10 @@ class Ui_MainWindow(object):
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
+        item_0 = QtGui.QTreeWidgetItem(self.configTree)
+        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
+        item_0 = QtGui.QTreeWidgetItem(self.configTree)
+        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         self.configTree.header().setCascadingSectionResizes(True)
         self.configTree.header().setStretchLastSection(True)
         self.horizontalLayout_14.addWidget(self.splitter)
@@ -593,6 +597,10 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(13).setText(1, _translate("MainWindow", "300.", None))
         self.configTree.topLevelItem(14).setText(0, _translate("MainWindow", "controller.res.cfg.swing_slop", None))
         self.configTree.topLevelItem(14).setText(1, _translate("MainWindow", "5.", None))
+        self.configTree.topLevelItem(15).setText(0, _translate("MainWindow", "controller.res.cfg.step_ratio", None))
+        self.configTree.topLevelItem(15).setText(1, _translate("MainWindow", "0.8", None))
+        self.configTree.topLevelItem(16).setText(0, _translate("MainWindow", "controller.res.cfg.min_hip_distance", None))
+        self.configTree.topLevelItem(16).setText(1, _translate("MainWindow", "15.0", None))
         self.configTree.setSortingEnabled(__sortingEnabled)
         self.tabs.setTabText(self.tabs.indexOf(self.bodyTab), _translate("MainWindow", "Body", None))
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))
