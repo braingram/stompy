@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Jun 24 09:17:20 2018
+# Created: Sun Jun 24 16:04:43 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -304,8 +304,9 @@ class Ui_MainWindow(object):
         self.label_34.setObjectName(_fromUtf8("label_34"))
         self.horizontalLayout_28.addWidget(self.label_34)
         self.pidErrorThresholdSpin = QtGui.QDoubleSpinBox(self.PIDTab)
-        self.pidErrorThresholdSpin.setDecimals(4)
-        self.pidErrorThresholdSpin.setSingleStep(0.1)
+        self.pidErrorThresholdSpin.setDecimals(0)
+        self.pidErrorThresholdSpin.setMaximum(65535.0)
+        self.pidErrorThresholdSpin.setSingleStep(1.0)
         self.pidErrorThresholdSpin.setObjectName(_fromUtf8("pidErrorThresholdSpin"))
         self.horizontalLayout_28.addWidget(self.pidErrorThresholdSpin)
         self.verticalLayout_4.addLayout(self.horizontalLayout_28)
@@ -492,7 +493,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.modesMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(3)
+        self.tabs.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
