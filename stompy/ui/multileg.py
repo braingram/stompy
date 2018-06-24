@@ -589,7 +589,9 @@ class BodyTab(Tab):
                 pos=numpy.array([pts[2], pts[3]]), color=[0., 0., 1., 1.],
                 width=5, antialias=True)
             calf_link = pyqtgraph.opengl.GLScatterPlotItem(
-                pos=pts[3], color=[1., 0.5, 0., 1.], size=1., pxMode=True)
+                pos=pts[3], color=[0., 1., 0., 0.5], size=1., pxMode=True)
+            #res_link = pyqtgraph.opengl.GLScatterPlotItem(
+            #    pos=pts[3], color=[1., 0., 0., 0.5], size=1., pxMode=True)
             limit_links = []
             for z in [pts[3][2] - 6, pts[3][2], pts[3][2] + 6]:
                 lpts = kinematics.leg.limits_at_z_3d(
@@ -604,9 +606,14 @@ class BodyTab(Tab):
             self.gl_widget.addItem(thigh_link)
             self.gl_widget.addItem(knee_link)
             self.gl_widget.addItem(calf_link)
+            #self.gl_widget.addItem(res_link)
             self.links[leg_number] = {
                 'hip': hip_link, 'thigh': thigh_link, 'knee': knee_link,
-                'calf': calf_link, 'limit': limit_links}
+                'calf': calf_link, 'limit': limit_links,
+                #'res': res_link,
+                'pts': pts}
+
+        self.body_links = {}
 
         # add context menu
         self.gl_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -637,6 +644,9 @@ class BodyTab(Tab):
             self.controller.res.feet[leg_number].on(
                 'restriction',
                 lambda a, i=leg_number: self.on_restriction(a, i))
+            self.controller.res.feet[leg_number].on(
+                'state',
+                lambda a, i=leg_number: self.on_res_state(a, i))
         self.show_top_view()
 
     def on_gl_menu(self, point):
@@ -659,7 +669,6 @@ class BodyTab(Tab):
         self.gl_widget.update()
 
     def plot_leg(self, leg_number, hip, thigh, knee, calf):
-
         pts = [[0., 0., 0.], ] + list(
             kinematics.leg.angles_to_points(hip, thigh, knee))
         pts = kinematics.body.leg_to_body_array(leg_number, pts)
@@ -671,6 +680,7 @@ class BodyTab(Tab):
             pos=numpy.array([pts[2], pts[3]]))
         self.links[leg_number]['calf'].setData(
             pos=pts[3], size=calf/50.)
+        self.links[leg_number]['pts'] = pts
         for (i, z) in enumerate([pts[3][2] - 6, pts[3][2], pts[3][2] + 6]):
             lpts = kinematics.leg.limits_at_z_3d(z, leg_number)
             if lpts is not None:
@@ -689,7 +699,32 @@ class BodyTab(Tab):
 
     def on_restriction(self, res, leg_number):
         # TODO restriction?
-        pass
+        l = self.links[leg_number]
+        #l['res'].setData(pos=l['pts'][3], size=res['r'] * 20.)
+        for i in xrange(3):
+            l['limit'][i].setData(
+                color=[res['r'], 1. - res['r'], 0., 1.])
+
+    def on_res_state(self, state, leg_number):
+        # draw polygon between supported legs
+        lns = sorted(self.controller.res.feet)
+        pts = []
+        for ln in lns:
+            if self.controller.res.feet[ln].state in ('stance', 'wait'):
+                pts.append(self.links[ln]['pts'][3])
+        if not len(pts):
+            return
+        pts.append(pts[0])
+        pts = numpy.array(pts)
+        print(len(pts), pts)
+        if 'support' not in self.body_links:
+            l = pyqtgraph.opengl.GLLinePlotItem(
+                pos=pts, color=[0., 0., 1., 1.],
+                width=1, antialias=True)
+            self.gl_widget.addItem(l)
+            self.body_links['support'] = l
+        else:
+            self.body_links['support'].setData(pos=pts)
 
 
 class TabManager(object):
