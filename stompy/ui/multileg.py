@@ -532,6 +532,7 @@ class BodyTab(Tab):
 
     def __init__(self, ui, controller):
         super(BodyTab, self).__init__(ui, controller)
+        self.heightLabel = ui.heightLabel
         self.gl_widget = ui.bodyGLWidget
 
         # add grids
@@ -716,7 +717,10 @@ class BodyTab(Tab):
             return
         pts.append(pts[0])
         pts = numpy.array(pts)
-        print(len(pts), pts)
+        # calculate average 'height' of legs on the ground
+        height = numpy.mean(pts[:-1, 2])
+        self.heightLabel.setText("Height: %0.2f" % -height)
+        # TODO calculate pitch and roll
         if 'support' not in self.body_links:
             l = pyqtgraph.opengl.GLLinePlotItem(
                 pos=pts, color=[0., 0., 1., 1.],

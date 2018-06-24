@@ -49,7 +49,7 @@ def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
         #a = numpy.arccos(
         #    numpy.dot(iv, cv) /
         #    (numpy.linalg.norm(iv) * numpy.linalg.norm(cv)))
-        print(i, a)
+        #print(i, a)
     if ma is None:
         return c0
     #return mi
@@ -97,13 +97,13 @@ class RestrictionConfig(signaler.Signaler):
             'lower': 6.,
             'swing': 12.,
             'angular': 0.0005}
-        self.step_size = 25.
+        #self.step_size = 25.
         self.r_thresh = 0.2
         self.r_max = 0.9
         self.max_feet_up = 0
         self.speed_scalar = 1.
         self.height_slop = 3.
-        self.foot_center = {'x': 55., 'y': 0.}
+        #self.foot_center = {'x': 55., 'y': 0.}
         self.dr_smooth = 0.5
         self.eps = 0.9
         self.lift_height = 8.0
@@ -428,11 +428,11 @@ class Body(signaler.Signaler):
             rspeed = speed / mr * numpy.sign(radius)
             if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
                 rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
-            print(mr, speed, rspeed)
+            #print(mr, speed, rspeed)
         R = (radius, rspeed)
         #R = transforms.rotation_about_point_3d(
         #    radius, 0, 0, 0, 0, rspeed)
-        print("Body matrix:", R)
+        #print("Body matrix:", R)
         # TODO add up/down T
         for i in self.feet:
             self.feet[i].set_target(R, xyz, update_swing=update_swing)
@@ -482,8 +482,7 @@ class Body(signaler.Signaler):
             ns = self.neighbors[leg_number]
             n_states = [states[n] for n in ns]
             ns_up = len([s for s in n_states if s not in ('stance', 'wait')])
-            # TODO check if any other feet are restricted:
-            #other_restricted = []
+            # check if any other feet are restricted:
             last_lift_times = {}
             for ln in self.feet:
                 if ln == leg_number:
@@ -499,6 +498,8 @@ class Body(signaler.Signaler):
             if ns_up == 0 and n_up < self.cfg.max_feet_up:
                 n_can_lift = self.cfg.max_feet_up - n_up
                 if len(last_lift_times) > n_can_lift:
+                    # TODO prefer lifting of feet with
+                    # restriction_modifier != 0
                     # only allow this foot if it was moved later than
                     # the other restricted feet
                     ln_by_lt = sorted(
