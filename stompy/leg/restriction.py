@@ -98,8 +98,8 @@ class RestrictionConfig(signaler.Signaler):
             'swing': 12.,
             'angular': 0.0005}
         #self.step_size = 25.
-        self.r_thresh = 0.2
-        self.r_max = 0.9
+        self.r_thresh = 0.7
+        self.r_max = 0.85
         self.max_feet_up = 0
         self.speed_scalar = 1.
         self.height_slop = 3.
@@ -447,6 +447,7 @@ class Body(signaler.Signaler):
 
     def halt(self):
         if not self.halted:
+            print("HALT")
             self._pre_halt_target = self.target
             self.set_target((0., 0., 0.), update_swing=False)
             self.halted = True
