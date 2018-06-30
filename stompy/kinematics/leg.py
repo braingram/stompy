@@ -11,13 +11,21 @@ def xy_center_at_z(z):
     return ((l + r) / 2., 0.)
 
 
+def x_with_calf_angle(z, a):
+    return (
+        numpy.sqrt(1 - (
+            (z + numpy.cos(a) * geometry.KNEE_LENGTH)
+            / geometry.THIGH_LENGTH) ** 2)
+        * geometry.THIGH_LENGTH + geometry.HIP_LENGTH
+        + numpy.sin(a) * geometry.KNEE_LENGTH)
+
+
 def x_with_vertical_calf(z):
     return (
-        geometry.HIP_LENGTH +
-        geometry.THIGH_LENGTH *
-        numpy.sqrt(1 - ((
-            z + geometry.KNEE_LENGTH) /
-            geometry.THIGH_LENGTH) ** 2.))
+        numpy.sqrt(1 - (
+            (float(z) + geometry.KNEE_LENGTH)
+            / geometry.THIGH_LENGTH) ** 2)
+        * geometry.THIGH_LENGTH + geometry.HIP_LENGTH)
 
 
 def angles_to_calf_angle(hip, thigh, knee):
