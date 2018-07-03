@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import glob
+#import glob
 import logging
-import subprocess
+#import subprocess
 import sys
 import time
 import traceback
@@ -20,6 +20,7 @@ from .. import log
 from . import plans
 from .. import signaler
 from .. import transforms
+from .. import utils
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ cmds = {
     26: 'report_loop_time(bool)=uint32',
 }
 
-
+"""
 def usb_serial_port_info(port_path=None, glob_string='/dev/ttyACM*'):
     if port_path is None:
         ports = glob.glob(glob_string)
@@ -77,10 +78,12 @@ def find_teensies():
     for i in info:
         if i['ID_VENDOR'] != 'Teensyduino':
             continue
+        # TODO ignore body computer
         tinfo.append({
             'port': i['port'],
             'serial': i['ID_SERIAL_SHORT']})
     return tinfo
+"""
 
 
 class LegController(signaler.Signaler):
@@ -471,7 +474,7 @@ class Teensy(LegController):
 def connect_to_teensies(ports=None):
     """Return dict with {leg_number: teensy}"""
     if ports is None:
-        tinfo = find_teensies()
+        tinfo = utils.find_leg_teensies()
         ports = [i['port'] for i in tinfo]
     if len(ports) == 0:
         return {ln: FakeTeensy(ln) for ln in [1, 2, 3, 4, 5, 6]}
