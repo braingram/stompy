@@ -3,6 +3,18 @@ Oil
 Coastal Economy AW-32
 http://petroleumservicecompany.com/content/pdfs/PDS-COASTAL-ECONOMY-AW-HYDRAULIC-OILS.pdf
 
+Reservoir
+====
+Buyers SMR25S (18 G?)
+https://www.buyersproducts.com/product/side-mount-steel-reservoir-3090
+
+Filters
+====
+Zinga SE-10
+http://www.womackmachine.com/products/hydraulics/filters-and-breathers/spin-on-filters/zinga-spin-on-filter-elements/
+2 Beta (5 um)
+75 Beta (19 um)
+
 Valves
 ====
 Hydraforce sp10-47c-8t-n-12ds
