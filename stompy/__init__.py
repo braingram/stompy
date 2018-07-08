@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from . import body
 from . import consts
 from . import controllers
 from . import joystick
@@ -10,5 +11,6 @@ from . import signaler
 
 
 __all__ = [
+    'body',
     'consts', 'controllers', 'joystick', 'kinematics', 'leg', 'log',
     'signaler']

@@ -48,9 +48,10 @@ class MultiLeg(signaler.Signaler):
         'body_restriction',
     ]
 
-    def __init__(self, legs, joy):
+    def __init__(self, legs, joy, bodies):
         super(MultiLeg, self).__init__()
         self.legs = legs
+        self.bodies = bodies
         #self.calibrator = calibrator.CalibrationRoutine()
         self.res = leg.restriction.Body(legs)
         self.leg_index = sorted(legs)[0]
@@ -387,3 +388,5 @@ class MultiLeg(signaler.Signaler):
         #if self.mode == 'leg_calibration':
         #    pass
         self.all_legs('update')
+        # update all body teensies
+        [self.bodies[k].update() for k in self.bodies]

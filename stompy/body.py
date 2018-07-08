@@ -116,7 +116,7 @@ class TeensyBody(BodyController):
 
             def cb(*args):
                 vs = [a.value for a in args]
-                print("%s: %s" % (cbn, vs))
+                #print("%s: %s" % (cbn, vs))
                 if len(vs) == 1:
                     self.log.debug({cbn: vs[0]})
                 else:
@@ -133,12 +133,12 @@ class TeensyBody(BodyController):
     def __del__(self):
         # disable reports
         r = reports.get(self.name, {})
-        print("body disabling reports")
+        #print("body disabling reports")
         for k in r:
             self.mgr.trigger(k, 0)
 
     def update(self):
-        # TODO heartbeat
+        # heartbeat
         t = time.time()
         if (t - self._last_hb > 0.5):
             self.mgr.trigger('heartbeat')

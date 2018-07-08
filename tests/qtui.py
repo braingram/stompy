@@ -16,7 +16,10 @@ if len(legs) == 0:
 lns = sorted(legs.keys())
 print("Connected to legs: %s" % (lns, ))
 
-c = stompy.controllers.multileg.MultiLeg(legs, joy)
+bodies = stompy.body.connect_to_teensies()
+print("Connected to bodies: %s" % (sorted(bodies.keys())))
+
+c = stompy.controllers.multileg.MultiLeg(legs, joy, bodies)
 
 """
 for ln in c.res.feet:
