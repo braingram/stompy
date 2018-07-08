@@ -6,7 +6,8 @@ import subprocess
 
 # serial numbers of body teensies
 body_teensies = [
-    '2513500'
+    '2513500',
+    '2595730'
 ]
 
 
