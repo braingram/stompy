@@ -790,6 +790,19 @@ def load_ui(controller=None):
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
 
+    if 'imu' in controller.bodies:
+        controller.bodies['imu'].on(
+            'feed_pressure', lambda v: ui.pressureLabel.setText("PSI: %i" % v))
+        controller.bodies['imu'].on(
+            'engine_rpm', lambda v: ui.rpmLabel.setText("RPM: %i" % v))
+        controller.bodies['imu'].on(
+            'feed_oil_temp',
+            lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
+        controller.bodies['imu'].on(
+            'heading',
+            lambda r, p, y: ui.imuLabel.setText(
+                "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
+
     def set_values(item):
         if item.columnCount() == 2:
             parent = item.parent()

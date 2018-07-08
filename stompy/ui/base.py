@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Jun 24 16:04:43 2018
+# Created: Sun Jul  8 11:39:26 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -47,6 +47,21 @@ class Ui_MainWindow(object):
         self.heightLabel.setObjectName(_fromUtf8("heightLabel"))
         self.horizontalLayout_8.addWidget(self.heightLabel)
         self.verticalLayout.addLayout(self.horizontalLayout_8)
+        self.horizontalLayout_15 = QtGui.QHBoxLayout()
+        self.horizontalLayout_15.setObjectName(_fromUtf8("horizontalLayout_15"))
+        self.pressureLabel = QtGui.QLabel(self.centralwidget)
+        self.pressureLabel.setObjectName(_fromUtf8("pressureLabel"))
+        self.horizontalLayout_15.addWidget(self.pressureLabel)
+        self.rpmLabel = QtGui.QLabel(self.centralwidget)
+        self.rpmLabel.setObjectName(_fromUtf8("rpmLabel"))
+        self.horizontalLayout_15.addWidget(self.rpmLabel)
+        self.oilTempLabel = QtGui.QLabel(self.centralwidget)
+        self.oilTempLabel.setObjectName(_fromUtf8("oilTempLabel"))
+        self.horizontalLayout_15.addWidget(self.oilTempLabel)
+        self.imuLabel = QtGui.QLabel(self.centralwidget)
+        self.imuLabel.setObjectName(_fromUtf8("imuLabel"))
+        self.horizontalLayout_15.addWidget(self.imuLabel)
+        self.verticalLayout.addLayout(self.horizontalLayout_15)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.tabs = QtGui.QTabWidget(self.centralwidget)
@@ -493,7 +508,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.modesMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(1)
+        self.tabs.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -502,6 +517,10 @@ class Ui_MainWindow(object):
         self.legLabel.setText(_translate("MainWindow", "Leg: ?", None))
         self.modeLabel.setText(_translate("MainWindow", "Mode: ?", None))
         self.heightLabel.setText(_translate("MainWindow", "Height: ?", None))
+        self.pressureLabel.setText(_translate("MainWindow", "PSI: ?", None))
+        self.rpmLabel.setText(_translate("MainWindow", "RPM: ?", None))
+        self.oilTempLabel.setText(_translate("MainWindow", "Temp: ?", None))
+        self.imuLabel.setText(_translate("MainWindow", "IMU: ?", None))
         self.label.setText(_translate("MainWindow", "Hip", None))
         self.hipADCProgress.setFormat(_translate("MainWindow", "%v", None))
         self.label_2.setText(_translate("MainWindow", "Thigh", None))
