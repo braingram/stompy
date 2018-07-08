@@ -5,7 +5,9 @@ import subprocess
 
 
 # serial numbers of body teensies
-body_teensies = []
+body_teensies = [
+    '2513500'
+]
 
 
 def usb_serial_port_info(port_path=None, glob_string='/dev/ttyACM*'):

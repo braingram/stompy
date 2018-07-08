@@ -2,14 +2,15 @@
 
 import logging
 import sys
+import time
 import traceback
 
 import pycomando
 import serial
 
-from .. import log
-from .. import signaler
-from .. import utils
+from . import log
+from . import signaler
+from . import utils
 
 
 logger = logging.getLogger(__name__)
@@ -19,15 +20,17 @@ names = {
 }
 
 base_cmds = {
-    0: 'name(byte)=byte',
+    0: 'name=byte',
+    1: 'heartbeat',
 }
 
 cmds = {
     'imu': {
-        0: 'name(byte)=byte',
+        0: 'name=byte',
+        1: 'heartbeat',
         # (poll frequency [ms])=pressure [psi]
-        1: 'feed_pressure(byte)=float',
-        2: 'return_pressure(byte)=float',
+        2: 'feed_pressure(byte)=float',
+        3: 'return_pressure(byte)=float',
 
         # (poll freq [ms])=temp [F]
         5: 'feed_oil_temp(byte)=float',
@@ -59,6 +62,15 @@ cmds = {
     },
 }
 
+reports = {
+    'imu': {
+        'feed_pressure': 100,  # ms
+        'feed_oil_temp': 500,
+        'heading': 500,
+        'engine_rpm': 500,
+    },
+}
+
 
 class BodyController(signaler.Signaler):
     def __init__(self, name):
@@ -84,6 +96,9 @@ class TeensyBody(BodyController):
         name = names[mgr.blocking_trigger('name')[0].value]
         super(TeensyBody, self).__init__(name)
 
+        self._last_hb = time.time()
+        mgr.trigger('heartbeat')
+
         # clear callbacks, register name specific commands
         self.cmd.callbacks = {}
         self.mgr = pycomando.protocols.command.EventManager(
@@ -95,20 +110,51 @@ class TeensyBody(BodyController):
         self._text.register_callback(print_text)
         self.com.register_protocol(1, self._text)
 
+        # setup report callbacks
+        def make_callback(n):
+            cbn = n
+
+            def cb(*args):
+                vs = [a.value for a in args]
+                print("%s: %s" % (cbn, vs))
+                if len(vs) == 1:
+                    self.log.debug({cbn: vs[0]})
+                else:
+                    self.log.debug({cbn: vs})
+                self.trigger(cbn, *vs)
+            return cb
+
+        r = reports.get(name, {})
+        for k in r:
+            self.mgr.on(k, make_callback(k))
+            # setup reporting periods
+            self.mgr.trigger(k, r[k])
+
+    def __del__(self):
+        # disable reports
+        r = reports.get(self.name, {})
+        print("body disabling reports")
+        for k in r:
+            self.mgr.trigger(k, 0)
+
     def update(self):
+        # TODO heartbeat
+        t = time.time()
+        if (t - self._last_hb > 0.5):
+            self.mgr.trigger('heartbeat')
+            self._last_hb = t
         try:
             self.com.handle_stream()
         except Exception as e:
             ex_type, ex, tb = sys.exc_info()
-            print("Leg %s handle stream error: %s" % (self.leg_number, e))
             tbs = '\n'.join(traceback.format_tb(tb))
             self.log.error("handle_stream error: %s" % e)
-            print(tbs)
             self.log.error({'error': {
                 'traceback': tbs,
                 'exception': e}})
             raise e
 
+    """
     def on(self, name, func):
         # setup when mgr calls name, trigger function
         self.mgr.on(name, func)
@@ -124,6 +170,7 @@ class TeensyBody(BodyController):
     def trigger(self, name, *args):
         # pass through for mgr
         self.mgr.trigger(name, *args)
+    """
 
 
 def connect_to_teensies(ports=None):
@@ -137,7 +184,7 @@ def connect_to_teensies(ports=None):
     teensies = [TeensyBody(p) for p in ports]
     nd = {}
     for t in teensies:
-        n = t.leg_number
+        n = t.name
         nd[n] = nd.get(n, []) + [t, ]
     for n in nd:
         if len(nd[n]) > 1:
