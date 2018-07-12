@@ -794,7 +794,7 @@ def load_ui(controller=None):
         controller.bodies['imu'].on(
             'feed_pressure', lambda v: ui.pressureLabel.setText("PSI: %i" % v))
         controller.bodies['imu'].on(
-            'engine_rpm', lambda v: ui.rpmLabel.setText("RPM: %i" % v))
+            'engine_rpm', lambda v: ui.rpmLabel.setText("RPM: %0.0f" % v))
         controller.bodies['imu'].on(
             'feed_oil_temp',
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
