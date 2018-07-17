@@ -193,7 +193,8 @@ class Foot(signaler.Signaler):
             z = self.unloaded_height + self.cfg.lift_height
             rx, ry, rspeed = self.swing_info
             sp = calculate_swing_target(
-                rx, ry, z, self.leg.leg_number, rspeed, self.cfg.step_ratio,
+                rx, ry, self.cfg.lower_height,
+                self.leg.leg_number, rspeed, self.cfg.step_ratio,
                 min_hip_distance=self.cfg.min_hip_distance)
             self.swing_target = sp[0], sp[1]
             self.leg.send_plan(
