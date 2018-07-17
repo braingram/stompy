@@ -65,14 +65,15 @@ def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
 
 def calculate_swing_target(
         tx, ty, z, leg_number, rspeed, step_ratio,
-        min_hip_distance=None):
+        min_hip_distance=None, target_calf_angle=0):
     # get x with vertical calf
     # vertical calf doesn't work with z > -19 or z < -75,
     # I don't think we can walk with
     # legs this high/low anyway
     # TODO cache these, they're used >1 time
     l, r = kinematics.leg.limits_at_z_2d(z)
-    c0x = kinematics.leg.x_with_vertical_calf(z)
+    #c0x = kinematics.leg.x_with_vertical_calf(z)
+    c0x = kinematics.leg.x_with_calf_angle(z, target_calf_angle)
     if c0x <= l or c0x >= r:
         c0x, _ = kinematics.leg.xy_center_at_z(z)
     # calculate target movement circle using center of tx, ty
@@ -113,6 +114,7 @@ class RestrictionConfig(signaler.Signaler):
         self.swing_slop = 5.0
         self.step_ratio = 0.6
         self.min_hip_distance = 15.0
+        self.target_calf_angle = 0.0
 
     def get_speed(self, mode):
         if mode not in self.speeds:
@@ -195,7 +197,8 @@ class Foot(signaler.Signaler):
             sp = calculate_swing_target(
                 rx, ry, self.cfg.lower_height,
                 self.leg.leg_number, rspeed, self.cfg.step_ratio,
-                min_hip_distance=self.cfg.min_hip_distance)
+                min_hip_distance=self.cfg.min_hip_distance,
+                target_calf_angle=self.cfg.target_calf_angle)
             self.swing_target = sp[0], sp[1]
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,

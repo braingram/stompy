@@ -87,7 +87,7 @@
       <item>
        <widget class="QTabWidget" name="tabs">
         <property name="currentIndex">
-         <number>3</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="legTab">
          <attribute name="title">
@@ -1016,6 +1016,17 @@
               </property>
               <property name="text">
                <string>0.8</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.target_calf_angle</string>
+              </property>
+              <property name="text">
+               <string>0.0</string>
               </property>
               <property name="flags">
                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>

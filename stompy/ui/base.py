@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Jul  8 11:39:26 2018
+# Created: Mon Jul 16 20:50:25 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -472,6 +472,8 @@ class Ui_MainWindow(object):
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
+        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
+        item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_1 = QtGui.QTreeWidgetItem(item_0)
         item_1.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_1 = QtGui.QTreeWidgetItem(item_0)
@@ -508,7 +510,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.modesMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(3)
+        self.tabs.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -597,19 +599,21 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(11).setText(1, _translate("MainWindow", "-50", None))
         self.configTree.topLevelItem(12).setText(0, _translate("MainWindow", "controller.res.cfg.step_ratio", None))
         self.configTree.topLevelItem(12).setText(1, _translate("MainWindow", "0.8", None))
-        self.configTree.topLevelItem(13).setText(0, _translate("MainWindow", "controller.res.cfg.speeds", None))
-        self.configTree.topLevelItem(13).child(0).setText(0, _translate("MainWindow", "lift", None))
-        self.configTree.topLevelItem(13).child(0).setText(1, _translate("MainWindow", "4.0", None))
-        self.configTree.topLevelItem(13).child(1).setText(0, _translate("MainWindow", "lower", None))
-        self.configTree.topLevelItem(13).child(1).setText(1, _translate("MainWindow", "3.0", None))
-        self.configTree.topLevelItem(13).child(2).setText(0, _translate("MainWindow", "stance", None))
-        self.configTree.topLevelItem(13).child(2).setText(1, _translate("MainWindow", "3.0", None))
-        self.configTree.topLevelItem(13).child(3).setText(0, _translate("MainWindow", "swing", None))
-        self.configTree.topLevelItem(13).child(3).setText(1, _translate("MainWindow", "4.0", None))
-        self.configTree.topLevelItem(13).child(4).setText(0, _translate("MainWindow", "angular", None))
-        self.configTree.topLevelItem(13).child(4).setText(1, _translate("MainWindow", "0.0005", None))
-        self.configTree.topLevelItem(14).setText(0, _translate("MainWindow", "controller.res.cfg.max_feet_up", None))
-        self.configTree.topLevelItem(14).setText(1, _translate("MainWindow", "0", None))
+        self.configTree.topLevelItem(13).setText(0, _translate("MainWindow", "controller.res.cfg.target_calf_angle", None))
+        self.configTree.topLevelItem(13).setText(1, _translate("MainWindow", "0.0", None))
+        self.configTree.topLevelItem(14).setText(0, _translate("MainWindow", "controller.res.cfg.speeds", None))
+        self.configTree.topLevelItem(14).child(0).setText(0, _translate("MainWindow", "lift", None))
+        self.configTree.topLevelItem(14).child(0).setText(1, _translate("MainWindow", "4.0", None))
+        self.configTree.topLevelItem(14).child(1).setText(0, _translate("MainWindow", "lower", None))
+        self.configTree.topLevelItem(14).child(1).setText(1, _translate("MainWindow", "3.0", None))
+        self.configTree.topLevelItem(14).child(2).setText(0, _translate("MainWindow", "stance", None))
+        self.configTree.topLevelItem(14).child(2).setText(1, _translate("MainWindow", "3.0", None))
+        self.configTree.topLevelItem(14).child(3).setText(0, _translate("MainWindow", "swing", None))
+        self.configTree.topLevelItem(14).child(3).setText(1, _translate("MainWindow", "4.0", None))
+        self.configTree.topLevelItem(14).child(4).setText(0, _translate("MainWindow", "angular", None))
+        self.configTree.topLevelItem(14).child(4).setText(1, _translate("MainWindow", "0.0005", None))
+        self.configTree.topLevelItem(15).setText(0, _translate("MainWindow", "controller.res.cfg.max_feet_up", None))
+        self.configTree.topLevelItem(15).setText(1, _translate("MainWindow", "0", None))
         self.configTree.setSortingEnabled(__sortingEnabled)
         self.tabs.setTabText(self.tabs.indexOf(self.bodyTab), _translate("MainWindow", "Body", None))
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))
