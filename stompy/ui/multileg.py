@@ -158,7 +158,8 @@ class PIDTab(Tab):
         # following error threshold
         r = self.controller.leg.mgr.blocking_trigger(
             'following_error_threshold', index)
-        self.joint_config['following_error_threshold'] = r[0].value
+        print("Following error: %s" % r[1].value)
+        self.joint_config['following_error_threshold'] = r[1].value
 
         # pwm: extend/retract min/max
         r = self.controller.leg.mgr.blocking_trigger('pwm_limits', index)
@@ -192,7 +193,6 @@ class PIDTab(Tab):
         self.ui.extendMaxSpin.setValue(self.joint_config['pwm']['extend_max'])
         self.ui.pidErrorThresholdSpin.setValue(
             self.joint_config['following_error_threshold'])
-        self.joint_config['following_error_threshold'] = r[0].value
         self.ui.retractMinSpin.setValue(
             self.joint_config['pwm']['retract_min'])
         self.ui.retractMaxSpin.setValue(
@@ -256,7 +256,7 @@ class PIDTab(Tab):
         if (v != j):
             self.ui.pidErrorThresholdSpin.setValue(
                 self.joint_config['following_error_threshold'])
-            args = (index, v)
+            args = (index, float(v))
             log.info({'following_error_threshold': args})
             self.controller.leg.mgr.trigger(
                 'following_error_threshold', *args)
