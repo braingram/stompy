@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Mon Jul 16 20:50:25 2018
+# Created: Sun Sep  9 14:48:36 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -433,6 +433,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.configTree.sizePolicy().hasHeightForWidth())
         self.configTree.setSizePolicy(sizePolicy)
+        self.configTree.setMinimumSize(QtCore.QSize(350, 0))
         self.configTree.setAlternatingRowColors(True)
         self.configTree.setAutoExpandDelay(0)
         self.configTree.setObjectName(_fromUtf8("configTree"))
@@ -483,6 +484,8 @@ class Ui_MainWindow(object):
         item_1 = QtGui.QTreeWidgetItem(item_0)
         item_1.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_1 = QtGui.QTreeWidgetItem(item_0)
+        item_0 = QtGui.QTreeWidgetItem(self.configTree)
+        item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         item_0 = QtGui.QTreeWidgetItem(self.configTree)
         item_0.setFlags(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable|QtCore.Qt.ItemIsDragEnabled|QtCore.Qt.ItemIsUserCheckable|QtCore.Qt.ItemIsEnabled)
         self.configTree.header().setCascadingSectionResizes(True)
@@ -614,6 +617,8 @@ class Ui_MainWindow(object):
         self.configTree.topLevelItem(14).child(4).setText(1, _translate("MainWindow", "0.0005", None))
         self.configTree.topLevelItem(15).setText(0, _translate("MainWindow", "controller.res.cfg.max_feet_up", None))
         self.configTree.topLevelItem(15).setText(1, _translate("MainWindow", "0", None))
+        self.configTree.topLevelItem(16).setText(0, _translate("MainWindow", "controller.res.cfg.speed_by_restriction", None))
+        self.configTree.topLevelItem(16).setText(1, _translate("MainWindow", "True", None))
         self.configTree.setSortingEnabled(__sortingEnabled)
         self.tabs.setTabText(self.tabs.indexOf(self.bodyTab), _translate("MainWindow", "Body", None))
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))

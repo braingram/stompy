@@ -115,6 +115,7 @@ class RestrictionConfig(signaler.Signaler):
         self.step_ratio = 0.6
         self.min_hip_distance = 15.0
         self.target_calf_angle = 0.0
+        self.speed_by_restriction = False
 
     def get_speed(self, mode):
         if mode not in self.speeds:
@@ -440,7 +441,11 @@ class Body(signaler.Signaler):
             if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
                 rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
             #print(mr, speed, rspeed)
-        R = (radius, rspeed)
+        if self.cfg.speed_by_restriction:
+            rs = self.get_speed_by_restriction()
+        else:
+            rs = 1.
+        R = (radius, rspeed * rs)
         #R = transforms.rotation_about_point_3d(
         #    radius, 0, 0, 0, 0, rspeed)
         #print("Body matrix:", R)
@@ -463,6 +468,12 @@ class Body(signaler.Signaler):
             self.set_target((0., 0., 0.), update_swing=False)
             self.halted = True
 
+    def get_speed_by_restriction(self):
+        rmax = max([
+            self.feet[i].restriction['r'] for i in self.feet
+            if self.feet[i].state not in ('swing', 'lower')])
+        return max(0., min(1., 1. - rmax))
+
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
@@ -470,6 +481,9 @@ class Body(signaler.Signaler):
             # unhalt?
             maxed = False
             for i in self.feet:
+                # make sure foot is not in swing (or lower?)
+                if self.feet[i].state in ('swing', 'lower'):
+                    continue
                 if self.feet[i].restriction['r'] > self.cfg.r_max:
                     maxed = True
             if not maxed:

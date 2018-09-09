@@ -804,6 +804,12 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="minimumSize">
+              <size>
+               <width>350</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="alternatingRowColors">
               <bool>true</bool>
              </property>
@@ -1095,6 +1101,17 @@
               </property>
               <property name="text">
                <string>0</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.speed_by_restriction</string>
+              </property>
+              <property name="text">
+               <string>True</string>
               </property>
               <property name="flags">
                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>

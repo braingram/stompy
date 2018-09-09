@@ -365,6 +365,7 @@ class MultiLeg(signaler.Signaler):
                     'linear': (0, 0, 0),
                     'angular': -numpy.array(xyz),
                     'speed': speed}
+                print("Body rotation plan: %s" % (plan, ))
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_position_legs':
             pass
