@@ -156,7 +156,7 @@ class Foot(signaler.Signaler):
         self.restriction_modifier = 0.
 
     def send_plan(self):
-        print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
+        #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
         if self.state is None or self.leg_target is None:
             # TODO always stop on disable?
             self.leg.send_plan(mode=consts.PLAN_STOP_MODE)
@@ -406,6 +406,13 @@ class Body(signaler.Signaler):
         self.set_target(self.target)
 
     def set_target(self, xyz, update_swing=True):
+        if self.halted:
+            # set new pre_halt target
+            self._pre_halt_target = xyz
+            # set stance target to stop
+            xyz = (0, 0, 0)
+            # only update non-swing
+            update_swing = False
         self.target = xyz
         # convert target x (rx) y (ry) to rotation about point
         radius_axis = xyz[0]
@@ -469,6 +476,7 @@ class Body(signaler.Signaler):
                 print("Unhalt")
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
+            return
         if restriction['r'] > self.cfg.r_max and not self.halted:
             self.halt()
             return

@@ -213,18 +213,17 @@ class MultiLeg(signaler.Signaler):
                 self.all_legs('stop')
                 self.deadman = False
                 #self.update_target_until = time.time() - 1.0
-        #elif event['name'] == 'square':
-        #    if self.mode == 'leg_calibration':
-        #        self.calibrator.set_subroutine('sensors', 'hip')
+        elif event['name'] == 'square':
+            print(self.leg.loop_time_stats)
         #elif event['name'] == 'circle':
         #    if self.mode == 'leg_calibration':
         #        self.calibrator.set_subroutine('sensors', 'thigh')
         #elif event['name'] == 'cross':
         #    if self.mode == 'leg_calibration':
         #        self.calibrator.set_subroutine('sensors', 'knee')
-        #elif event['name'] == 'triangle':
-        #    if self.mode == 'leg_calibration':
-        #        self.calibrator.set_subroutine('calf')
+        elif event['name'] == 'triangle':
+            print("Resetting loop time stats")
+            self.leg.loop_time_stats.reset()
 
     def on_axis(self, event):
         # check if target vector has changed > some amount

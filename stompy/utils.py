@@ -11,6 +11,38 @@ body_teensies = [
 ]
 
 
+class StatsMonitor(object):
+    def __init__(self):
+        self.reset()
+
+    def update(self, v):
+        if self.n == 0:
+            self.min = v
+            self.max = v
+        else:
+            self.min = min(v, self.min)
+            self.max = max(v, self.max)
+        self.sum += v
+        self.n += 1
+
+    def reset(self):
+        self.min = float('nan')
+        self.max = float('nan')
+        self.std = float('nan')
+        self.sum = 0
+        self.n = 0
+
+    @property
+    def mean(self):
+        if self.n == 0:
+            return float('nan')
+        return self.sum / float(self.n)
+
+    def __str__(self):
+        return "%s[n=%i, mean=%.2g, min=%.2g, max=%.2g]" % (
+            self.__class__.__name__, self.n, self.mean, self.min, self.max)
+
+
 def usb_serial_port_info(port_path=None, glob_string='/dev/ttyACM*'):
     if port_path is None:
         ports = glob.glob(glob_string)

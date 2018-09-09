@@ -360,6 +360,7 @@ class Teensy(LegController):
             self.mgr.trigger(f, *args)
 
         self.mgr.on('estop', self.on_estop)
+        self.loop_time_stats = utils.StatsMonitor()
 
         # disable leg
         self.set_estop(consts.ESTOP_DEFAULT)
@@ -372,6 +373,7 @@ class Teensy(LegController):
         self.mgr.on('report_pid', self.on_report_pid)
         self.mgr.on('report_pwm', self.on_report_pwm)
         self.mgr.on('report_adc', self.on_report_adc)
+        self.mgr.on('report_loop_time', self.on_report_loop_time)
 
     def on_estop(self, severity):
         #print("Received estop: %s" % severity)
@@ -443,11 +445,27 @@ class Teensy(LegController):
         self.trigger('pid', self.pid)
 
     def on_report_pwm(self, h, t, k):
+        if hasattr(self, '_hv'):
+            hv = h.value
+            ts = time.time()
+            if abs(hv - self._hv['h']) > 250.:
+                # new hip value
+                print("HV: %s [%s]" % (hv, ts - self._hv['t']))
+                self._hv = {'h': hv, 't': ts}
+        else:
+            self._hv = {
+                'h': h.value,
+                't': time.time()}
         self.pwm = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'time': time.time()}
         self.log.debug({'pwm': self.pwm})
         self.trigger('pwm', self.pwm)
+
+    def on_report_loop_time(self, t):
+        self.loop_time_stats.update(t.value)
+        self.log.debug({'loop_time': t.value})
+        self.trigger('loop_time', t.value)
 
     def send_heartbeat(self):
         self.mgr.trigger('heartbeat')
