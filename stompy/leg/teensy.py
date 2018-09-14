@@ -236,12 +236,12 @@ class FakeTeensy(LegController):
 
             ddt = dt
             nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            while ddt > 0.004:
+            while ddt > consts.PLAN_TICK:
                 #nx, ny, nz = transforms.transform_3d(
                 #    self._plan.matrix, nx, ny, nz)
                 nx, ny, nz = transforms.transform_3d(
                     T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
-                ddt -= 0.004
+                ddt -= consts.PLAN_TICK
 
             self.xyz['x'] = nx
             self.xyz['y'] = ny
@@ -251,10 +251,10 @@ class FakeTeensy(LegController):
             #print("_follow_plan:", self._plan.matrix)
             ddt = dt
             nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            while ddt > 0.004:
+            while ddt > consts.PLAN_TICK:
                 nx, ny, nz = transforms.transform_3d(
                     self._plan.matrix, nx, ny, nz)
-                ddt -= 0.004
+                ddt -= consts.PLAN_TICK
             #print("X:", self.xyz['x'], nx)
             self.xyz['x'] = nx
             self.xyz['y'] = ny

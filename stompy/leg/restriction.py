@@ -175,7 +175,7 @@ class Foot(signaler.Signaler):
                 speed=0)
         elif self.state == 'lift':
             v = self.cfg.get_speed('lift')
-            T = self.leg_target * transforms.translation_3d(0, 0, v * 0.004)
+            T = self.leg_target * transforms.translation_3d(0, 0, v * consts.PLAN_TICK)
             #T = self.leg_target
             #print(self.leg_target, T)
             self.leg.send_plan(
@@ -211,7 +211,7 @@ class Foot(signaler.Signaler):
                 speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
             v = -self.cfg.get_speed('lower')
-            T = self.leg_target * transforms.translation_3d(0, 0, v * 0.004)
+            T = self.leg_target * transforms.translation_3d(0, 0, v * consts.PLAN_TICK)
             self.leg.send_plan(
                 mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -424,7 +424,7 @@ class Body(signaler.Signaler):
                 numpy.sign(radius_axis) * max_radius /
                 2. ** (numpy.log2(max_radius) * numpy.abs(radius_axis)))
         # TODO scale to pid future time ms
-        speed = xyz[1] * self.cfg.get_speed('stance') * 0.004
+        speed = xyz[1] * self.cfg.get_speed('stance') * consts.PLAN_TICK
         if abs(radius) < 0.1:
             rspeed = 0.
         else:

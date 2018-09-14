@@ -4,6 +4,9 @@ Much of this is from the StompyLegControl firmware
 make sure it is up to date
 """
 
+# plan updates occur every N seconds
+PLAN_TICK = 0.004
+
 ESTOP_OFF = 0
 ESTOP_SOFT = 1
 ESTOP_HARD = 2
