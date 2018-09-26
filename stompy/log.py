@@ -64,14 +64,16 @@ def get_by_key(d, k, legs=None, remove_empty=True):
 
 def plot_key(
         data, key, subkeys=None, show=True, name=None, legend=True,
-        normalize_time=True):
+        normalize_time=True, remove_imu=True, remove_base=True):
     if isinstance(data, (str, unicode)):
         if name is None:
             name = data
         data = load_dir(data)
     legs = sorted(data.keys())
-    if 'base' in legs:
+    if 'base' in legs and remove_base:
         legs.remove('base')
+    if 'imu' in legs and remove_imu:
+        legs.remove('imu')
     ld = {l: get_by_key(data[l], key) for l in legs}
     if subkeys is None:
         # get keys from first event
