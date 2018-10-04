@@ -244,6 +244,7 @@ if __name__ == '__main__':
         except Exception as e:
             print("Hit error: %s" % e)
             break
+    leg.set_estop(stompy.consts.ESTOP_SOFT)
     pwms = numpy.array(sorted(vmap))
     for pwm in pwms:
         print("PWM: %s, VS: %s" % (pwm, vmap[pwm]))
