@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Sep  9 14:48:36 2018
+# Created: Wed Oct  3 19:31:29 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -302,11 +302,6 @@ class Ui_MainWindow(object):
         self.label_33 = QtGui.QLabel(self.PIDTab)
         self.label_33.setObjectName(_fromUtf8("label_33"))
         self.horizontalLayout_27.addWidget(self.label_33)
-        self.seedSpin = QtGui.QDoubleSpinBox(self.PIDTab)
-        self.seedSpin.setDecimals(0)
-        self.seedSpin.setMaximum(8192.0)
-        self.seedSpin.setObjectName(_fromUtf8("seedSpin"))
-        self.horizontalLayout_27.addWidget(self.seedSpin)
         self.seedFutureSpin = QtGui.QDoubleSpinBox(self.PIDTab)
         self.seedFutureSpin.setDecimals(0)
         self.seedFutureSpin.setMaximum(8192.0)
@@ -549,8 +544,8 @@ class Ui_MainWindow(object):
         self.label_25.setText(_translate("MainWindow", "PWM", None))
         self.label_26.setText(_translate("MainWindow", "Extend", None))
         self.label_28.setText(_translate("MainWindow", "Retract", None))
-        self.label_27.setText(_translate("MainWindow", "Seed time", None))
-        self.label_33.setText(_translate("MainWindow", "Millis", None))
+        self.label_27.setText(_translate("MainWindow", "Misc", None))
+        self.label_33.setText(_translate("MainWindow", "PID future time", None))
         self.label_34.setText(_translate("MainWindow", "Error Threshold", None))
         self.label_12.setText(_translate("MainWindow", "ADC limits", None))
         self.label_11.setText(_translate("MainWindow", "Min", None))

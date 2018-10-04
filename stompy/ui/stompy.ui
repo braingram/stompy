@@ -525,7 +525,7 @@
               <item>
                <widget class="QLabel" name="label_27">
                 <property name="text">
-                 <string>Seed time</string>
+                 <string>Misc</string>
                 </property>
                </widget>
               </item>
@@ -534,17 +534,7 @@
                 <item>
                  <widget class="QLabel" name="label_33">
                   <property name="text">
-                   <string>Millis</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="seedSpin">
-                  <property name="decimals">
-                   <number>0</number>
-                  </property>
-                  <property name="maximum">
-                   <double>8192.000000000000000</double>
+                   <string>PID future time</string>
                   </property>
                  </widget>
                 </item>

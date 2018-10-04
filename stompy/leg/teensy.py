@@ -39,10 +39,11 @@ cmds = {
     8: 'adc_limits(byte,float,float)=byte,float,float',
     9: 'calf_scale(float,float)=float,float',
     10: 'report_time(uint32)=uint32',
-    11: 'pid_seed_time(uint32,uint32)=uint32,uint32',
+    11: 'pid_seed_time=uint32',
     12: 'reset_pids(bool)',  # i_only
     13: 'dither(byte,uint32,int)=byte,uint32,int',
     14: 'following_error_threshold(byte,float)=byte,float',
+    15: 'pid_future_time(uint32)=uint32',
 
     21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
     22: 'report_pid(bool)='
@@ -365,6 +366,13 @@ class Teensy(LegController):
         # disable leg
         self.set_estop(consts.ESTOP_DEFAULT)
 
+        # verify seed time against python code
+        seed_time = self.mgr.blocking_trigger('pid_seed_time')[0].value
+        if seed_time != consts.PLAN_TICK * 1000:
+            raise ValueError(
+                "PID seed time [%s] for leg %s does not match python %s" %
+                (seed_time / 1000., self.leg_number, consts.PLAN_TICK))
+
         # send first heartbeat
         self.send_heartbeat()
 
@@ -445,17 +453,19 @@ class Teensy(LegController):
         self.trigger('pid', self.pid)
 
     def on_report_pwm(self, h, t, k):
+        """
         if hasattr(self, '_hv'):
             hv = h.value
             ts = time.time()
             if abs(hv - self._hv['h']) > 250.:
                 # new hip value
-                print("HV: %s [%s]" % (hv, ts - self._hv['t']))
+                #print("HV: %s [%s]" % (hv, ts - self._hv['t']))
                 self._hv = {'h': hv, 't': ts}
         else:
             self._hv = {
                 'h': h.value,
                 't': time.time()}
+        """
         self.pwm = {
             'hip': h.value, 'thigh': t.value, 'knee': k.value,
             'time': time.time()}
