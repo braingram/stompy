@@ -14,11 +14,7 @@ joy = stompy.joystick.ps3.PS3Joystick()
 while True:
     try:
         joy.update(max_time=0.05)
-        a = joy.smoothed_axes.get('thumb_left_x', None)
-        if a is None:
-            v = thumb_mid
-        else:
-            v = a.update()
+        v = joy.axes.get('thumb_left_x', None)
         print(v)
         time.sleep(0.01)
     except KeyboardInterrupt:
