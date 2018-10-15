@@ -407,6 +407,7 @@ class Body(signaler.Signaler):
         self.set_target(self.target)
 
     def set_target(self, xyz, update_swing=True):
+        """xyz=[turn radius, speed, zchange]"""
         if self.halted:
             # set new pre_halt target
             self._pre_halt_target = xyz

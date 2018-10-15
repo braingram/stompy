@@ -261,6 +261,7 @@ class MultiLeg(signaler.Signaler):
 
     def set_target(self):
         # from joystick
+        """
         az = (
             self.joy.axes.get('one_left', 0) -
             self.joy.axes.get('two_left', 0))
@@ -271,6 +272,7 @@ class MultiLeg(signaler.Signaler):
                 az -= thumb_db
             else:
                 az += thumb_db
+        """
         #if self.joy_smoothing is False or self.mode == 'leg_pwm':
         lx = self.joy.axes.get('thumb_left_x', thumb_mid) - thumb_mid
         ly = self.joy.axes.get('thumb_left_y', thumb_mid) - thumb_mid
@@ -283,7 +285,7 @@ class MultiLeg(signaler.Signaler):
             ly = 0
         if abs(rx) < thumb_db:
             rx = 0
-        if abs(ry < thumb_db):
+        if abs(ry) < thumb_db:
             ry = 0
         #else:
         #    ax = self.get_axis('thumb_left_x')
@@ -294,10 +296,11 @@ class MultiLeg(signaler.Signaler):
         #    return
         lx = max(-1., min(1., lx / float(thumb_scale)))
         ly = max(-1., min(1., -ly / float(thumb_scale)))
-        az = max(-1., min(1., az / 255.))
+        #az = max(-1., min(1., az / 255.))
         rx = max(-1., min(1., rx / float(thumb_scale)))
         ry = max(-1., min(1., -ry / float(thumb_scale)))
-        xyz = (lx, ly, az)
+        #xyz = (lx, ly, az)
+        xyz = (lx, ly, ry)
         #if self.last_xyz is not None:
         #    if (
         #            numpy.sum(numpy.abs(
@@ -346,7 +349,8 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_calibration':
             pass
         elif self.mode == 'body_move':
-            if self.joy.keys.get('circle', 0) == 0:
+            #if self.joy.keys.get('circle', 0) == 0:
+            if self.joy.keys.get('one_left', 0) == 0:
                 speed = self.speed_scalar * self.speeds['body']
                 plan = {
                     'mode': consts.PLAN_VELOCITY_MODE,
@@ -373,7 +377,8 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'body_restriction':
             # pass in rx, ly, az
             # also pass in mode for crab walking
-            self.res.set_target(numpy.array([rx, ly, az]))
+            #self.res.set_target(numpy.array([rx, ly, az]))
+            self.res.set_target(numpy.array([lx, ly, ly]))
 
     def update(self):
         if self.joy is not None:
