@@ -11,12 +11,18 @@ thumb_scale = 127 - thumb_db
 
 joy = stompy.joystick.ps3.PS3Joystick()
 
+axes = {}
 
 def print_event(evt):
-    print(evt['type'], evt['name'], evt['value'])
+    if evt['type'] == 'axis':
+        ov = axes.get(evt['code'], -100)
+        if abs(evt['value'] - ov) < 25:
+            return
+        axes[evt['code']] = evt['value'] 
+    print(evt['type'], hex(evt['code']), evt['name'], evt['value'])
 
 joy.on('button', print_event)
-#joy.on('axis', print_event)
+joy.on('axis', print_event)
 
 while True:
     try:

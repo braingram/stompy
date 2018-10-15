@@ -12,6 +12,8 @@ from .. import signaler
 
 DEFAULT_FN = '/dev/input/by-id/usb-Sony_' \
     'PLAYSTATION_R_3_Controller-event-joystick'
+#DEFAULT_FN = '/dev/input/by-id/usb-SHANWAN_' \
+#    'PS3_GamePad-joystick'
 
 FMT = 'llHHi'
 NB = struct.calcsize(FMT)
@@ -32,6 +34,7 @@ EVS = dict([
     (0x1f, "Max"),
     (0x1f+1, "Current")])
 
+#<<<<<<< Updated upstream
 codes_by_version = {
     '14.04': {
         'keys': dict([  # 0x01, 17
@@ -77,7 +80,51 @@ codes_by_version = {
             (0x3d, 'acc_z'),  # up/down
         ]),
     },
-    '18.04': {},
+    '18.04': {
+        'keys': dict([
+            (0x13a, 'select'),
+            (0x13d, 'left_thumb'),
+            (0x13e, 'right_thumb'),
+            (0x13b, 'start'),
+            (0x220, 'up'),
+            (0x223, 'right'),
+            (0x221, 'down'),
+            (0x222, 'left'),
+            (0x138, 'two_left'),
+            (0x139, 'two_right'),
+            (0x136, 'one_left'),
+            (0x137, 'one_right'),
+            (0x133, 'triangle'),
+            (0x131, 'circle'),
+            (0x130, 'cross'),
+            (0x134, 'square'),
+            (0x13c, 'ps'),
+        ]),
+        'misc': dict([]),  # 0x04
+        'abs_axes': dict([  # 0x03, value maxes at 255
+            # I have no way to test
+            (0x00, 'thumb_left_x'),  # left = decrease
+            (0x01, 'thumb_left_y'),  # up = decrease
+            (0x03, 'thumb_right_x'),  # left = decrease
+            (0x04, 'thumb_right_y'),  # up = decrease
+            # left?
+            #(0x2c, 'up'),
+            #(0x2d, 'right'),
+            #(0x2e, 'down'),
+            (0x02, 'two_left'),
+            (0x05, 'two_right'),
+            #(0x32, 'one_left'),
+            #(0x33, 'one_right'),
+            #(0x34, 'triangle'),
+            #(0x35, 'circle'),
+            #(0x36, 'cross'),
+            #(0x37, 'square'),
+            #(0x3b, 'acc_x'),  # left/right
+            #(0x3c, 'acc_y'),  # forward/back
+            #(0x3d, 'acc_z'),  # up/down
+        ]),
+
+    },
 }
 
 POLL_TIMEOUT = 0.001
@@ -110,8 +157,12 @@ class PS3Joystick(signaler.Signaler):
             if key != 'keys':  # only do this for keys
                 return default
             for v in codes_by_version:
-                if key in codes_by_version[v]['keys']:
+                if code in codes_by_version[v]['keys']:
+                    self._version = v
                     self.codes = codes_by_version[v]
+                    break
+            else:
+                return default
         if key not in self.codes:
             return default
         return self.codes[key].get(code, default)

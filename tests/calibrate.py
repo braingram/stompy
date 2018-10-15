@@ -10,8 +10,8 @@ import pylab
 import stompy
 
 
-leg_number = 7
-joint_number = 2
+leg_number = 6
+joint_number = 1
 limit_finding_pwm = 0.2
 adc_move_threshold = 500
 min_move_total = 30000
@@ -177,6 +177,7 @@ def measure_velocity(leg, joint_number, pwm, move_limits, sensor_limits):
         pwms = [0., 0., 0.]
         pwms[joint_number] = pwm
         leg.set_pwm(*pwms)
+        idle(leg, 0.05)
 
         dts = []
         dvs = []
@@ -216,6 +217,7 @@ def measure_velocity(leg, joint_number, pwm, move_limits, sensor_limits):
                 sum([(dv / float(dt)) for (dv, dt) in zip(dvs, dts)])
                 / float(len(dvs)))
         velocities.append(velocity)
+        idle(leg, 1.0)
 
     if reverse_results:
         velocities = velocities[::-1]
@@ -235,12 +237,17 @@ if __name__ == '__main__':
     leg = legs[leg_number]
 
     #pl, nl = find_limits(leg, joint_number)
-    pwms = [v * 0.005 for v in range(100)]
+
+    #pwms = [v * 0.005 for v in range(100)]
+    #pwms = [v * 0.005 for v in range(100)]
+    pwms = numpy.linspace(0.1, 0.4, 21)
     vmap = {}
     for pwm in pwms:
         try:
             vmap[pwm] = measure_velocity(
-                leg, joint_number, pwm, [25000, 40000], [1000, 64000])
+                leg, joint_number, pwm,
+                [12000, 17000], [9000, 21000])
+                #[10000, 15000], [7000, 21000])
         except Exception as e:
             print("Hit error: %s" % e)
             break
