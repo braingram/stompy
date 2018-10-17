@@ -34,7 +34,6 @@ EVS = dict([
     (0x1f, "Max"),
     (0x1f+1, "Current")])
 
-#<<<<<<< Updated upstream
 codes_by_version = {
     '14.04': {
         'keys': dict([  # 0x01, 17

@@ -95,7 +95,7 @@
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_15">
           <item>
-           <widget class="GLViewWidget" name="legGLWidget">
+           <widget class="LegDisplay" name="legDisplay" native="true">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -773,7 +773,7 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
-            <widget class="GLViewWidget" name="bodyGLWidget">
+            <widget class="BodyDisplay" name="bodyDisplay" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>2</horstretch>
@@ -1154,9 +1154,14 @@
    <header>pyqtgraph</header>
   </customwidget>
   <customwidget>
-   <class>GLViewWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>pyqtgraph.opengl</header>
+   <class>LegDisplay</class>
+   <extends>QWidget</extends>
+   <header>stompy.ui.nogl</header>
+  </customwidget>
+  <customwidget>
+   <class>BodyDisplay</class>
+   <extends>QWidget</extends>
+   <header>stompy.ui.nogl</header>
   </customwidget>
  </customwidgets>
  <resources/>

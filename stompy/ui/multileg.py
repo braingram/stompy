@@ -4,14 +4,14 @@ import sys
 import traceback
 
 import numpy
-#from PyQt4 import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 
-import pyqtgraph
-import pyqtgraph.opengl
-from pyqtgraph.Qt import QtCore, QtGui
+#import pyqtgraph
+#import pyqtgraph.opengl
+#from pyqtgraph.Qt import QtCore, QtGui
 
-pyqtgraph.setConfigOption('background', 'w')
-pyqtgraph.setConfigOption('foreground', 'k')
+#pyqtgraph.setConfigOption('background', 'w')
+#pyqtgraph.setConfigOption('foreground', 'k')
 
 
 from .. import consts
@@ -52,6 +52,7 @@ class PIDTab(Tab):
         self.ui.pidCommitButton.clicked.connect(
             self.commit_values)
 
+        """
         self.plot = ui.pidPlotWidget
         self.output_line = self.plot.plotItem
         self.output_line.getAxis('left').setLabel("Output")
@@ -90,6 +91,7 @@ class PIDTab(Tab):
         self.error_data = pyqtgraph.PlotCurveItem(v, pen='r')
         self.error_line.addItem(self.error_data)
         self.error_data._data = v
+        """
         self.change_joint()
 
     def set_leg_index(self, index):
@@ -104,6 +106,7 @@ class PIDTab(Tab):
                 'pid', self.on_pid)
 
     def update_views(self):
+        return
         self.setpoint_line.setGeometry(self.output_line.vb.sceneBoundingRect())
         self.error_line.setGeometry(self.output_line.vb.sceneBoundingRect())
 
@@ -113,6 +116,7 @@ class PIDTab(Tab):
             self.output_line.vb, self.error_line.XAxis)
 
     def add_pid_values(self, output, setpoint, error):
+        return
         for (v, d) in zip(
                 (output, setpoint, error),
                 (self.output_data, self.setpoint_data, self.error_data)):
@@ -126,7 +130,7 @@ class PIDTab(Tab):
         o, s, e = pid['output'], pid['set_point'], pid['error']
         if txt not in o:
             return
-        self.add_pid_values(o[txt], s[txt], e[txt])
+        #self.add_pid_values(o[txt], s[txt], e[txt])
 
     def change_joint(self):
         self.clear_pid_values()
@@ -297,15 +301,18 @@ class PIDTab(Tab):
         self.read_joint_config()
 
     def clear_pid_values(self):
+        return
         for d in (self.output_data, self.setpoint_data, self.error_data):
             d._data = []
             d.setData(d._data)
 
     def timer_update(self):
+        return
         rd = list(numpy.random.random(3))
         self.add_pid_values(*rd)
 
     def start_showing(self):
+        return
         self.clear_pid_values()
         if self.controller is None:
             print("starting timer")
@@ -314,6 +321,7 @@ class PIDTab(Tab):
             self.timer.start(50)
 
     def stop_showing(self):
+        return
         if self.controller is None:
             self.timer.stop()
 
@@ -337,7 +345,9 @@ class LegTab(Tab):
     }
 
     def __init__(self, ui, controller):
+        self.display = ui.legDisplay
         super(LegTab, self).__init__(ui, controller)
+        """
         self.gl_widget = ui.legGLWidget
         # add grids
         gi = 120
@@ -404,6 +414,7 @@ class LegTab(Tab):
         self.gl_menu.addAction(hga)
         #self.gl_menu.triggered[QtGui.QAction].connect(self.on_gl_menu_action)
         self.show_side_view()
+        """
 
     def set_leg_index(self, index):
         if self.controller is None:
@@ -418,6 +429,8 @@ class LegTab(Tab):
             self.controller.res.feet[self._last_leg_index].remove_on(
                 'restriction', self.on_restriction)
         super(LegTab, self).set_leg_index(index)  # update index
+        self.display.leg.number = index
+        self.display.update()
         if index is not None:
             self.controller.leg.on(
                 'angles', self.on_angles)
@@ -436,22 +449,29 @@ class LegTab(Tab):
     #    print(action.text())
 
     def show_grids(self):
+        return
         for k in self.grids:
             self.grids[k].setVisible(True)
 
     def hide_grids(self):
+        return
         for k in self.grids:
             self.grids[k].setVisible(False)
 
     def show_side_view(self):
+        return
         self.gl_widget.opts.update(self.views['side'])
         self.gl_widget.update()
 
     def show_top_view(self):
+        return
         self.gl_widget.opts.update(self.views['top'])
         self.gl_widget.update()
 
     def plot_leg(self, hip, thigh, knee):
+        self.display.leg.set_angles(hip, thigh, knee)
+        self.display.update()
+        return
         pts = list(kinematics.leg.angles_to_points(hip, thigh, knee))
         self.hip_link.setData(pos=numpy.array([[0, 0, 0], pts[0]]))
         self.thigh_link.setData(pos=numpy.array([pts[0], pts[1]]))
@@ -465,6 +485,7 @@ class LegTab(Tab):
                 self.limit_links[i].setData(pos=numpy.array(lpts))
 
     def update_timer(self):
+        return
         self.plot_leg(self.angles[0], self.angles[1], self.angles[2])
         for i in xrange(3):
             self.angles[i] += self.deltas[i]
@@ -494,6 +515,7 @@ class LegTab(Tab):
         self.ui.calfADCProgress.setValue(adc['calf'])
 
     def start_showing(self):
+        return
         if self.controller is None:
             self.angles = [0., 0., 0.]
             self.deltas = [0.01, 0.01, -0.02]
@@ -503,6 +525,7 @@ class LegTab(Tab):
             self.timer.start(50)
 
     def stop_showing(self):
+        return
         if self.controller is None:
             self.timer.stop()
 
@@ -528,6 +551,7 @@ class BodyTab(Tab):
     def __init__(self, ui, controller):
         super(BodyTab, self).__init__(ui, controller)
         self.heightLabel = ui.heightLabel
+        """
         self.gl_widget = ui.bodyGLWidget
 
         # add grids
@@ -629,6 +653,7 @@ class BodyTab(Tab):
         hga.triggered.connect(self.hide_grids)
         self.gl_menu.addAction(hga)
         #self.gl_menu.triggered[QtGui.QAction].connect(self.on_gl_menu_action)
+        """
 
         # attach to all legs
         #self.controller.legs[i]
@@ -643,28 +668,33 @@ class BodyTab(Tab):
             self.controller.res.feet[leg_number].on(
                 'state',
                 lambda a, i=leg_number: self.on_res_state(a, i))
-        self.show_top_view()
+        #self.show_top_view()
 
     def on_gl_menu(self, point):
         self.gl_menu.exec_(self.gl_widget.mapToGlobal(point))
 
     def show_grids(self):
+        return
         for k in self.grids:
             self.grids[k].setVisible(True)
 
     def hide_grids(self):
+        return
         for k in self.grids:
             self.grids[k].setVisible(False)
 
     def show_back_view(self):
+        return
         self.gl_widget.opts.update(self.views['back'])
         self.gl_widget.update()
 
     def show_top_view(self):
+        return
         self.gl_widget.opts.update(self.views['top'])
         self.gl_widget.update()
 
     def plot_leg(self, leg_number, hip, thigh, knee, calf):
+        return
         pts = [[0., 0., 0.], ] + list(
             kinematics.leg.angles_to_points(hip, thigh, knee))
         pts = kinematics.body.leg_to_body_array(leg_number, pts)
@@ -694,6 +724,7 @@ class BodyTab(Tab):
         pass
 
     def on_restriction(self, res, leg_number):
+        return
         # TODO restriction?
         l = self.links[leg_number]
         #l['res'].setData(pos=l['pts'][3], size=res['r'] * 20.)
@@ -702,6 +733,7 @@ class BodyTab(Tab):
                 color=[res['r'], 1. - res['r'], 0., 1.])
 
     def on_res_state(self, state, leg_number):
+        return
         # draw polygon between supported legs
         lns = sorted(self.controller.res.feet)
         pts = []

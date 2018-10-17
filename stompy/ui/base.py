@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Wed Oct  3 19:31:29 2018
+# Created: Tue Oct 16 22:17:30 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -70,10 +70,10 @@ class Ui_MainWindow(object):
         self.legTab.setObjectName(_fromUtf8("legTab"))
         self.verticalLayout_15 = QtGui.QVBoxLayout(self.legTab)
         self.verticalLayout_15.setObjectName(_fromUtf8("verticalLayout_15"))
-        self.legGLWidget = GLViewWidget(self.legTab)
-        self.legGLWidget.setMinimumSize(QtCore.QSize(0, 0))
-        self.legGLWidget.setObjectName(_fromUtf8("legGLWidget"))
-        self.verticalLayout_15.addWidget(self.legGLWidget)
+        self.legDisplay = LegDisplay(self.legTab)
+        self.legDisplay.setMinimumSize(QtCore.QSize(0, 0))
+        self.legDisplay.setObjectName(_fromUtf8("legDisplay"))
+        self.verticalLayout_15.addWidget(self.legDisplay)
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_7.setObjectName(_fromUtf8("horizontalLayout_7"))
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
@@ -414,14 +414,14 @@ class Ui_MainWindow(object):
         self.splitter.setSizePolicy(sizePolicy)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName(_fromUtf8("splitter"))
-        self.bodyGLWidget = GLViewWidget(self.splitter)
+        self.bodyDisplay = BodyDisplay(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(2)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.bodyGLWidget.sizePolicy().hasHeightForWidth())
-        self.bodyGLWidget.setSizePolicy(sizePolicy)
-        self.bodyGLWidget.setMinimumSize(QtCore.QSize(0, 0))
-        self.bodyGLWidget.setObjectName(_fromUtf8("bodyGLWidget"))
+        sizePolicy.setHeightForWidth(self.bodyDisplay.sizePolicy().hasHeightForWidth())
+        self.bodyDisplay.setSizePolicy(sizePolicy)
+        self.bodyDisplay.setMinimumSize(QtCore.QSize(0, 0))
+        self.bodyDisplay.setObjectName(_fromUtf8("bodyDisplay"))
         self.configTree = QtGui.QTreeWidget(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -620,7 +620,7 @@ class Ui_MainWindow(object):
         self.legsMenu.setTitle(_translate("MainWindow", "Legs", None))
         self.modesMenu.setTitle(_translate("MainWindow", "Modes", None))
 
-from pyqtgraph.opengl import GLViewWidget
+from stompy.ui.nogl import LegDisplay, BodyDisplay
 from pyqtgraph import PlotWidget
 
 if __name__ == "__main__":
