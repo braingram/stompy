@@ -18,12 +18,15 @@ class Leg(object):
         self.hip = 0.
         self.thigh = 0.
         self.knee = 0.
+        self.calf = 0.
         self.number = number
+        self.restriction = {}
 
-    def set_angles(self, hip, thigh, knee):
+    def set_angles(self, hip, thigh, knee, calf=0.):
         self.hip = hip
         self.thigh = thigh
         self.knee = knee
+        self.calf = calf
 
     def points(self):
         """Generate xyz points for links from angles"""
@@ -80,6 +83,7 @@ class OrthoProjection(object):
         #print(tpts)
         # then apply scaling and throw out z
         spts = tpts[:, :2] * self.scalar
+        spts[:, 0] *= -1
         # apply offset
         #print(spts)
         opts = spts + numpy.array(self.offset)[numpy.newaxis, :]
@@ -104,6 +108,7 @@ class LegDisplay(QtGui.QWidget):
                 QtGui.QPen(QtCore.Qt.blue, 1, QtCore.Qt.DotLine),
             ],
             'limits': QtGui.QPen(QtCore.Qt.magenta, 1, QtCore.Qt.DashLine),
+            'calf': QtGui.QPen(QtCore.Qt.cyan, 1),
         }
 
     def resizeEvent(self, event):
@@ -117,6 +122,58 @@ class LegDisplay(QtGui.QWidget):
         self.projection.offset = (
             self.width() / 2 + dx,
             self.height() / 2 + dy)
+
+    def _paintAxes(self, painter):
+        # draw axes
+        sx, sy = self.projection.offset
+        #sx, sy = 0, 0
+        for (i, pen) in enumerate(self._pens['axes']):
+            pt = [0., 0., 0.]
+            pt[i] = 12.
+            x, y = self.projection.project_points([pt])[0]
+            painter.setPen(pen)
+            painter.drawLine(sx, sy, x, y)
+
+    def _paintLeg(self, painter, leg=None, transform=None):
+        if leg is None:
+            leg = self.leg
+
+        pts = [[0, 0, 0], ] + list(leg.points())
+        if transform is not None:
+            pts = transforms.transform_3d_array(transform, pts)
+        links = self.projection.project_points(pts)
+        #sx, sy = self.projection.offset
+        sx, sy = links[0]
+        #sx, sy = 0, 0
+        for (pen, link) in zip(self._pens['links'], links[1:]):
+            painter.setPen(pen)
+            x, y = link
+            painter.drawLine(sx, sy, x, y)
+            sx, sy = x, y
+
+        # draw calf load (circle at sx, sy)
+        r = leg.calf / 50.
+        if r > 1:
+            painter.setPen(self._pens['calf'])
+            #painter.setBrush(QtGui.QBrush(self._pens['calf'].color()))
+            painter.drawEllipse(x - r, y - r, r * 2, r * 2)
+
+        # draw limits
+        z = pts[-1][2]
+        lpts = kinematics.leg.limits_at_z_3d(
+            z, leg.number)
+        # color limits by restriction
+        r = leg.restriction.get('r', 1.)
+        pen = QtGui.QPen(QtGui.QColor(
+            255 * r, (1 - r) * 255, 0.), 2,
+            QtCore.Qt.DashLine)
+        if lpts is not None:
+            if transform is not None:
+                lpts = transforms.transform_3d_array(transform, lpts)
+            tpts = self.projection.project_points(lpts)
+            painter.setPen(pen)
+            painter.drawPolyline(
+                QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
 
     def paintEvent(self, event):
         #print(
@@ -135,36 +192,10 @@ class LegDisplay(QtGui.QWidget):
         painter.setRenderHints(QtGui.QPainter.Antialiasing)
 
         # draw axes
-        sx, sy = self.projection.offset
-        #sx, sy = 0, 0
-        for (i, pen) in enumerate(self._pens['axes']):
-            pt = [0., 0., 0.]
-            pt[i] = 12.
-            x, y = self.projection.project_points([pt])[0]
-            painter.setPen(pen)
-            painter.drawLine(sx, sy, x, y)
+        self._paintAxes(painter)
 
         # draw leg
-        pts = self.leg.points()
-        links = self.projection.project_points(pts)
-        sx, sy = self.projection.offset
-        #sx, sy = 0, 0
-        for (pen, link) in zip(self._pens['links'], links):
-            painter.setPen(pen)
-            x, y = link
-            painter.drawLine(sx, sy, x, y)
-            sx, sy = x, y
-
-        # draw limits
-        z = pts[-1][2]
-        lpts = kinematics.leg.limits_at_z_3d(
-            z, self.leg.number)
-        if lpts is not None:
-            tpts = self.projection.project_points(lpts)
-            pen = self._pens['limits']
-            painter.setPen(self._pens['limits'])
-            painter.drawPolyline(
-                QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
+        self._paintLeg(painter)
 
         # TODO draw foot
 
@@ -233,7 +264,23 @@ class LegDisplay(QtGui.QWidget):
 
 
 class BodyDisplay(LegDisplay):
-    pass
+    def __init__(self, parent=None):
+        super(BodyDisplay, self).__init__(parent)
+        del self.leg
+        self.legs = {}
+
+    def add_leg(self, leg_number):
+        self.legs[leg_number] = Leg(leg_number)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter()
+        painter.begin(self)
+        painter.setRenderHints(QtGui.QPainter.Antialiasing)
+        self._paintAxes(painter)
+        for leg in self.legs:
+            T = kinematics.body.leg_to_body_transforms[leg]
+            self._paintLeg(painter, self.legs[leg], T)
+        painter.end()
 
 
 def main():
