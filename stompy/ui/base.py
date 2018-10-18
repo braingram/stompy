@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Tue Oct 16 22:17:30 2018
+# Created: Wed Oct 17 20:46:02 2018
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -174,15 +174,15 @@ class Ui_MainWindow(object):
         self.PIDTab.setObjectName(_fromUtf8("PIDTab"))
         self.verticalLayout_6 = QtGui.QVBoxLayout(self.PIDTab)
         self.verticalLayout_6.setObjectName(_fromUtf8("verticalLayout_6"))
-        self.pidPlotWidget = PlotWidget(self.PIDTab)
-        self.pidPlotWidget.setEnabled(True)
+        self.pidLineChart = LineChart(self.PIDTab)
+        self.pidLineChart.setEnabled(True)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.pidPlotWidget.sizePolicy().hasHeightForWidth())
-        self.pidPlotWidget.setSizePolicy(sizePolicy)
-        self.pidPlotWidget.setObjectName(_fromUtf8("pidPlotWidget"))
-        self.verticalLayout_6.addWidget(self.pidPlotWidget)
+        sizePolicy.setHeightForWidth(self.pidLineChart.sizePolicy().hasHeightForWidth())
+        self.pidLineChart.setSizePolicy(sizePolicy)
+        self.pidLineChart.setObjectName(_fromUtf8("pidLineChart"))
+        self.verticalLayout_6.addWidget(self.pidLineChart)
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.verticalLayout_5 = QtGui.QVBoxLayout()
@@ -620,8 +620,7 @@ class Ui_MainWindow(object):
         self.legsMenu.setTitle(_translate("MainWindow", "Legs", None))
         self.modesMenu.setTitle(_translate("MainWindow", "Modes", None))
 
-from stompy.ui.nogl import LegDisplay, BodyDisplay
-from pyqtgraph import PlotWidget
+from stompy.ui.nogl import LineChart, LegDisplay, BodyDisplay
 
 if __name__ == "__main__":
     import sys

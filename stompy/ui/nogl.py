@@ -83,7 +83,7 @@ class OrthoProjection(object):
         #print(tpts)
         # then apply scaling and throw out z
         spts = tpts[:, :2] * self.scalar
-        spts[:, 0] *= -1
+        spts[:, 0] *= -1  # swap to right hand coords
         # apply offset
         #print(spts)
         opts = spts + numpy.array(self.offset)[numpy.newaxis, :]
@@ -228,7 +228,7 @@ class LegDisplay(QtGui.QWidget):
             update = False
             # TODO bring out rotation scaling factors
             if (dx != 0):  # change azimuth
-                self.projection.azimuth -= dx * 0.01
+                self.projection.azimuth += dx * 0.01
                 update = True
             if (dy != 0):  # change elevation
                 self.projection.elevation -= dy * 0.01
@@ -257,7 +257,7 @@ class LegDisplay(QtGui.QWidget):
 
     def wheelEvent(self, event):
         d = event.delta()
-        print(d)
+        #print(d)
         nd = max(-1., min(1., d / 1000.)) + 1.
         self.projection.scalar *= nd
         self.update()
@@ -280,6 +280,139 @@ class BodyDisplay(LegDisplay):
         for leg in self.legs:
             T = kinematics.body.leg_to_body_transforms[leg]
             self._paintLeg(painter, self.legs[leg], T)
+        painter.end()
+
+
+class ChartData(object):
+    max_n = 200
+
+    def __init__(self, label=''):
+        self.data = []
+        self.label = ''
+
+    def append(self, value):
+        self.data.append(value)
+        if len(self.data) > self.max_n:
+            self.data = self.data[-self.max_n:]
+
+    def get_data(self):
+        return self.data
+
+    def clear(self):
+        self.data = []
+
+
+class LineChart(QtGui.QWidget):
+    _pens = [
+        QtGui.QPen(QtCore.Qt.blue, 1),
+        QtGui.QPen(QtCore.Qt.green, 1),
+        QtGui.QPen(QtCore.Qt.red, 1),
+    ]
+
+    _cfg = {
+        'axis_width': 20,
+        'axis_text_width': 50,
+        'margin': 5,
+    }
+
+    def __init__(self, parent=None):
+        self.data = {}
+        self._pen_index = 0
+        super(LineChart, self).__init__(parent)
+
+    def addSeries(self, label, pen=None):
+        self.data[label] = ChartData(label=label)
+        if pen is None:
+            pen = self._pens[self._pen_index]
+            self._pen_index = (self._pen_index + 1) % len(self._pens)
+        self.data[label]._pen = pen
+
+    def appendData(self, label, value):
+        self.data[label].append(value)
+
+    def clearData(self, label=None):
+        if label is None:
+            return [self.clearData(l) for l in self.data]
+        self.data[label].clear()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter()
+        painter.begin(self)
+        painter.setRenderHints(QtGui.QPainter.Antialiasing)
+        ww, wh = self.width(), self.height()
+        n_series = len(self.data)
+        # give each axis 20 pixels
+        aw = self._cfg['axis_width']
+        margin = self._cfg['margin']
+        axis_margin = n_series * aw
+        # give space for axes at left
+        xs = (
+            numpy.arange(ChartData.max_n) *
+            (ww - axis_margin - margin) / float(ChartData.max_n) + axis_margin)
+        for (series_i, label) in enumerate(self.data):
+            # draw axis
+            ax = series_i * aw
+            painter.setPen(self.data[label]._pen)
+            painter.drawLine(
+                ax + aw - 2, margin, ax + aw - 2, wh - margin)
+            # min
+            painter.drawLine(
+                ax + aw - 8, margin, ax + aw - 2, margin)
+            # max
+            painter.drawLine(
+                ax + aw - 8, wh - margin, ax + aw - 2, wh - margin)
+            # mid
+            painter.drawLine(
+                ax + aw - 8, wh / 2, ax + aw - 2, wh / 2)
+            # plot data
+            vs = numpy.array(self.data[label].get_data())
+            if len(vs) == 0:
+                continue
+            minv, maxv = numpy.min(vs), numpy.max(vs)
+
+            painter.setFont(QtGui.QFont('Arial', 10, 1))
+
+            axis_tw = self._cfg['axis_text_width']
+            painter.save()
+            painter.translate(ax + 2, wh - margin * 2)
+            painter.rotate(-90)
+            painter.drawText(
+                0, 0, axis_tw, aw,
+                QtCore.Qt.AlignLeft, '%i' % int(minv))
+            painter.restore()
+
+            painter.save()
+            painter.translate(ax + 2, margin * 2 + axis_tw)
+            painter.rotate(-90)
+            painter.drawText(
+                0, 0, axis_tw, aw,
+                QtCore.Qt.AlignRight, '%i' % int(maxv))
+            painter.restore()
+
+            painter.save()
+            painter.translate(ax + 2, wh / 2 - margin)
+            painter.rotate(-90)
+            painter.drawText(
+                0, 0, axis_tw, aw,
+                QtCore.Qt.AlignLeft, '%i' % int((maxv + minv) / 2))
+            painter.restore()
+
+            painter.save()
+            painter.translate(ax + 2, wh / 2 + margin * 3 + axis_tw)
+            painter.rotate(-90)
+            painter.drawText(
+                0, 0, axis_tw, aw,
+                QtCore.Qt.AlignRight, label)
+            painter.restore()
+
+            ys = (
+                (1. - (vs - minv) / float(maxv - minv))
+                * (wh - margin * 2) + margin)
+            painter.drawPolyline(
+                QtGui.QPolygonF([
+                    QtCore.QPointF(x, y) for (x, y)
+                    in zip(xs[-len(ys):], ys)]))
+
         painter.end()
 
 

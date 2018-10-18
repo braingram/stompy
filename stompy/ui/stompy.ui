@@ -286,7 +286,7 @@
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <widget class="PlotWidget" name="pidPlotWidget">
+           <widget class="LineChart" name="pidLineChart" native="true">
             <property name="enabled">
              <bool>true</bool>
             </property>
@@ -1149,9 +1149,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>PlotWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>pyqtgraph</header>
+   <class>LineChart</class>
+   <extends>QWidget</extends>
+   <header>stompy.ui.nogl</header>
   </customwidget>
   <customwidget>
    <class>LegDisplay</class>

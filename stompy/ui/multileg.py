@@ -43,6 +43,11 @@ class PIDTab(Tab):
     n_points = 1000
 
     def __init__(self, ui, controller):
+        self.chart = ui.pidLineChart
+        self.chart.addSeries('Setpoint')
+        self.chart.addSeries('Output')
+        self.chart.addSeries('Error')
+
         super(PIDTab, self).__init__(ui, controller)
         # TODO make ui map
         self.joint_config = {}
@@ -52,46 +57,6 @@ class PIDTab(Tab):
         self.ui.pidCommitButton.clicked.connect(
             self.commit_values)
 
-        """
-        self.plot = ui.pidPlotWidget
-        self.output_line = self.plot.plotItem
-        self.output_line.getAxis('left').setLabel("Output")
-        self.output_line.getAxis('left').setPen("g")
-
-        self.setpoint_line = pyqtgraph.ViewBox()
-        self.output_line.showAxis('right')
-        self.output_line.scene().addItem(self.setpoint_line)
-        self.output_line.getAxis('right').linkToView(self.setpoint_line)
-        self.setpoint_line.setXLink(self.output_line)
-        self.output_line.getAxis('right').setLabel("SetPoint")
-        self.output_line.getAxis('right').setPen("b")
-
-        self.error_line = pyqtgraph.ViewBox()
-        ax = pyqtgraph.AxisItem('right')
-        self.error_line._ax = ax
-        self.output_line.layout.addItem(ax, 2, 3)
-        self.output_line.scene().addItem(self.error_line)
-        ax.linkToView(self.error_line)
-        self.error_line.setXLink(self.output_line)
-        ax.setZValue(-10000)
-        ax.setLabel("Error")
-        ax.setPen("r")
-
-        self.update_views()
-        self.output_line.vb.sigResized.connect(self.update_views)
-
-        v = []
-        self.output_data = self.output_line.plot(v, pen='g')
-        self.output_data._data = v
-        v = []
-        self.setpoint_data = pyqtgraph.PlotCurveItem(v, pen='b')
-        self.setpoint_line.addItem(self.setpoint_data)
-        self.setpoint_data._data = v
-        v = []
-        self.error_data = pyqtgraph.PlotCurveItem(v, pen='r')
-        self.error_line.addItem(self.error_data)
-        self.error_data._data = v
-        """
         self.change_joint()
 
     def set_leg_index(self, index):
@@ -105,32 +70,19 @@ class PIDTab(Tab):
             self.controller.leg.on(
                 'pid', self.on_pid)
 
-    def update_views(self):
-        return
-        self.setpoint_line.setGeometry(self.output_line.vb.sceneBoundingRect())
-        self.error_line.setGeometry(self.output_line.vb.sceneBoundingRect())
-
-        self.setpoint_line.linkedViewChanged(
-            self.output_line.vb, self.setpoint_line.XAxis)
-        self.error_line.linkedViewChanged(
-            self.output_line.vb, self.error_line.XAxis)
-
     def add_pid_values(self, output, setpoint, error):
+        self.chart.appendData('Setpoint', setpoint)
+        self.chart.appendData('Output', output)
+        self.chart.appendData('Error', error)
+        self.chart.update()
         return
-        for (v, d) in zip(
-                (output, setpoint, error),
-                (self.output_data, self.setpoint_data, self.error_data)):
-            d._data.append(v)
-            while len(d._data) > self.n_points:
-                d._data.pop(0)
-            d.setData(d._data)
 
     def on_pid(self, pid):
         txt = str(self.ui.pidJointCombo.currentText()).lower()
         o, s, e = pid['output'], pid['set_point'], pid['error']
         if txt not in o:
             return
-        #self.add_pid_values(o[txt], s[txt], e[txt])
+        self.add_pid_values(o[txt], s[txt], e[txt])
 
     def change_joint(self):
         self.clear_pid_values()
@@ -162,7 +114,7 @@ class PIDTab(Tab):
         # following error threshold
         r = self.controller.leg.mgr.blocking_trigger(
             'following_error_threshold', index)
-        print("Following error: %s" % r[1].value)
+        #print("Following error: %s" % r[1].value)
         self.joint_config['following_error_threshold'] = r[1].value
 
         # pwm: extend/retract min/max
@@ -301,18 +253,14 @@ class PIDTab(Tab):
         self.read_joint_config()
 
     def clear_pid_values(self):
-        return
-        for d in (self.output_data, self.setpoint_data, self.error_data):
-            d._data = []
-            d.setData(d._data)
+        self.chart.clearData()
+        self.chart.update()
 
     def timer_update(self):
-        return
         rd = list(numpy.random.random(3))
         self.add_pid_values(*rd)
 
     def start_showing(self):
-        return
         self.clear_pid_values()
         if self.controller is None:
             print("starting timer")
@@ -321,7 +269,6 @@ class PIDTab(Tab):
             self.timer.start(50)
 
     def stop_showing(self):
-        return
         if self.controller is None:
             self.timer.stop()
 
