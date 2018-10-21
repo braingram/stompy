@@ -201,6 +201,9 @@ class Foot(signaler.Signaler):
                 min_hip_distance=self.cfg.min_hip_distance,
                 target_calf_angle=self.cfg.target_calf_angle)
             self.swing_target = sp[0], sp[1]
+            # print(self.swing_target, z)
+            # TODO check if point is valid
+            # TODO error out on invalid
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -332,7 +335,7 @@ class Foot(signaler.Signaler):
             #if self.xyz['z'] < self.lower_height:
             if (
                     (
-                        abs(self.xyz['z'] - self.cfg.lower_height) <
+                        (self.xyz['z'] - self.cfg.lower_height) <
                         self.cfg.height_slop) and
                     self.angles['calf'] > self.cfg.loaded_weight):
                 new_state = 'wait'
