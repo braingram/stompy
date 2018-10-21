@@ -3,6 +3,7 @@
 """
 
 import sys
+import time
 
 import numpy
 from PyQt4 import (QtGui, QtCore)
@@ -110,6 +111,15 @@ class LegDisplay(QtGui.QWidget):
             'limits': QtGui.QPen(QtCore.Qt.magenta, 1, QtCore.Qt.DashLine),
             'calf': QtGui.QPen(QtCore.Qt.cyan, 1),
         }
+        self.paintsPerSecond = 10.
+        self._last_update_time = time.time() - 1.
+
+    def update(self, *args, **kwargs):
+        t = time.time()
+        dt = t - self._last_update_time
+        if dt > (1. / self.paintsPerSecond):
+            super(LegDisplay, self).update(*args, **kwargs)
+            self._last_update_time = t
 
     def resizeEvent(self, event):
         # account for any user applied offset
@@ -175,7 +185,23 @@ class LegDisplay(QtGui.QWidget):
             painter.drawPolyline(
                 QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
 
+    def reportTiming(self, nseconds=1.):
+        t = time.time()
+        if not hasattr(self, '_last_report_time'):
+            self._last_report_time = t
+            self._reports = 1
+            return
+        self._reports += 1
+        dt = t - self._last_report_time
+        if dt > nseconds:
+            print(
+                "%s: %s calls in %s seconds" %
+                (self.__class__.__name__, self._reports, dt))
+            self._last_report_time = t
+            self._reports = 0
+
     def paintEvent(self, event):
+        #self.reportTiming()
         #print(
         #    "Azimuth: %s, Elevation: %s" %
         #    (self.projection.azimuth, self.projection.elevation))
@@ -273,6 +299,7 @@ class BodyDisplay(LegDisplay):
         self.legs[leg_number] = Leg(leg_number)
 
     def paintEvent(self, event):
+        #self.reportTiming()
         painter = QtGui.QPainter()
         painter.begin(self)
         painter.setRenderHints(QtGui.QPainter.Antialiasing)
