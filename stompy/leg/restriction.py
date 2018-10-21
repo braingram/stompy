@@ -403,6 +403,7 @@ class Body(signaler.Signaler):
 
     def enable(self, foot_states):
         self.enabled = True
+        self.halted = False
         # TODO set foot states, target?
 
     def set_speed(self, speed_scalar):
@@ -443,6 +444,7 @@ class Body(signaler.Signaler):
             mr = numpy.sqrt(mr)
             rspeed = speed / mr * numpy.sign(radius)
             if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
+                print("Limiting because of angular speed")
                 rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
             #print(mr, speed, rspeed)
         if self.cfg.speed_by_restriction:
