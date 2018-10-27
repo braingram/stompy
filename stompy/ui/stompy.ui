@@ -1083,6 +1083,9 @@
                <property name="text">
                 <string>0.0005</string>
                </property>
+               <property name="flags">
+                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+               </property>
               </item>
              </item>
              <item>
