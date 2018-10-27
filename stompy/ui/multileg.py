@@ -14,9 +14,13 @@ from PyQt4 import QtCore, QtGui
 #pyqtgraph.setConfigOption('foreground', 'k')
 
 
+from .. import body
 from .. import consts
+from .. import controllers
 from . import base
+from .. import joystick
 from .. import kinematics
+from .. import leg
 from .. import log
 
 
@@ -629,6 +633,28 @@ def load_ui(controller=None):
 
 def run_ui(ui):
     sys.exit(ui['app'].exec_())
+
+
+def start():
+    if joystick.ps3.available():
+        joy = joystick.ps3.PS3Joystick()
+    else:
+        joy = None
+
+    legs = leg.teensy.connect_to_teensies()
+
+    if len(legs) == 0:
+        raise IOError("No teensies found")
+
+    lns = sorted(legs.keys())
+    print("Connected to legs: %s" % (lns, ))
+
+    bodies = body.connect_to_teensies()
+    print("Connected to bodies: %s" % (sorted(bodies.keys())))
+
+    c = controllers.multileg.MultiLeg(legs, joy, bodies)
+
+    run_ui(load_ui(c))
 
 
 if __name__ == "__main__":

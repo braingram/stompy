@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import glob
+#import glob
 import os
-import subprocess
+#import subprocess
 
 import teensyloader
 
@@ -52,6 +52,7 @@ def get_firmware_hex_path(teensy_type):
 
 def program_teensies_by_type(teensy_types=None):
     ts = find_teensies_by_type()
+    print("Found teensies: %s" % (ts, ))
     if teensy_types is None:
         teensy_types = ts.keys()
     for t in teensy_types:

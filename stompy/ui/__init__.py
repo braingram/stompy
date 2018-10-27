@@ -3,5 +3,7 @@
 from . import multileg
 from . import ui
 
+from .multileg import start
 
-__all__ = ['multileg', 'ui']
+
+__all__ = ['multileg', 'ui', 'start']
