@@ -167,6 +167,7 @@ class FakeTeensy(LegController):
             'time': time.time(), 'x': x, 'y': y, 'z': z}
         self._last_update = time.time()
         self._plan = None
+        self._ddt = 0.
 
     def _new_plan(self, pp):
         # if body frame, plan packing converted to leg
@@ -227,22 +228,24 @@ class FakeTeensy(LegController):
         elif self._plan.mode == consts.PLAN_ARC_MODE:
             lx, ly, lz = self._plan.linear
             ax, ay, az = self._plan.angular
+            #ax *= self._plan.speed * consts.PLAN_TICK
+            #ay *= self._plan.speed * consts.PLAN_TICK
+            #az *= self._plan.speed * consts.PLAN_TICK
             ax *= self._plan.speed * dt
             ay *= self._plan.speed * dt
             az *= self._plan.speed * dt
             T = transforms.rotation_about_point_3d(
                 lx, ly, lz, ax, ay, az, degrees=False)
-            #nx, ny, nz = transforms.transform_3d(
-            #    T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
+            nx, ny, nz = transforms.transform_3d(
+                T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
 
-            ddt = dt
-            nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            while ddt > consts.PLAN_TICK:
-                #nx, ny, nz = transforms.transform_3d(
-                #    self._plan.matrix, nx, ny, nz)
-                nx, ny, nz = transforms.transform_3d(
-                    T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
-                ddt -= consts.PLAN_TICK
+            #self._ddt += dt
+            #nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
+            #while self._ddt >= consts.PLAN_TICK:
+            #    #nx, ny, nz = transforms.transform_3d(
+            #    #    self._plan.matrix, nx, ny, nz)
+            #    nx, ny, nz = transforms.transform_3d(T, nx, ny, nz)
+            #    self._ddt -= consts.PLAN_TICK
 
             self.xyz['x'] = nx
             self.xyz['y'] = ny
@@ -250,12 +253,12 @@ class FakeTeensy(LegController):
         elif self._plan.mode == consts.PLAN_MATRIX_MODE:
             # call many times if dt > 4 ms)
             #print("_follow_plan:", self._plan.matrix)
-            ddt = dt
+            self._ddt += dt
             nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            while ddt > consts.PLAN_TICK:
+            while self._ddt >= consts.PLAN_TICK:
                 nx, ny, nz = transforms.transform_3d(
                     self._plan.matrix, nx, ny, nz)
-                ddt -= consts.PLAN_TICK
+                self._ddt -= consts.PLAN_TICK
             #print("X:", self.xyz['x'], nx)
             self.xyz['x'] = nx
             self.xyz['y'] = ny
