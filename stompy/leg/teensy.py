@@ -502,8 +502,14 @@ class Teensy(LegController):
 def connect_to_teensies(ports=None):
     """Return dict with {leg_number: teensy}"""
     if ports is None:
-        tinfo = utils.find_leg_teensies()
-        ports = [i['port'] for i in tinfo]
+        #tinfo = utils.find_leg_teensies()
+        #ports = [i['port'] for i in tinfo]
+        ports = [t['port'] for t in utils.find_teensies_by_type('leg')]
+        if any([p is None for p in ports]):
+            print(
+                'Leg teensies: %s' % (utils.find_teensies_by_type('leg'), ))
+            raise IOError("Failed to find port for a leg teensy")
+
     if len(ports) == 0:
         return {ln: FakeTeensy(ln) for ln in [1, 2, 3, 4, 5, 6]}
         #return {ln: FakeTeensy(ln) for ln in [1, 3, 4, 6]}

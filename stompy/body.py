@@ -175,8 +175,13 @@ class TeensyBody(BodyController):
 
 def connect_to_teensies(ports=None):
     if ports is None:
-        tinfo = utils.find_body_teensies()
-        ports = [i['port'] for i in tinfo]
+        #tinfo = utils.find_body_teensies()
+        #ports = [i['port'] for i in tinfo]
+        ports = [t['port'] for t in utils.find_teensies_by_type('body')]
+        if any([p is None for p in ports]):
+            print(
+                'Body teensies: %s' % (utils.find_teensies_by_type('body'), ))
+            raise IOError("Failed to find port for a body teensy")
     if len(ports) == 0:
         # return fake body
         return {n: BodyController(n) for n in [names[0]]}
