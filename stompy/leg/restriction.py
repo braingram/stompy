@@ -175,7 +175,9 @@ class Foot(signaler.Signaler):
                 speed=0)
         elif self.state == 'lift':
             v = self.cfg.get_speed('lift')
-            T = self.leg_target * transforms.translation_3d(0, 0, v * consts.PLAN_TICK)
+            T = (
+                self.leg_target *
+                transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
             #T = self.leg_target
             #print(self.leg_target, T)
             self.leg.send_plan(
@@ -214,7 +216,9 @@ class Foot(signaler.Signaler):
                 speed=self.cfg.get_speed('swing'))
         elif self.state == 'lower':
             v = -self.cfg.get_speed('lower')
-            T = self.leg_target * transforms.translation_3d(0, 0, v * consts.PLAN_TICK)
+            T = (
+                self.leg_target *
+                transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
             self.leg.send_plan(
                 mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -263,6 +267,9 @@ class Foot(signaler.Signaler):
         self.send_plan()
 
     def set_state(self, state):
+        if state != self.state and self.restriction is not None:
+            # reset restriction smoothing
+            self.restriction['dr'] = 0.
         self.state = state
         if self.state == 'lift':
             self.unloaded_height = None
@@ -271,7 +278,15 @@ class Foot(signaler.Signaler):
         self.trigger('state', state)
 
     def calculate_restriction(self, xyz, angles):
-        # use angle limits
+        """Calculate leg restriction
+        Result is stored in self.restriction and signaled as 'restriction'
+        Result contains:
+            - time: time of xyz event
+            - r: current calculated restriction
+            - idr: slope of restriction change from last to new value
+            - dr: smoothed idr
+        """
+        # use angle limits to compute restriction
         r = 0
         for j in ('hip', 'thigh', 'knee'):
             jmin, jmax = self.limits[j]
@@ -280,6 +295,7 @@ class Foot(signaler.Signaler):
                 jl = angles[j] - jmax
             else:
                 jl = jmin - angles[j]
+            # take 'max' across joint angles, only the worst sets restriction
             r = max(min(1.0, numpy.exp(self.cfg.eps * jl)), r)
             #if self.leg.leg_number == 1:
             #    print(j, jl, r)
@@ -288,6 +304,7 @@ class Foot(signaler.Signaler):
         #d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
         #r = numpy.exp(-self.r_eps * (d - self.radius))
         # TODO restriction modifier
+        # add in the 'manual' restriction modifier (set from ui/controller)
         r += self.restriction_modifier
         if self.restriction is not None:
             pt = self.restriction['time']
@@ -296,7 +313,7 @@ class Foot(signaler.Signaler):
             dr = (
                 self.restriction['dr'] * self.cfg.dr_smooth +
                 idr * (1. - self.cfg.dr_smooth))
-        else:  # first update
+        else:  # if no previous value, can't calculate dr
             idr = 0.
             dr = 0.
         self.restriction = {
