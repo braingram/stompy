@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-from . import multileg
 from . import ui
+from .ui import start
 
-from .multileg import start
 
-
-__all__ = ['multileg', 'ui', 'start']
+__all__ = ['ui', 'start']
