@@ -6,7 +6,8 @@ make sure it is up to date
 
 # plan updates occur every N seconds
 #PLAN_TICK = 0.025
-PLAN_TICK = 0.004
+#PLAN_TICK = 0.004
+PLAN_TICK = 0.025
 
 ESTOP_OFF = 0
 ESTOP_SOFT = 1
