@@ -11,6 +11,7 @@ import os
 import cPickle as pickle
 import time
 
+import numpy
 import pylab
 
 
@@ -136,6 +137,7 @@ def find_adc_limits(d=None, joints=None, legs=None):
             adc_limits[leg][j] = {
                 'min': min(vs),
                 'max': max(vs),
+                'vs': numpy.array(vs),
             }
     return adc_limits
 
