@@ -16,6 +16,12 @@ teensy_serial_by_type = {
     ],
     'leg': [
         '1364130',  # fake leg, don't auto-program this
+	'1890580',  # leg 1
+	'1960390',  # leg 2
+	'2084140',  # leg 3
+	'1890640',  # leg 4
+	'2052790',  # leg 5
+	'2619770',  # leg 6
     ],
 }
 
@@ -57,8 +63,8 @@ def program_teensies_by_type(teensy_types=None):
         teensy_types = ts.keys()
     for t in teensy_types:
         hex_fn = get_firmware_hex_path(t)
-        print("No hex file found for %s" % (t, ))
         if hex_fn is None:
+            print("No hex file found for %s" % (t, ))
             continue
         # program this teensy with this type
         for teensy_info in ts[t]:
