@@ -62,7 +62,7 @@ class MultiLeg(signaler.Signaler):
             'sensor': 1200,
             'leg': 3.0,
             'body': 3.0,
-            'body_angular': 0.0005,
+            'body_angular': 0.05,
         }
         if len(self.legs) == 1 and 7 in self.legs:
             self.speeds = {
@@ -71,13 +71,21 @@ class MultiLeg(signaler.Signaler):
                 'sensor': 48000,
                 'leg': 48.0,
                 'body': 48.0,
-                'body_angular': 0.0005,
+                'body_angular': 0.05,
             }
         if all([
                 isinstance(self.legs[k], leg.teensy.FakeTeensy)
                 for k in self.legs]):
             self.speeds['leg'] = 18
             self.speeds['body'] = self.speeds['leg']
+            self.res.cfg.speeds.update({
+                'stance': 12,
+                'swing': 24,
+                'lift': 12,
+                'lower': 12,
+            })
+            self.res.cfg.max_feet_up = 3
+            self.res.cfg.speed_by_restriction = True
         self.speed_scalar = 1.0
         self.speed_step = 0.05
         self.speed_scalar_range = (0.1, 2.0)
@@ -378,7 +386,7 @@ class MultiLeg(signaler.Signaler):
             # pass in rx, ly, az
             # also pass in mode for crab walking
             #self.res.set_target(numpy.array([rx, ly, az]))
-            self.res.set_target(numpy.array([lx, ly, ly]))
+            self.res.set_target(numpy.array([rx, ly, 0.]))
 
     def update(self):
         if self.joy is not None:
