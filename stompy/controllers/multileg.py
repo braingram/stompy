@@ -27,6 +27,7 @@ import numpy
 from .. import consts
 from .. import leg
 from .. import log
+from .. import restriction
 from .. import signaler
 
 
@@ -53,7 +54,7 @@ class MultiLeg(signaler.Signaler):
         self.legs = legs
         self.bodies = bodies
         #self.calibrator = calibrator.CalibrationRoutine()
-        self.res = leg.restriction.Body(legs)
+        self.res = restriction.body.Body(legs)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
         self.mode = 'body_move'
@@ -386,7 +387,8 @@ class MultiLeg(signaler.Signaler):
             # pass in rx, ly, az
             # also pass in mode for crab walking
             #self.res.set_target(numpy.array([rx, ly, az]))
-            self.res.set_target(numpy.array([rx, ly, 0.]))
+            crab_walk = bool(self.joy.keys.get('one_left', 0))
+            self.res.set_target(numpy.array([rx, ly, 0.]), crab_walk=crab_walk)
 
     def update(self):
         if self.joy is not None:
