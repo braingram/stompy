@@ -388,7 +388,9 @@ class MultiLeg(signaler.Signaler):
             # also pass in mode for crab walking
             #self.res.set_target(numpy.array([rx, ly, az]))
             crab_walk = bool(self.joy.keys.get('one_left', 0))
-            self.res.set_target(numpy.array([rx, ly, 0.]), crab_walk=crab_walk)
+            self.res.set_target(
+                restriction.body.BodyTarget(
+                    numpy.array([rx, ly, 0.]), crab=crab_walk))
 
     def update(self):
         if self.joy is not None:

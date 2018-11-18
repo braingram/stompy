@@ -28,7 +28,7 @@ def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
     cv = numpy.array(c0) - tc
     cvn = cv / numpy.linalg.norm(cv)
     ma = None
-    mi = None
+    #mi = None
     mas = None
     for i in ipts:
         iv = numpy.array(i) - tc
@@ -41,7 +41,7 @@ def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
         a = numpy.arccos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
         if ma is None or a < ma:
             ma = a
-            mi = i
+            #mi = i
             mas = angle_sign
         #a = numpy.arccos(
         #    numpy.dot(iv, cv) /
@@ -83,6 +83,23 @@ def calculate_swing_target(
         tc, z, leg_number, min_hip_distance=min_hip_distance)
     sp = swing_position_from_intersections(
         [tx, ty], rspeed, [c0x, 0], ipts, step_ratio)
+    return sp
+
+
+def calculate_translation_swing_target(
+        dx, dy, z, leg_number, rspeed, step_ratio,
+        min_hip_distance=None, target_calf_angle=0):
+    l, r = kinematics.leg.limits_at_z_2d(z)
+    c0x = kinematics.leg.x_with_calf_angle(z, target_calf_angle)
+    if c0x <= l or c0x >= r:
+        c0x, _ = kinematics.leg.xy_center_at_z(z)
+    # TODO calculate optimal step
+    m = max(abs(dx), abs(dy))
+    if m < 0.00001:
+        ndx, ndy = 0, 0
+    else:
+        ndx, ndy = dx / m, dy / m
+    sp = c0x + dx * step_ratio * 12., 0 + dy * step_ratio * 12.
     return sp
 
 
@@ -159,12 +176,20 @@ class Foot(signaler.Signaler):
             #    speed=1.)
         elif self.state == 'swing':
             z = self.unloaded_height + self.cfg.lift_height
-            rx, ry, rspeed = self.swing_info
-            sp = calculate_swing_target(
-                rx, ry, self.cfg.lower_height,
-                self.leg.leg_number, rspeed, self.cfg.step_ratio,
-                min_hip_distance=self.cfg.min_hip_distance,
-                target_calf_angle=self.cfg.target_calf_angle)
+            if len(self.swing_info) == 3:  # rotation
+                rx, ry, rspeed = self.swing_info
+                sp = calculate_swing_target(
+                    rx, ry, self.cfg.lower_height,
+                    self.leg.leg_number, rspeed, self.cfg.step_ratio,
+                    min_hip_distance=self.cfg.min_hip_distance,
+                    target_calf_angle=self.cfg.target_calf_angle)
+            else:  # translation
+                lx, ly = self.swing_info
+                sp = calculate_translation_swing_target(
+                    lx, ly, self.cfg.lower_height,
+                    self.leg.leg_number, None, self.cfg.step_ratio,
+                    min_hip_distance=self.cfg.min_hip_distance,
+                    target_calf_angle=self.cfg.target_calf_angle)
             self.swing_target = sp[0], sp[1]
             # print(self.swing_target, z)
             # TODO check if point is valid
@@ -197,7 +222,29 @@ class Foot(signaler.Signaler):
             #        -self.cfg.get_speed('lower')),
             #    speed=1.)
 
-    def set_target(self, R, xyz, update_swing=True):
+    def set_target(self, T, update_swing=True, crab=False):
+        if crab:
+            # rotate vector from body to leg coordinates
+            lx, ly, _ = kinematics.body.body_to_leg_rotation(
+                self.leg.leg_number, T[0], T[1], 0.)
+            # TODO add z change
+            lT = transforms.translation_3d(lx, ly, 0.)
+            if update_swing:
+                self.swing_info = (lx, ly)
+                self.swing_target = None
+        else:
+            rx, ry, rz = kinematics.body.body_to_leg(
+                self.leg.leg_number, T[0], 0, 0)
+            lT = transforms.rotation_about_point_3d(
+                rx, ry, rz, 0, 0, T[1])
+            # TODO add z change
+            if update_swing:
+                self.swing_info = (rx, ry, T[1])
+                self.swing_target = None
+        self.leg_target = lT
+        self.send_plan()
+
+    def old_set_target(self, R, update_swing=True, crab=False):
         # compute swing target
         # rx, ly, az
         # convert rx, ly to rotation about point
