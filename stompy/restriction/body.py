@@ -16,16 +16,11 @@ from . import leg
 from .. import signaler
 
 
-max_radius = 100000.
-
-
 class BodyTarget(object):
-    def __init__(self, xyz, crab=False):
-        """xyz=[turn radius, speed, zchange]
-        or if crab_walk is True
-        xyz=[dx, dy, dz]"""
-        self.crab = crab
-        self.xyz = xyz
+    def __init__(self, rotation_center, speed, dz):
+        self.rotation_center = rotation_center
+        self.speed = speed
+        self.dz = dz
 
 
 class Body(signaler.Signaler):
@@ -74,49 +69,32 @@ class Body(signaler.Signaler):
         self.cfg.speed_scalar = speed_scalar
         self.set_target(self.target)
 
-    def target_to_rotation_about_point(self, target=None):
-        if target is None:
-            target = self.target
-        if target.crab:
-            raise ValueError(
-                "Cannot convert crab target to rotation about point")
-        # convert target x (rx) y (ry) to rotation about point
-        radius_axis = target.xyz[0]
-        if numpy.abs(radius_axis) < 0.001:  # sign(0.0) == 0.
-            radius = max_radius
-        else:
-            radius = (
-                numpy.sign(radius_axis) * max_radius /
-                2. ** (numpy.log2(max_radius) * numpy.abs(radius_axis)))
+    def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms
-        speed = target.xyz[1] * self.cfg.get_speed('stance') * consts.PLAN_TICK
-        if abs(radius) < 0.1:
-            rspeed = 0.
-        else:
-            # find furthest foot
-            x, y, z = (numpy.abs(radius), 0., 0.)
-            mr = None
-            for i in self.feet:
-                tx, ty, tz = kinematics.body.body_to_leg(i, x, y, z)
-                r = tx * tx + ty * ty + tz * tz
-                if mr is None or r > mr:
-                    mr = r
-            mr = numpy.sqrt(mr)
-            rspeed = speed / mr * numpy.sign(radius)
-            if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
-                print("Limiting because of angular speed")
-                rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
-            #print(mr, speed, rspeed)
+        speed = mag * self.cfg.get_speed('stance') * consts.PLAN_TICK
+        # find furthest foot
+        #x, y, z = (numpy.abs(radius), 0., 0.)
+        x, y = bxy
+        z = 0.
+        #x, y, z = (numpy.abs(radius), 0., 0.)
+        mr = None
+        for i in self.feet:
+            tx, ty, tz = kinematics.body.body_to_leg(i, x, y, z)
+            r = tx * tx + ty * ty + tz * tz
+            if mr is None or r > mr:
+                mr = r
+        mr = numpy.sqrt(mr)
+        # TODO account for radius sign
+        rspeed = speed / mr
+        if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
+            print("Limiting because of angular speed")
+            rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
+        #print(mr, speed, rspeed)
         if self.cfg.speed_by_restriction:
             rs = self.get_speed_by_restriction()
         else:
             rs = 1.
-        R = (radius, rspeed * rs)
-        #R = transforms.rotation_about_point_3d(
-        #    radius, 0, 0, 0, 0, rspeed)
-        #print("Body matrix:", R)
-        # TODO add up/down T
-        return R
+        return rspeed * rs
 
     def set_target(self, target, update_swing=True):
         if not isinstance(target, BodyTarget):
@@ -125,73 +103,13 @@ class Body(signaler.Signaler):
             # set new pre_halt target
             self._pre_halt_target = target
             # set stance target to stop
-            target = BodyTarget((0., 0., 0.), False)
+            target = BodyTarget((0., 0.), 0., 0.)
             # only update non-swing
             update_swing = False
         self.target = target
-        if self.target.crab:
-            ss = self.cfg.get_speed('stance') * consts.PLAN_TICK
-            dx = self.target.xyz[0] * ss
-            dy = self.target.xyz[1] * ss
-            # TODO add up/down
-            # TODO set leg targets
-            T = (dx, dy)
-        else:
-            T = self.target_to_rotation_about_point(target)
         for i in self.feet:
             self.feet[i].set_target(
-                T, update_swing=update_swing, crab=self.target.crab)
-
-    def old_set_target(self, xyz, update_swing=True, crab_walk=False):
-        """xyz=[turn radius, speed, zchange]
-        or if crab_walk is True
-        xyz=[dx, dy, dz]"""
-        if self.halted:
-            # set new pre_halt target
-            self._pre_halt_target = xyz
-            # set stance target to stop
-            xyz = (0, 0, 0)
-            # only update non-swing
-            update_swing = False
-        self.target = xyz
-        # convert target x (rx) y (ry) to rotation about point
-        radius_axis = xyz[0]
-        if numpy.abs(radius_axis) < 0.001:  # sign(0.0) == 0.
-            radius = max_radius
-        else:
-            radius = (
-                numpy.sign(radius_axis) * max_radius /
-                2. ** (numpy.log2(max_radius) * numpy.abs(radius_axis)))
-        # TODO scale to pid future time ms
-        speed = xyz[1] * self.cfg.get_speed('stance') * consts.PLAN_TICK
-        if abs(radius) < 0.1:
-            rspeed = 0.
-        else:
-            # find furthest foot
-            x, y, z = (numpy.abs(radius), 0., 0.)
-            mr = None
-            for i in self.feet:
-                tx, ty, tz = kinematics.body.body_to_leg(i, x, y, z)
-                r = tx * tx + ty * ty + tz * tz
-                if mr is None or r > mr:
-                    mr = r
-            mr = numpy.sqrt(mr)
-            rspeed = speed / mr * numpy.sign(radius)
-            if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
-                print("Limiting because of angular speed")
-                rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
-            #print(mr, speed, rspeed)
-        if self.cfg.speed_by_restriction:
-            rs = self.get_speed_by_restriction()
-        else:
-            rs = 1.
-        R = (radius, rspeed * rs)
-        #R = transforms.rotation_about_point_3d(
-        #    radius, 0, 0, 0, 0, rspeed)
-        #print("Body matrix:", R)
-        # TODO add up/down T
-        for i in self.feet:
-            self.feet[i].set_target(R, xyz, update_swing=update_swing)
+                target, update_swing=update_swing)
 
     def disable(self):
         self.enabled = False
@@ -205,7 +123,7 @@ class Body(signaler.Signaler):
         if not self.halted:
             print("HALT")
             self._pre_halt_target = self.target
-            self.set_target(BodyTarget((0., 0., 0.)), update_swing=False)
+            self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
             self.halted = True
 
     def get_speed_by_restriction(self):

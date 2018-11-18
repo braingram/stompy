@@ -222,58 +222,17 @@ class Foot(signaler.Signaler):
             #        -self.cfg.get_speed('lower')),
             #    speed=1.)
 
-    def set_target(self, T, update_swing=True, crab=False):
-        if crab:
-            # rotate vector from body to leg coordinates
-            lx, ly, _ = kinematics.body.body_to_leg_rotation(
-                self.leg.leg_number, T[0], T[1], 0.)
-            # TODO add z change
-            lT = transforms.translation_3d(lx, ly, 0.)
-            if update_swing:
-                self.swing_info = (lx, ly)
-                self.swing_target = None
-        else:
-            rx, ry, rz = kinematics.body.body_to_leg(
-                self.leg.leg_number, T[0], 0, 0)
-            lT = transforms.rotation_about_point_3d(
-                rx, ry, rz, 0, 0, T[1])
-            # TODO add z change
-            if update_swing:
-                self.swing_info = (rx, ry, T[1])
-                self.swing_target = None
-        self.leg_target = lT
-        self.send_plan()
-
-    def old_set_target(self, R, update_swing=True, crab=False):
-        # compute swing target
-        # rx, ly, az
-        # convert rx, ly to rotation about point
-        # convert az to velocity (z)
-        # combine rotation and velocity
-        # R = (radius, speed)
-        #lR = kinematics.body.body_to_leg_matrix(self.leg.leg_number, R)
+    def set_target(self, target, update_swing=True):
+        bx, by = target.rotation_center
         rx, ry, rz = kinematics.body.body_to_leg(
-            self.leg.leg_number, R[0], 0, 0)
-        lR = transforms.rotation_about_point_3d(
-            rx, ry, rz, 0, 0, R[1])
-        self.leg_target = lR
-        #self.body_target = xyz
-        #lx, ly, _ = kinematics.body.body_to_leg_rotation(
-        #    self.leg.leg_number, xyz[0], xyz[1], 0.)
-        #self.leg_target = (lx, ly)
+            self.leg.leg_number, bx, by, 0)
+        lT = transforms.rotation_about_point_3d(
+            rx, ry, rz, 0, 0, target.speed)
+        # TODO add z change
         if update_swing:
-            # TODO optimized swing target
-            #self.swing_target = (
-            #    self.cfg.foot_center['x'], self.cfg.foot_center['y'])
-            # I won't know z until the leg is lifted
-            #sp = calculate_swing_target(
-            #    rx, ry, z, self.leg.leg_number, R[1], self.cfg.step_ratio,
-            #    min_hip_distance=self.cfg.min_hip_distance)
-            self.swing_info = (rx, ry, R[1])
+            self.swing_info = (rx, ry, target.speed)
             self.swing_target = None
-            #self.swing_target = (
-            #    self.center[0] + lx * self.cfg.step_size,
-            #    self.center[1] + ly * self.cfg.step_size)
+        self.leg_target = lT
         self.send_plan()
 
     def set_state(self, state):

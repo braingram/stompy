@@ -35,6 +35,18 @@ thumb_mid = 130
 thumb_db = 10  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
 
+max_radius = 100000.
+
+
+def axis_to_radius(axis):
+    if numpy.abs(axis) < 0.001:  # sign(0.0) == 0.
+        radius = max_radius
+    else:
+        radius = (
+            numpy.sign(axis) * max_radius /
+            2. ** (numpy.log2(max_radius) * numpy.abs(axis)))
+    return radius
+
 
 class MultiLeg(signaler.Signaler):
     modes = [
@@ -387,10 +399,31 @@ class MultiLeg(signaler.Signaler):
             # pass in rx, ly, az
             # also pass in mode for crab walking
             #self.res.set_target(numpy.array([rx, ly, az]))
-            crab_walk = bool(self.joy.keys.get('one_left', 0))
+            omni_walk = bool(self.joy.keys.get('one_left', 0))
+            # convert joystick input to a rotation about some point
+            # need to calculate
+            # - center of rotation (in body coordinates)
+            # - linear speed during rotation
+            # TODO add dz
+            dz = 0.
+            if omni_walk:
+                # calc direction by lx, ly
+                # rotate 90 for radius
+                a = numpy.arctan2(lx, ly)
+                crx = numpy.cos(a) * max_radius
+                cry = numpy.sin(a) * max_radius
+                # set speed by magnitude
+                m = numpy.linalg.norm([lx, ly])
+                rs = self.res.calc_stance_speed((crx, cry), m)
+            else:
+                # y center of rotation is always 0
+                crx = axis_to_radius(rx)
+                cry = 0.
+                rs = (
+                    self.res.calc_stance_speed((crx, cry), ly)
+                    * numpy.sign(crx))
             self.res.set_target(
-                restriction.body.BodyTarget(
-                    numpy.array([rx, ly, 0.]), crab=crab_walk))
+                restriction.body.BodyTarget((crx, cry), rs, dz))
 
     def update(self):
         if self.joy is not None:
