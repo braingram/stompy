@@ -409,7 +409,7 @@ class MultiLeg(signaler.Signaler):
             if omni_walk:
                 # calc direction by lx, ly
                 # rotate 90 for radius
-                a = numpy.arctan2(lx, ly)
+                a = numpy.arctan2(-lx, ly)
                 crx = numpy.cos(a) * max_radius
                 cry = numpy.sin(a) * max_radius
                 # set speed by magnitude
