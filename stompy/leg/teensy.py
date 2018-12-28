@@ -499,7 +499,7 @@ class Teensy(LegController):
                 'traceback': tbs,
                 'exception': e}})
             raise e
-        if time.time() - self.last_heartbeat > consts.HEARTBEAT_PERIOD:
+        if (time.time() - self.last_heartbeat) > consts.HEARTBEAT_PERIOD:
             self.send_heartbeat()
 
 
