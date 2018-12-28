@@ -139,8 +139,8 @@ class PIDTab(Tab):
         self.joint_config['dither'] = {'time': r[1].value, 'amp': r[2].value}
 
         # seed time
-        r = self.controller.leg.mgr.blocking_trigger('pid_future_time')
-        self.joint_config['future_time'] = r[0].value
+        #r = self.controller.leg.mgr.blocking_trigger('pid_future_time')
+        #self.joint_config['future_time'] = r[0].value
 
         # set ui elements by joint_config
         self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
@@ -160,7 +160,7 @@ class PIDTab(Tab):
         self.ui.adcLimitMaxSpin.setValue(self.joint_config['adc']['max'])
         self.ui.ditherTimeSpin.setValue(self.joint_config['dither']['time'])
         self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
-        self.ui.seedFutureSpin.setValue(self.joint_config['future_time'])
+        #self.ui.seedFutureSpin.setValue(self.joint_config['future_time'])
 
     def commit_values(self):
         if (
@@ -186,7 +186,7 @@ class PIDTab(Tab):
         values['adc']['max'] = self.ui.adcLimitMaxSpin.value()
         values['dither']['time'] = self.ui.ditherTimeSpin.value()
         values['dither']['amp'] = self.ui.ditherAmpSpin.value()
-        values['future_time'] = self.ui.seedFutureSpin.value()
+        #values['future_time'] = self.ui.seedFutureSpin.value()
 
         txt = str(self.ui.pidJointCombo.currentText())
         try:
@@ -248,12 +248,12 @@ class PIDTab(Tab):
             # print("dither:", args)
             log.info({'dither': args})
             self.controller.leg.mgr.trigger('dither', *args)
-        v = values['future_time']
-        j = self.joint_config['future_time']
-        if (v != j):
-            args = (int(v), )
-            log.info({'pid_future_time': args})
-            self.controller.leg.mgr.trigger('pid_future_time', *args)
+        #v = values['future_time']
+        #j = self.joint_config['future_time']
+        #if (v != j):
+        #    args = (int(v), )
+        #    log.info({'pid_future_time': args})
+        #    self.controller.leg.mgr.trigger('pid_future_time', *args)
         self.read_joint_config()
 
     def clear_pid_values(self):

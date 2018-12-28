@@ -39,11 +39,10 @@ cmds = {
     8: 'adc_limits(byte,float,float)=byte,float,float',
     9: 'calf_scale(float,float)=float,float',
     10: 'report_time(uint32)=uint32',
-    11: 'pid_seed_time=uint32',
+    11: 'pid_seed_time=float',
     12: 'reset_pids(bool)',  # i_only
-    13: 'dither(byte,uint32,int)=byte,uint32,int',
+    13: 'dither(uint32,int)=byte,uint32,int',
     14: 'following_error_threshold(byte,float)=byte,float',
-    15: 'pid_future_time(uint32)=uint32',
 
     21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
     22: 'report_pid(bool)='
@@ -372,10 +371,10 @@ class Teensy(LegController):
         # verify seed time against python code
         seed_time = self.mgr.blocking_trigger('pid_seed_time')[0].value
         # TODO set plan tick on first leg connected
-        if seed_time != consts.PLAN_TICK * 1000:
+        if abs(seed_time - consts.PLAN_TICK) > 1E-9:
             raise ValueError(
                 "PID seed time [%s] for leg %s does not match python %s" %
-                (seed_time / 1000., self.leg_number, consts.PLAN_TICK))
+                (seed_time, self.leg_number, consts.PLAN_TICK))
 
         # send first heartbeat
         self.send_heartbeat()
