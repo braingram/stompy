@@ -135,8 +135,8 @@ class PIDTab(Tab):
         self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
 
         # dither
-        r = self.controller.leg.mgr.blocking_trigger('dither', index)
-        self.joint_config['dither'] = {'time': r[1].value, 'amp': r[2].value}
+        r = self.controller.leg.mgr.blocking_trigger('dither')
+        self.joint_config['dither'] = {'time': r[0].value, 'amp': r[1].value}
 
         # seed time
         #r = self.controller.leg.mgr.blocking_trigger('pid_future_time')
@@ -240,10 +240,11 @@ class PIDTab(Tab):
             log.info({'adc_limits': args})
             self.controller.leg.mgr.trigger('adc_limits', *args)
         v = values['dither']
-        j = self.joint_config['dither']
+        #j = self.joint_config['dither']
         if (v['time'] != j['time'] or v['amp'] != j['amp']):
             args = (
-                index, int(values['dither']['time']),
+                #index, int(values['dither']['time']),
+                int(values['dither']['time']),
                 int(values['dither']['amp']))
             # print("dither:", args)
             log.info({'dither': args})

@@ -41,7 +41,7 @@ cmds = {
     10: 'report_time(uint32)=uint32',
     11: 'pid_seed_time=float',
     12: 'reset_pids(bool)',  # i_only
-    13: 'dither(uint32,int)=byte,uint32,int',
+    13: 'dither(uint32,int)=uint32,int',
     14: 'following_error_threshold(byte,float)=byte,float',
 
     21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
