@@ -160,7 +160,7 @@ class Logger(object):
         fn = '%04i_%s.p' % (self._file_index, int(time.time()))
         fp = os.path.join(self._dir, fn)
         with open(fp, 'wb') as f:
-            pickle.dump(self._events, f)
+            pickle.dump(self._events, f, pickle.HIGHEST_PROTOCOL)
         self._events = []
         self._file_index += 1
 
