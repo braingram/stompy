@@ -370,7 +370,10 @@ class Teensy(LegController):
 
         # verify seed time against python code
         seed_time = self.mgr.blocking_trigger('pid_seed_time')[0].value
-        # TODO set plan tick on first leg connected
+        # set plan tick on first leg connected
+        if consts.PLAN_TICK is None:
+            # round to nearest ms
+            consts.PLAN_TICK = numpy.round(seed_time * 1000.) / 1000.
         if abs(seed_time - consts.PLAN_TICK) > 1E-9:
             raise ValueError(
                 "PID seed time [%s] for leg %s does not match python %s" %
