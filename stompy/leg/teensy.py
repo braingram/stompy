@@ -135,6 +135,8 @@ class FakeTeensy(LegController):
         self._last_update = time.time()
         self._plan = None
         self._ddt = 0.
+        if consts.PLAN_TICK is None:
+            consts.PLAN_TICK = 0.025
 
     def _new_plan(self, pp):
         # if body frame, plan packing converted to leg
