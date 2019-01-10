@@ -112,26 +112,15 @@ class Foot(signaler.Signaler):
         self.limits = geometry.get_limits(self.leg.leg_number)
         self.leg.on('xyz', self.on_xyz)
         self.leg.on('angles', self.on_angles)
-        #self.radius = radius
-        #self.eps = eps
-        #self.r_eps = numpy.log(eps) / self.radius
-        #self.center = center
         self.last_lift_time = time.time()
         self.leg_target = None
         self.body_target = None
         self.swing_target = None
         self.swing_info = None
-        #self.lift_height = lift_height
         self.unloaded_height = None
-        #self.height_slop = height_slop
-        #self.unloaded_weight = unloaded_weight
-        #self.loaded_weight = loaded_weight
-        #self.lower_height = lower_height
-        #self.close_enough = close_enough
         # stance -> lift -> swing -> lower -> wait
         self.state = None
         self.restriction = None
-        #self.dr_smooth = dr_smooth
         self.xyz = None
         self.angles = None
         self.restriction_modifier = 0.
@@ -142,15 +131,9 @@ class Foot(signaler.Signaler):
             # TODO always stop on disable?
             self.leg.send_plan(mode=consts.PLAN_STOP_MODE)
         elif self.state in ('stance', 'wait'):
-            #self.leg.send_plan(
-            #    mode=consts.PLAN_VELOCITY_MODE,
-            #    frame=consts.PLAN_LEG_FRAME,
-            #    linear=(-self.leg_target[0], -self.leg_target[1], 0.),
-            #    speed=self.cfg.get_speed('stance'))
             self.leg.send_plan(
                 mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
-                #matrix=numpy.matrix(numpy.identity(4)),
                 matrix=self.leg_target,
                 speed=0)
         elif self.state == 'lift':
@@ -158,22 +141,12 @@ class Foot(signaler.Signaler):
             T = (
                 self.leg_target *
                 transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
-            #T = self.leg_target
             #print(self.leg_target, T)
             self.leg.send_plan(
                 mode=consts.PLAN_MATRIX_MODE,
                 frame=consts.PLAN_LEG_FRAME,
                 matrix=T,
                 speed=0)
-            #v = self.cfg.get_speed('stance')
-            #self.leg.send_plan(
-            #    mode=consts.PLAN_VELOCITY_MODE,
-            #    frame=consts.PLAN_LEG_FRAME,
-            #    linear=(
-            #        -self.leg_target[0] * v,
-            #        -self.leg_target[1] * v,
-            #       self.cfg.get_speed('lift')),
-            #    speed=1.)
         elif self.state == 'swing':
             z = self.unloaded_height + self.cfg.lift_height
             if len(self.swing_info) == 3:  # rotation
@@ -212,15 +185,6 @@ class Foot(signaler.Signaler):
                 frame=consts.PLAN_LEG_FRAME,
                 matrix=T,
                 speed=0)
-            #v = self.cfg.get_speed('stance')
-            #self.leg.send_plan(
-            #    mode=consts.PLAN_VELOCITY_MODE,
-            #    frame=consts.PLAN_LEG_FRAME,
-            #    linear=(
-            #        -self.leg_target[0] * v,
-            #        -self.leg_target[1] * v,
-            #        -self.cfg.get_speed('lower')),
-            #    speed=1.)
 
     def set_target(self, target, update_swing=True):
         bx, by = target.rotation_center
@@ -269,10 +233,6 @@ class Foot(signaler.Signaler):
             #if self.leg.leg_number == 1:
             #    print(j, jl, r)
         # TODO use calf angle
-        #cx, cy = self.center
-        #d = ((cx - xyz['x']) ** 2. + (cy - xyz['y']) ** 2.) ** 0.5
-        #r = numpy.exp(-self.r_eps * (d - self.radius))
-        # TODO restriction modifier
         # add in the 'manual' restriction modifier (set from ui/controller)
         r += self.restriction_modifier
         if self.restriction is not None:

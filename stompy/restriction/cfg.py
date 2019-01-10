@@ -12,13 +12,11 @@ class RestrictionConfig(signaler.Signaler):
             'lower': 3.,
             'swing': 6.,
             'angular': 0.05}
-        #self.step_size = 25.
         self.r_thresh = 0.7
         self.r_max = 0.85
         self.max_feet_up = 0
         self.speed_scalar = 1.
         self.height_slop = 3.
-        #self.foot_center = {'x': 55., 'y': 0.}
         self.dr_smooth = 0.5
         self.eps = 0.9
         self.lift_height = 8.0

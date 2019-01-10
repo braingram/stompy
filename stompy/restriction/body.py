@@ -28,16 +28,8 @@ class Body(signaler.Signaler):
         """Takes leg controllers"""
         super(Body, self).__init__()
         self.cfg = cfg.RestrictionConfig()
-        #self.r_thresh = 0.2
-        #self.r_max = 0.9
         self.legs = legs
         self.cfg.max_feet_up = 1
-        #if len(self.legs) > 5:
-        #    #self.max_feet_up = 3
-        #    self.cfg.max_feet_up = 3
-        #else:
-        #    #self.max_feet_up = 1
-        #    self.cfg.max_feet_up = 1
         self.feet = {}
         self.halted = False
         self.enabled = False
@@ -55,7 +47,6 @@ class Body(signaler.Signaler):
                     self.neighbors[n] = [inds[i - 1], inds[i + 1]]
         for i in self.legs:
             self.feet[i] = leg.Foot(self.legs[i], self.cfg, **kwargs)
-            #self.feet[i].on('state', lambda s, ln=i: self.on_state(s, ln))
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
         self.disable()
@@ -73,10 +64,8 @@ class Body(signaler.Signaler):
         # scale to pid future time ms
         speed = mag * self.cfg.get_speed('stance') * consts.PLAN_TICK
         # find furthest foot
-        #x, y, z = (numpy.abs(radius), 0., 0.)
         x, y = bxy
         z = 0.
-        #x, y, z = (numpy.abs(radius), 0., 0.)
         mr = None
         for i in self.feet:
             tx, ty, tz = kinematics.body.body_to_leg(i, x, y, z)
@@ -89,7 +78,6 @@ class Body(signaler.Signaler):
         if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
             print("Limiting because of angular speed")
             rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
-        #print(mr, speed, rspeed)
         if self.cfg.speed_by_restriction:
             rs = self.get_speed_by_restriction()
         else:
@@ -115,9 +103,6 @@ class Body(signaler.Signaler):
         self.enabled = False
         for i in self.feet:
             self.feet[i].set_state(None)
-
-    #def on_state(self, state, leg_number):
-    #    pass
 
     def halt(self):
         if not self.halted:

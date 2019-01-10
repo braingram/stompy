@@ -154,24 +154,6 @@ class TeensyBody(BodyController):
                 'exception': e}})
             raise e
 
-    """
-    def on(self, name, func):
-        # setup when mgr calls name, trigger function
-        self.mgr.on(name, func)
-        # register callback with mgr
-        # connect to signaler.on
-
-    def remove_on(self, name, func):
-        # opposite of on
-        self.mgr.remove_on(name, func)
-        # remove callback from signaler.on
-        # remove callback from mgr
-
-    def trigger(self, name, *args):
-        # pass through for mgr
-        self.mgr.trigger(name, *args)
-    """
-
 
 def connect_to_teensies(ports=None):
     if ports is None:

@@ -63,6 +63,26 @@ def get_by_key(d, k, legs=None, remove_empty=True):
     return ld
 
 
+def filter_events(d, pass_filter, legs=None):
+    if isinstance(d, (list, tuple)):
+        return [evt for evt in d if pass_filter(evt)]
+    if legs is None:
+        legs = sorted(d.keys())
+    return {l: filter_events(d[l], pass_filter) for l in legs}
+
+
+def plot_events(d, value=None, legs=None):
+    if legs is None:
+        legs = sorted(d.keys())
+    # TODO colormap
+    for l in legs:
+        evs = d[l]
+        pylab.scatter(
+            [e['timestamp'] for e in evs],
+            [value(e) for e in evs], label=l)
+    pylab.legend()
+
+
 def plot_key(
         data, key, subkeys=None, show=True, name=None, legend=True,
         normalize_time=True, remove_imu=True, remove_base=True):

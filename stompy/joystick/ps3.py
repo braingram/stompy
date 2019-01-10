@@ -7,7 +7,6 @@ import threading
 import time
 
 from .. import signaler
-#from . import smoother
 
 
 DEFAULT_FN = '/dev/input/by-id/usb-Sony_' \
@@ -146,8 +145,6 @@ class PS3Joystick(signaler.Signaler):
         self.f = open(fn, 'rb+')
         self.keys = {}
         self.axes = {}
-        #self._settle_time = 0.4
-        #self.smoothed_axes = {}
         self.report_ev_types = set((0x01, 0x03))
 
     def lookup_name(self, code, key, default='unknown'):
@@ -166,20 +163,6 @@ class PS3Joystick(signaler.Signaler):
             return default
         return self.codes[key].get(code, default)
 
-    #@property
-    #def settle_time(self):
-    #    return self._settle_time
-
-    #@settle_time.setter
-    #def settle_time(self, value):
-    #    self._settle_time = value
-    #    for k in self.smoothed_axes:
-    #        self.smoothed_axes[k].settle_time = value
-
-    #def reset_smoothing(self, pos=None):
-    #    for k in self.smoothed_axes:
-    #        self.smoothed_axes[k].reset(pos=pos)
-
     def read_event(self):
         t_sec, t_usec, ev_type, code, value = struct.unpack(
             FMT, self.f.read(NB))
@@ -192,17 +175,11 @@ class PS3Joystick(signaler.Signaler):
         if ev_type == 0x01:  # keys
             e['type'] = 'button'
             e['name'] = self.lookup_name(code, 'keys')
-            #e['name'] = KEYS.get(code, 'unknown')
             self.keys[e['name']] = value
         elif ev_type == 0x03:  # axes
             e['type'] = 'axis'
             e['name'] = self.lookup_name(code, 'abs_axes')
-            #e['name'] = ABS_AXES.get(code, 'unknown')
             self.axes[e['name']] = value
-            #if e['name'] not in self.smoothed_axes:
-            #    self.smoothed_axes[e['name']] = \
-            #        smoother.AxisSmoother(self.settle_time)
-            #self.smoothed_axes[e['name']].update(e['value'])
         return e
 
     def update(self, max_time=0.01):
