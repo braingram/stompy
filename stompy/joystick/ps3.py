@@ -6,6 +6,7 @@ import struct
 import threading
 import time
 
+from . import base
 from .. import signaler
 
 
@@ -135,7 +136,8 @@ def available(fn=None):
     return os.path.exists(fn)
 
 
-class PS3Joystick(signaler.Signaler):
+#class PS3Joystick(signaler.Signaler):
+class PS3Joystick(base.Joystick):
     def __init__(self, fn=None):
         super(PS3Joystick, self).__init__()
         self.codes = None
@@ -143,9 +145,9 @@ class PS3Joystick(signaler.Signaler):
             fn = DEFAULT_FN
         self.fn = fn
         self.f = open(fn, 'rb+')
-        self.keys = {}
-        self.axes = {}
-        self.report_ev_types = set((0x01, 0x03))
+        #self.keys = {}
+        #self.axes = {}
+        #self.report_ev_types = set((0x01, 0x03))
 
     def lookup_name(self, code, key, default='unknown'):
         if self.codes is None:
@@ -175,27 +177,30 @@ class PS3Joystick(signaler.Signaler):
         if ev_type == 0x01:  # keys
             e['type'] = 'button'
             e['name'] = self.lookup_name(code, 'keys')
-            self.keys[e['name']] = value
+            self._report_button(e['name'], value)
+            #self.keys[e['name']] = value
         elif ev_type == 0x03:  # axes
             e['type'] = 'axis'
             e['name'] = self.lookup_name(code, 'abs_axes')
-            self.axes[e['name']] = value
+            self._report_axis(e['name'], value)
+            #self.axes[e['name']] = value
         return e
 
     def update(self, max_time=0.01):
         # read multiple events per update
         st = time.time()
         evs = []
-        while time.time() - st < max_time:
+        while (time.time() - st) < max_time:
             rf, _, _ = select.select([self.f, ], [], [], POLL_TIMEOUT)
             if len(rf) == 0:
-                return evs
+                break
             e = self.read_event()
-            if e['ev_type'] in self.report_ev_types:
-                evs.append(e)
-                self.trigger('event', e)
-                if 'type' in e:
-                    self.trigger(e['type'], e)
+            #if e['ev_type'] in self.report_ev_types:
+            #    evs.append(e)
+            #    self.trigger('event', e)
+            #    if 'type' in e:
+            #        self.trigger(e['type'], e)
+        super(PS3Joystick, self).update()
         return evs
 
     def _update_thread_function(self):

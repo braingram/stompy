@@ -105,8 +105,10 @@ class MultiLeg(signaler.Signaler):
         # self.conn = leg_teensy
         self.joy = joy
         if self.joy is not None:
-            self.joy.on('button', self.on_button)
-            self.joy.on('axis', self.on_axis)
+            # self.joy.on('button', self.on_button)
+            # self.joy.on('axis', self.on_axis)
+            self.joy.on('buttons', self.on_buttons)
+            self.joy.on('axes', self.on_axes)
         self.deadman = False
 
         #self.last_xyz = None
@@ -193,6 +195,88 @@ class MultiLeg(signaler.Signaler):
                 self.attach(self.leg)
         self.trigger('set_leg', index)
 
+    def on_buttons(self, buttons):
+        if buttons.get('select', 0):  # advance mode
+            mi = self.modes.index(self.mode)
+            mi += 1
+            if mi == len(self.modes):
+                mi = 0
+            self.set_mode(self.modes[mi])
+        elif buttons.get('up', 0):
+            # increase speed scalar
+            self.set_speed(self.speed_scalar + self.speed_step)
+            print("new speed: ", self.speed_scalar)
+        elif buttons.get('down', 0):
+            self.set_speed(self.speed_scalar - self.speed_step)
+            print("new speed: ", self.speed_scalar)
+        elif 'left' in buttons or 'right' in buttons:
+            if buttons.get('left', 0):
+                di = -1
+            else:
+                di = 1
+            #di = ('left', None, 'right').index(event['name']) - 1
+            inds = sorted(self.legs)
+            if self.leg_index is None:
+                i = 0
+            else:
+                si = inds.index(self.leg_index) + di
+                if si == len(inds):
+                    si = 0
+                elif si < 0:
+                    si = len(inds) - 1
+                i = inds[si]
+            self.set_leg(i)
+        elif 'one_right' in buttons:
+            if buttons['one_right'] and not self.deadman:
+                self.all_legs('set_estop', 0)
+                if self.mode != 'leg_pwm':
+                    self.all_legs('enable_pid', True)
+                self.deadman = True
+                #self.joy.reset_smoothing(thumb_mid)
+                #self.last_xyz = None
+                self.set_target()
+            elif not buttons['one_right'] and self.deadman:
+                self.all_legs('set_estop', 1)
+                self.all_legs('stop')
+                self.deadman = False
+                #self.update_target_until = time.time() - 1.0
+        elif buttons.get('square', 0):
+            print(self.leg.loop_time_stats)
+        #elif event['name'] == 'circle':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('sensors', 'thigh')
+        #elif event['name'] == 'cross':
+        #    if self.mode == 'leg_calibration':
+        #        self.calibrator.set_subroutine('sensors', 'knee')
+        elif buttons.get('triangle', 0):
+            print("Resetting loop time stats")
+            self.leg.loop_time_stats.reset()
+
+    def on_axes(self, axes):
+        # check if target vector has changed > some amount
+        # if so, read and send new target
+        if any((n in axes for n in (
+                'thumb_left_x', 'thumb_left_y',
+                'thumb_right_x', 'thumb_right_y',
+                #'one_left', 'two_left',
+                ))):
+            if self.deadman:
+                self.set_target()
+                # continue updating target every 0.1 seconds
+                # for another 0.5 seconds
+                #self.last_target_update = time.time()
+                #if self.joy_smoothing:
+                #    self.update_target_until = (
+                #        self.last_target_update +
+                #        self.joy.settle_time + self.send_target_dt)
+        if 'cross' in axes and self.mode == 'body_restriction':
+            # add restriction to current leg
+            if self.leg is not None:
+                foot = self.res.feet[self.leg.leg_number]
+                foot.restriction_modifier = axes['cross'] / 255.
+                print("%s" % foot.restriction_modifier)
+
+    """
     def on_button(self, event):
         if event['name'] == 'select' and event['value']:  # advance mode
             mi = self.modes.index(self.mode)
@@ -268,17 +352,7 @@ class MultiLeg(signaler.Signaler):
                 foot = self.res.feet[self.leg.leg_number]
                 foot.restriction_modifier = event['value'] / 255.
                 print("%s" % foot.restriction_modifier)
-
-    #def get_axis(self, name, remove_mid=True):
-    #    ax = self.joy.smoothed_axes.get(name)
-    #    if ax is None:
-    #        return 0
-    #    v = ax.update() - thumb_mid
-    #    if abs(v) < thumb_db:
-    #        return 0
-    #    if v > 0:
-    #        return v - thumb_db
-    #    return v + thumb_db
+    """
 
     def set_target(self):
         # from joystick
@@ -371,7 +445,8 @@ class MultiLeg(signaler.Signaler):
             pass
         elif self.mode == 'body_move':
             #if self.joy.keys.get('circle', 0) == 0:
-            if self.joy.keys.get('one_left', 0) == 0:
+            #if self.joy.keys.get('one_left', 0) == 0:
+            if self.joy.buttons.get('one_left', 0) == 0:
                 speed = self.speed_scalar * self.speeds['body']
                 plan = {
                     'mode': consts.PLAN_VELOCITY_MODE,
@@ -399,7 +474,8 @@ class MultiLeg(signaler.Signaler):
             # pass in rx, ly, az
             # also pass in mode for crab walking
             #self.res.set_target(numpy.array([rx, ly, az]))
-            omni_walk = bool(self.joy.keys.get('one_left', 0))
+            #omni_walk = bool(self.joy.keys.get('one_left', 0))
+            omni_walk = bool(self.joy.buttons.get('one_left', 0))
             # convert joystick input to a rotation about some point
             # need to calculate
             # - center of rotation (in body coordinates)
