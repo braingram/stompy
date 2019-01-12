@@ -301,13 +301,20 @@ class FakeTeensy(LegController):
             self._last_update = t
 
 
+def print_message(msg):
+    print("TEENSY-DEBUG->%r" % msg)
+
+
 class Teensy(LegController):
     def __init__(self, port):
 
         self.port = port
         self.com = pycomando.Comando(serial.Serial(self.port, 9600))
         self.cmd = pycomando.protocols.command.CommandProtocol()
+        self.text = pycomando.protocols.TextProtocol()
         self.com.register_protocol(0, self.cmd)
+        self.com.register_protocol(1, self.text)
+        self.text.receive_message = print_message
         # used for callbacks
         self.mgr = pycomando.protocols.command.EventManager(self.cmd, cmds)
         # easier for calling
