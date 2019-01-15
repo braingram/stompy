@@ -186,7 +186,7 @@ class PS3Joystick(base.Joystick):
             #self.axes[e['name']] = value
         return e
 
-    def update(self, max_time=0.01):
+    def update(self, max_time=0.005):
         # read multiple events per update
         st = time.time()
         evs = []

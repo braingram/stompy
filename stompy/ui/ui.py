@@ -626,7 +626,7 @@ def load_ui(controller=None):
                 #timer.stop()
         #timer.timeout.connect(controller.update)
         timer.timeout.connect(update)
-        timer.start(1)
+        timer.start(10)
     return {
         'app': app, 'ui': ui, 'window': MainWindow, 'tab_manager': tm,
         'timer': timer}

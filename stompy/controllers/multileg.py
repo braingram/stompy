@@ -81,9 +81,9 @@ class MultiLeg(signaler.Signaler):
             self.speeds = {
                 'raw': 0.5,
                 #'sensor': 65535,
-                'sensor': 48000,
-                'leg': 48.0,
-                'body': 48.0,
+                'sensor': 4800,
+                'leg': 3.0,
+                'body': 3.0,
                 'body_angular': 0.05,
             }
         if all([
@@ -210,22 +210,23 @@ class MultiLeg(signaler.Signaler):
             self.set_speed(self.speed_scalar - self.speed_step)
             print("new speed: ", self.speed_scalar)
         elif 'left' in buttons or 'right' in buttons:
+            di = None
             if buttons.get('left', 0):
                 di = -1
-            else:
+            if buttons.get('right', 0):
                 di = 1
-            #di = ('left', None, 'right').index(event['name']) - 1
-            inds = sorted(self.legs)
-            if self.leg_index is None:
-                i = 0
-            else:
-                si = inds.index(self.leg_index) + di
-                if si == len(inds):
-                    si = 0
-                elif si < 0:
-                    si = len(inds) - 1
-                i = inds[si]
-            self.set_leg(i)
+            if di is not None:
+                inds = sorted(self.legs)
+                if self.leg_index is None:
+                    i = 0
+                else:
+                    si = inds.index(self.leg_index) + di
+                    if si == len(inds):
+                        si = 0
+                    elif si < 0:
+                        si = len(inds) - 1
+                    i = inds[si]
+                self.set_leg(i)
         elif 'one_right' in buttons:
             if buttons['one_right'] and not self.deadman:
                 self.all_legs('set_estop', 0)
