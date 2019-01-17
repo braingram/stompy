@@ -177,13 +177,23 @@ class LegDisplay(QtGui.QWidget):
         pen = QtGui.QPen(QtGui.QColor(
             255 * r, (1 - r) * 255, 0.), 2,
             QtCore.Qt.DashLine)
+        painter.setPen(pen)
+        if leg.number == getattr(self, 'selected_leg', None):
+            brush = QtGui.QBrush(QtGui.QColor(
+                128, 0, 0, 128))
+            df = painter.drawPolygon
+            painter.setBrush(brush)
+        else:
+            df = painter.drawPolyline
         if lpts is not None:
             if transform is not None:
                 lpts = transforms.transform_3d_array(transform, lpts)
             tpts = self.projection.project_points(lpts)
-            painter.setPen(pen)
-            painter.drawPolyline(
-                QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
+            #painter.drawPolyline(
+            #    QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
+            #painter.drawPolygon(
+            #    QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
+            df(QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
 
     def reportTiming(self, nseconds=1.):
         t = time.time()

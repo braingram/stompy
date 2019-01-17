@@ -416,6 +416,12 @@ class BodyTab(Tab):
         #self.show_top_view()
         self.set_view('top')
 
+    def set_leg_index(self, index):
+        if self.controller is None:
+            return
+        self.display.selected_leg = index
+        super(BodyTab, self).set_leg_index(index)
+
     def set_view(self, view):
         if not isinstance(view, dict):
             view = self.views[view]
