@@ -69,6 +69,9 @@ class MultiLeg(signaler.Signaler):
         self.res = restriction.body.Body(legs)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
+        # if a foot gets within this distance of leg 0, throw an estop
+        self.min_hip_distance = 25.0
+        self.min_hip_override = False
         self.mode = 'body_move'
         self.speeds = {
             'raw': 0.5,
@@ -77,28 +80,6 @@ class MultiLeg(signaler.Signaler):
             'body': 3.0,
             'body_angular': 0.05,
         }
-        if len(self.legs) == 1 and 7 in self.legs:
-            self.speeds = {
-                'raw': 0.5,
-                #'sensor': 65535,
-                'sensor': 4800,
-                'leg': 3.0,
-                'body': 3.0,
-                'body_angular': 0.05,
-            }
-        if all([
-                isinstance(self.legs[k], leg.teensy.FakeTeensy)
-                for k in self.legs]):
-            self.speeds['leg'] = 18
-            self.speeds['body'] = self.speeds['leg']
-            self.res.cfg.speeds.update({
-                'stance': 12,
-                'swing': 24,
-                'lift': 12,
-                'lower': 12,
-            })
-            self.res.cfg.max_feet_up = 3
-            self.res.cfg.speed_by_restriction = True
         self.speed_scalar = 1.0
         self.speed_step = 0.05
         self.speed_scalar_range = (0.1, 2.0)
@@ -124,6 +105,33 @@ class MultiLeg(signaler.Signaler):
         # monitor estop of all legs, broadcast when stopped
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
+
+        # check if this is the test leg in a box
+        if len(self.legs) == 1 and 7 in self.legs:
+            self.speeds = {
+                'raw': 0.5,
+                #'sensor': 65535,
+                'sensor': 4800,
+                'leg': 3.0,
+                'body': 3.0,
+                'body_angular': 0.05,
+            }
+
+        # check if all legs are simulated
+        if all([
+                isinstance(self.legs[k], leg.teensy.FakeTeensy)
+                for k in self.legs]):
+            self.speeds['leg'] = 18
+            self.speeds['body'] = self.speeds['leg']
+            self.res.cfg.speeds.update({
+                'stance': 12,
+                'swing': 12,
+                'lift': 12,
+                'lower': 12,
+            })
+            self.set_mode('body_restriction')
+            self.res.cfg.max_feet_up = 1
+            self.res.cfg.speed_by_restriction = True
 
     def set_speed(self, speed):
         old_speed = self.speed_scalar
@@ -515,5 +523,33 @@ class MultiLeg(signaler.Signaler):
         #if self.mode == 'leg_calibration':
         #    pass
         self.all_legs('update')
+        if self.mode in ('body_move', 'body_restriction'):
+            if self.min_hip_override:
+                # check if override should be turned off
+                disable_override = True
+                threshold = self.min_hip_distance * 1.5
+                for l in self.legs:
+                    if self.legs[l].xyz.get('x', 0) < threshold:
+                        disable_override = False
+                if disable_override:
+                    self.min_hip_override = False
+                    # TODO trigger ui update?
+                    self.trigger('config_updated')
+            else:
+                #
+                # check if any foot has x < self.min_hip_distance
+                all_stopped = True
+                trigger_estop = False
+                for l in self.legs:
+                    if self.legs[l].estop == consts.ESTOP_OFF:  # enabled
+                        all_stopped = False
+                    if self.legs[l].xyz.get('x', 0) < self.min_hip_distance:
+                        # set estop
+                        trigger_estop = True
+                # one of the legs is too close to the hip and not all
+                # are stopped so trigger an estop on all legs
+                if not all_stopped and trigger_estop:
+                    print("estopping because foot too close to hip")
+                    self.all_legs('set_estop', consts.ESTOP_DEFAULT)
         # update all body teensies
         [self.bodies[k].update() for k in self.bodies]
