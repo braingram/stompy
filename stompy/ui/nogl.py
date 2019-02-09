@@ -180,7 +180,7 @@ class LegDisplay(QtGui.QWidget):
         painter.setPen(pen)
         if leg.number == getattr(self, 'selected_leg', None):
             brush = QtGui.QBrush(QtGui.QColor(
-                128, 0, 0, 128))
+                128, 0, 0, 32))
             df = painter.drawPolygon
             painter.setBrush(brush)
         else:
@@ -194,6 +194,7 @@ class LegDisplay(QtGui.QWidget):
             #painter.drawPolygon(
             #    QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
             df(QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
+        painter.setBrush(QtGui.QBrush(None))
 
     def reportTiming(self, nseconds=1.):
         t = time.time()

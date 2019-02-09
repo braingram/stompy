@@ -898,6 +898,28 @@
              </item>
              <item>
               <property name="text">
+               <string>controller.min_hip_override</string>
+              </property>
+              <property name="text">
+               <string>False</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.min_hip_distance</string>
+              </property>
+              <property name="text">
+               <string>25.0</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>controller.res.cfg.eps</string>
               </property>
               <property name="text">

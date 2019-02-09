@@ -415,6 +415,39 @@ class BodyTab(Tab):
                 lambda a, i=leg_number: self.on_res_state(a, i))
         #self.show_top_view()
         self.set_view('top')
+        self.controller.on('config_updated', self.set_config_values)
+        self.set_config_values()
+        ui.configTree.resizeColumnToContents(0)
+
+    def set_config_values(self, item=None):
+        if item is None:
+            item = self.ui.configTree.invisibleRootItem()
+        if item.columnCount() == 2:
+            parent = item.parent()
+            if parent is not None:
+                parent = str(parent.text(0))
+            attr, value = str(item.text(0)), str(item.text(1))
+            if parent is not None:
+                attr = '.'.join((parent, attr))
+            ts = attr.split('.')
+            obj = self.controller
+            assert ts[0] == 'controller'
+            ts = ts[1:]
+            while len(ts) > 1:
+                obj = getattr(obj, ts.pop(0))
+                if obj is None:
+                    break
+            if obj is not None:
+                attr = ts[0]
+                if isinstance(obj, dict):
+                    old_value = obj[attr]
+                else:
+                    old_value = getattr(obj, attr)
+                item.setText(1, str(old_value))
+        for i in range(item.childCount()):
+            self.set_config_values(item.child(i))
+        if item == self.ui.configTree.invisibleRootItem():
+            self.ui.configTree.resizeColumnToContents(0)
 
     def set_leg_index(self, index):
         if self.controller is None:
@@ -546,6 +579,7 @@ def load_ui(controller=None):
             lambda r, p, y: ui.imuLabel.setText(
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
 
+    """
     def set_values(item):
         if item.columnCount() == 2:
             parent = item.parent()
@@ -571,10 +605,12 @@ def load_ui(controller=None):
                 item.setText(1, str(old_value))
         for i in range(item.childCount()):
             set_values(item.child(i))
+    """
 
     # update tree widget to show values from python
-    set_values(ui.configTree.invisibleRootItem())
-    ui.configTree.resizeColumnToContents(0)
+    #set_values(ui.configTree.invisibleRootItem())
+    #tm.tabs['Body'].set_config_values()
+    #ui.configTree.resizeColumnToContents(0)
     # listen for configTree changes
 
     def item_changed(item):
