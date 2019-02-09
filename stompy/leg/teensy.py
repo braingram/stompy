@@ -113,6 +113,7 @@ class LegController(signaler.Signaler):
 class FakeTeensy(LegController):
     def __init__(self, leg_number):
         super(FakeTeensy, self).__init__(leg_number)
+        self._position_noise = 0.05  # in inches
         self.on('plan', self._new_plan)
 
         self.estop = True
@@ -125,9 +126,14 @@ class FakeTeensy(LegController):
         }
         self.adc = {
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
+        # approximate dolly sitting position?
+        #self.angles = {
+        #    'time': time.time(),
+        #    'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
+        # approximate short stand
         self.angles = {
             'time': time.time(),
-            'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
+            'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
         x, y, z = list(kinematics.leg.angles_to_points(
             self.angles['hip'], self.angles['thigh'], self.angles['knee']))[-1]
         self.xyz = {
@@ -166,72 +172,79 @@ class FakeTeensy(LegController):
     def _follow_plan(self, t, dt):
         self.xyz['time'] = t
         self.angles['time'] = t
-        if self.estop or self._plan is None:
+        #if self.estop or self._plan is None:
+        #    return
+        if self._plan is None:
             return
-        if self._plan.mode == consts.PLAN_STOP_MODE:
-            return
-        if self._plan.frame != consts.PLAN_LEG_FRAME:
-            raise NotImplementedError('fake following of non-leg plans')
-        if self._plan.mode == consts.PLAN_VELOCITY_MODE:
-            lx, ly, lz = self._plan.linear
-            self.xyz['x'] += lx * dt * self._plan.speed
-            self.xyz['y'] += ly * dt * self._plan.speed
-            self.xyz['z'] += lz * dt * self._plan.speed
-        elif self._plan.mode == consts.PLAN_TARGET_MODE:
-            tx, ty, tz = self._plan.linear
-            lx = tx - self.xyz['x']
-            ly = ty - self.xyz['y']
-            lz = tz - self.xyz['z']
-            l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
-            if l < (self._plan.speed * dt) or l < 0.01:
-                self.xyz['x'] = tx
-                self.xyz['y'] = ty
-                self.xyz['z'] = tz
-            else:
-                lx /= l
-                ly /= l
-                lz /= l
+        #if self._plan.mode == consts.PLAN_STOP_MODE:
+        #    return
+        if self._plan.frame == consts.PLAN_LEG_FRAME and not self.estop:
+            if self._plan.mode == consts.PLAN_VELOCITY_MODE:
+                lx, ly, lz = self._plan.linear
                 self.xyz['x'] += lx * dt * self._plan.speed
                 self.xyz['y'] += ly * dt * self._plan.speed
                 self.xyz['z'] += lz * dt * self._plan.speed
-        elif self._plan.mode == consts.PLAN_ARC_MODE:
-            lx, ly, lz = self._plan.linear
-            ax, ay, az = self._plan.angular
-            #ax *= self._plan.speed * consts.PLAN_TICK
-            #ay *= self._plan.speed * consts.PLAN_TICK
-            #az *= self._plan.speed * consts.PLAN_TICK
-            ax *= self._plan.speed * dt
-            ay *= self._plan.speed * dt
-            az *= self._plan.speed * dt
-            T = transforms.rotation_about_point_3d(
-                lx, ly, lz, ax, ay, az, degrees=False)
-            nx, ny, nz = transforms.transform_3d(
-                T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
-
-            #self._ddt += dt
-            #nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            #while self._ddt >= consts.PLAN_TICK:
-            #    #nx, ny, nz = transforms.transform_3d(
-            #    #    self._plan.matrix, nx, ny, nz)
-            #    nx, ny, nz = transforms.transform_3d(T, nx, ny, nz)
-            #    self._ddt -= consts.PLAN_TICK
-
-            self.xyz['x'] = nx
-            self.xyz['y'] = ny
-            self.xyz['z'] = nz
-        elif self._plan.mode == consts.PLAN_MATRIX_MODE:
-            # call many times if dt > 4 ms)
-            #print("_follow_plan:", self._plan.matrix)
-            self._ddt += dt
-            nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-            while self._ddt >= consts.PLAN_TICK:
+            elif self._plan.mode == consts.PLAN_TARGET_MODE:
+                tx, ty, tz = self._plan.linear
+                lx = tx - self.xyz['x']
+                ly = ty - self.xyz['y']
+                lz = tz - self.xyz['z']
+                l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
+                if l < (self._plan.speed * dt) or l < 0.01:
+                    self.xyz['x'] = tx
+                    self.xyz['y'] = ty
+                    self.xyz['z'] = tz
+                else:
+                    lx /= l
+                    ly /= l
+                    lz /= l
+                    self.xyz['x'] += lx * dt * self._plan.speed
+                    self.xyz['y'] += ly * dt * self._plan.speed
+                    self.xyz['z'] += lz * dt * self._plan.speed
+            elif self._plan.mode == consts.PLAN_ARC_MODE:
+                lx, ly, lz = self._plan.linear
+                ax, ay, az = self._plan.angular
+                #ax *= self._plan.speed * consts.PLAN_TICK
+                #ay *= self._plan.speed * consts.PLAN_TICK
+                #az *= self._plan.speed * consts.PLAN_TICK
+                ax *= self._plan.speed * dt
+                ay *= self._plan.speed * dt
+                az *= self._plan.speed * dt
+                T = transforms.rotation_about_point_3d(
+                    lx, ly, lz, ax, ay, az, degrees=False)
                 nx, ny, nz = transforms.transform_3d(
-                    self._plan.matrix, nx, ny, nz)
-                self._ddt -= consts.PLAN_TICK
-            #print("X:", self.xyz['x'], nx)
-            self.xyz['x'] = nx
-            self.xyz['y'] = ny
-            self.xyz['z'] = nz
+                    T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
+
+                #self._ddt += dt
+                #nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
+                #while self._ddt >= consts.PLAN_TICK:
+                #    #nx, ny, nz = transforms.transform_3d(
+                #    #    self._plan.matrix, nx, ny, nz)
+                #    nx, ny, nz = transforms.transform_3d(T, nx, ny, nz)
+                #    self._ddt -= consts.PLAN_TICK
+
+                self.xyz['x'] = nx
+                self.xyz['y'] = ny
+                self.xyz['z'] = nz
+            elif self._plan.mode == consts.PLAN_MATRIX_MODE:
+                # call many times if dt > 4 ms)
+                #print("_follow_plan:", self._plan.matrix)
+                self._ddt += dt
+                nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
+                while self._ddt >= consts.PLAN_TICK:
+                    nx, ny, nz = transforms.transform_3d(
+                        self._plan.matrix, nx, ny, nz)
+                    self._ddt -= consts.PLAN_TICK
+                #print("X:", self.xyz['x'], nx)
+                self.xyz['x'] = nx
+                self.xyz['y'] = ny
+                self.xyz['z'] = nz
+        # add noise
+        if self._position_noise != 0.:
+            xyzn = (numpy.random.rand(3) - 0.5) * 2. * self._position_noise
+            self.xyz['x'] += xyzn[0]
+            self.xyz['y'] += xyzn[1]
+            self.xyz['z'] += xyzn[2]
         hip, thigh, knee = kinematics.leg.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
         # check if angles are in limits, if not, stop
@@ -269,8 +282,8 @@ class FakeTeensy(LegController):
             # raise estop
             self.set_estop(consts.ESTOP_HOLD)
         # fake calf loading
-        zl = max(-55, min(-50, self.xyz['z']))
-        calf = -(zl + 50) * 400
+        zl = max(-45, min(-40, self.xyz['z']))
+        calf = -(zl + 40) * 400
         self.angles.update({
             'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
