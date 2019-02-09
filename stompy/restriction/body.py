@@ -13,6 +13,7 @@ from . import cfg
 from .. import consts
 from .. import kinematics
 from . import leg
+from .. import log
 from .. import signaler
 
 
@@ -22,11 +23,17 @@ class BodyTarget(object):
         self.speed = speed
         self.dz = dz
 
+    def __repr__(self):
+        return (
+            "BodyTarget(%r, %r, %r)" %
+            (self.rotation_center, self.speed, self.dz))
+
 
 class Body(signaler.Signaler):
     def __init__(self, legs, **kwargs):
         """Takes leg controllers"""
         super(Body, self).__init__()
+        self.logger = log.make_logger('Res-Body')
         self.cfg = cfg.RestrictionConfig()
         self.legs = legs
         self.cfg.max_feet_up = 1
@@ -52,6 +59,7 @@ class Body(signaler.Signaler):
         self.disable()
 
     def enable(self, foot_states):
+        self.logger.debug("enable")
         self.enabled = True
         self.halted = False
         # TODO set foot states, target?
@@ -87,7 +95,9 @@ class Body(signaler.Signaler):
     def set_target(self, target, update_swing=True):
         if not isinstance(target, BodyTarget):
             raise ValueError("Body.set_target requires BodyTarget")
+        self.logger.debug({"set_target": (target, update_swing)})
         if self.halted:
+            self.logger.debug("set_target while halted")
             # set new pre_halt target
             self._pre_halt_target = target
             # set stance target to stop
@@ -100,6 +110,7 @@ class Body(signaler.Signaler):
                 target, update_swing=update_swing)
 
     def disable(self):
+        self.logger.debug("disable")
         self.enabled = False
         for i in self.feet:
             self.feet[i].set_state(None)
@@ -107,6 +118,14 @@ class Body(signaler.Signaler):
     def halt(self):
         if not self.halted:
             print("HALT")
+            self.logger.debug({
+                "halt": {
+                    'restriction': {
+                        i: self.feet[i].restriction for i in self.feet},
+                    'states': {
+                        i: self.feet[i].state for i in self.feet},
+                    '_pre_halt_target': self.target,
+                }})
             self._pre_halt_target = self.target
             self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
             self.halted = True
@@ -120,6 +139,7 @@ class Body(signaler.Signaler):
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
+        # TODO only unhalt on low-passed r?
         if self.halted and restriction['r'] < self.cfg.r_max:
             # unhalt?
             maxed = False
@@ -131,16 +151,28 @@ class Body(signaler.Signaler):
                     maxed = True
             if not maxed:
                 print("Unhalt")
+                self.logger.debug({
+                    "unhalt": {
+                        'restriction': {
+                            i: self.feet[i].restriction for i in self.feet},
+                        'states': {
+                            i: self.feet[i].state for i in self.feet},
+                        '_pre_halt_target': self._pre_halt_target,
+                    }})
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
-            return
+                return
         if restriction['r'] > self.cfg.r_max and not self.halted:
             self.halt()
             return
         # TODO scale stance speed by restriction?
         if (
-                restriction['r'] > self.cfg.r_thresh and
+                (restriction['r'] > self.cfg.r_thresh) and
                 self.feet[leg_number].state == 'stance'):
+            #if self.halted:
+            #    print(
+            #        leg_number, self.feet[leg_number].state,
+            #        restriction)
             # lift?
             # check n_feet up
             states = {i: self.feet[i].state for i in self.feet}
@@ -148,6 +180,8 @@ class Body(signaler.Signaler):
                 s for s in states.values() if s not in ('stance', 'wait')])
             # check if neighbors are up
             if len(self.neighbors.get(leg_number, [])) == 0:
+                #if self.halted:
+                #    print("halted but no neighbors")
                 return
             ns = self.neighbors[leg_number]
             n_states = [states[n] for n in ns]
@@ -164,9 +198,16 @@ class Body(signaler.Signaler):
                     # found another restricted foot
                     #other_restricted.append(ln)
                     last_lift_times[ln] = self.feet[ln].last_lift_time
+            #if self.halted:
+            #    print("last_lift_times: %s" % last_lift_times)
+            #    print("ns_up: %s, n_up: %s" % (ns_up, n_up))
             #  yes? pick least recently lifted
             if ns_up == 0 and n_up < self.cfg.max_feet_up:
                 n_can_lift = self.cfg.max_feet_up - n_up
+                #if self.halted:
+                #    print("n_can_lift: %s" % n_can_lift)
+                #if self.halted:
+                #    self.feet[leg_number].set_state('lift')
                 if len(last_lift_times) > n_can_lift:
                     # TODO prefer lifting of feet with
                     # restriction_modifier != 0
@@ -174,7 +215,13 @@ class Body(signaler.Signaler):
                     # the other restricted feet
                     ln_by_lt = sorted(
                         last_lift_times, key=lambda ln: last_lift_times[ln])
+                    #if self.halted:
+                    #    print(
+                    #        "ln_by_lt: %s[%s]" %
+                    #        (ln_by_lt, ln_by_lt[:n_can_lift+1]))
                     if leg_number in ln_by_lt[:n_can_lift+1]:
                         self.feet[leg_number].set_state('lift')
                 else:
+                    #if self.halted:
+                    #    print("lift %s" % leg_number)
                     self.feet[leg_number].set_state('lift')

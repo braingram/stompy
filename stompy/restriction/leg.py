@@ -14,6 +14,7 @@ import numpy
 from .. import consts
 from .. import geometry
 from .. import kinematics
+from .. import log
 from .. import signaler
 from .. import transforms
 
@@ -110,6 +111,9 @@ class Foot(signaler.Signaler):
         self.leg = leg
         self.cfg = cfg
         self.limits = geometry.get_limits(self.leg.leg_number)
+        self.logger = log.make_logger(
+            'Res-%s' %
+            consts.LEG_NAME_BY_NUMBER[self.leg.leg_number])
         self.leg.on('xyz', self.on_xyz)
         self.leg.on('angles', self.on_angles)
         self.last_lift_time = time.time()
@@ -187,6 +191,7 @@ class Foot(signaler.Signaler):
                 speed=0)
 
     def set_target(self, target, update_swing=True):
+        self.logger.debug({'set_target': (target, update_swing)})
         bx, by = target.rotation_center
         rx, ry, rz = kinematics.body.body_to_leg(
             self.leg.leg_number, bx, by, 0)
@@ -202,8 +207,10 @@ class Foot(signaler.Signaler):
     def set_state(self, state):
         if state != self.state and self.restriction is not None:
             # reset restriction smoothing
+            #print("resetting dr")
             self.restriction['dr'] = 0.
         self.state = state
+        self.logger.debug({'state': state})
         if self.state == 'lift':
             self.unloaded_height = None
             self.last_lift_time = time.time()
@@ -247,6 +254,7 @@ class Foot(signaler.Signaler):
             dr = 0.
         self.restriction = {
             'time': xyz['time'], 'r': r, 'dr': dr, 'idr': idr}
+        self.logger.debug({'restriction': self.restriction})
         self.trigger('restriction', self.restriction)
 
     def _is_swing_done(self, xyz):
@@ -286,7 +294,10 @@ class Foot(signaler.Signaler):
                     self.angles['calf'] > self.cfg.loaded_weight):
                 new_state = 'wait'
         elif self.state == 'wait':
-            if self.restriction['dr'] > 0:
+            if self.restriction['dr'] > 0.:
+                # print(
+                #     "exiting wait[%s]: %s" %
+                #     (self.leg.leg_number, self.restriction))
                 new_state = 'stance'
         #elif self.state == 'stance'
         elif self.state == 'lift':
@@ -306,5 +317,7 @@ class Foot(signaler.Signaler):
         self.xyz = None
         self.angles = None
         if new_state is not None:
-            print("setting new state: %s" % new_state)
+            #print(
+            #    "setting new state[%s]: %s, %s" % (
+            #        self.leg.leg_number, new_state, self.restriction))
             self.set_state(new_state)

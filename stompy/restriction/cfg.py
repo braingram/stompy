@@ -7,10 +7,10 @@ class RestrictionConfig(signaler.Signaler):
     def __init__(self):
         super(RestrictionConfig, self).__init__()
         self.speeds = {
-            'stance': 3.,
-            'lift': 3.,
-            'lower': 3.,
-            'swing': 6.,
+            'stance': 8.,
+            'lift': 8.,
+            'lower': 8.,
+            'swing': 12.,
             'angular': 0.05}
         self.r_thresh = 0.7
         self.r_max = 0.85
@@ -20,12 +20,12 @@ class RestrictionConfig(signaler.Signaler):
         self.dr_smooth = 0.5
         self.eps = 0.9
         self.lift_height = 8.0
-        self.lower_height = -55.0
+        self.lower_height = -40.0
         self.unloaded_weight = 600.
-        self.loaded_weight = 300.
+        self.loaded_weight = 400.
         self.swing_slop = 5.0
-        self.step_ratio = 0.6
-        self.min_hip_distance = 15.0
+        self.step_ratio = 0.4
+        self.min_hip_distance = 25.0
         self.target_calf_angle = 0.0
         self.speed_by_restriction = False
 
