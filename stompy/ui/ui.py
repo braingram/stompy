@@ -15,6 +15,7 @@ from PyQt4 import QtCore, QtGui
 
 
 from .. import body
+from .. import calibration
 from .. import consts
 from .. import controllers
 from . import base
@@ -539,8 +540,18 @@ def load_ui(controller=None):
     MainWindow = QtGui.QMainWindow()
     ui = base.Ui_MainWindow()
     ui.setupUi(MainWindow)
-    # setup menu
+    # setup menus
+    ui._calibrationMenu_actions = []
+    a = QtGui.QAction("Save", ui.calibrationMenu)
+    a.triggered.connect(lambda a: calibration.save_calibrations())
+    ui._calibrationMenu_actions.append(a)
+    ui.calibrationMenu.addAction(a)
     if controller is not None:
+        a = QtGui.QAction("Zero calf", ui.calibrationMenu)
+        a.triggered.connect(lambda a: controller.leg.compute_calf_zero())
+        ui._calibrationMenu_actions.append(a)
+        ui.calibrationMenu.addAction(a)
+
         ui._legsMenu_actions = []
         for leg in controller.legs:
             a = QtGui.QAction(

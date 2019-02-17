@@ -320,7 +320,6 @@ def print_message(msg):
 
 class Teensy(LegController):
     def __init__(self, port):
-
         self.port = port
         self.com = pycomando.Comando(serial.Serial(self.port, 9600))
         self.cmd = pycomando.protocols.command.CommandProtocol()
@@ -378,6 +377,46 @@ class Teensy(LegController):
         self.mgr.on('report_pwm', self.on_report_pwm)
         self.mgr.on('report_adc', self.on_report_adc)
         self.mgr.on('report_loop_time', self.on_report_loop_time)
+
+        self.calibrators = {
+            'calf': calibration.CalfCalibrator(),
+            # hip, thigh, knee
+        }
+
+        # request current calibration values
+        self.calibrators['calf'].attach_manager(self.mgr)
+
+    def merge_calf_calibration(self):
+        # merge into setup calibration
+        inds = [
+            i for (i, v) in enumerate(calibration.setup[self.leg_number])
+            if v[0] == 'calf_scale']
+        if len(inds) >= 1:
+            # remove existing calf scales
+            for i in inds[::-1]:
+                calibration.setup[self.leg_number].pop(i)
+        cal = self.calibrators['calf']
+        calibration.setup[self.leg_number].append(
+            ('calf_scale', cal.slope, cal.offset))
+
+    def compute_calf_zero(self, load=0, merge=True):
+        v = self.adc['calf']
+        cal = self.calibrators['calf']
+        cal.value0 = v
+        cal.load0 = load
+        cal.old_offset = cal.offset
+        cal.compute_offset()
+        # TODO sanity check
+        self.log.info({'compute_calf_zero': {
+            'value': v,
+            'old_offset': cal.old_offset,
+            'offset': cal.offset,
+            'slope': cal.slope}})
+        # send new calibration to teensy
+        self.mgr.trigger('calf_scale', cal.slope, cal.offset)
+        # merge into setup calibration?
+        if merge:
+            self.merge_calf_calibration()
 
     def on_estop(self, severity):
         #print("Received estop: %s" % severity)

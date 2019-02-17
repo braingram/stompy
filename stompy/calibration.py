@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 
+import os
+import cPickle as pickle
+
 import numpy
 
+from . import consts
 
-# TODO store in ~/.stompy/calibrations/<leg>?
+
+default_cal_dir = "~/.stompy/calibrations"
+setup = {}
+"""
 setup = {
     1: [  # fl calibration: 180114
         # hip was swapped (min length = max val), swapped lengths
@@ -151,6 +158,92 @@ setup = {
         ('pid_config', (2, 2.0, 1.0, 0.0, -8192, 8192)),
     ],
 }
+"""
+
+
+# load calibrations from ~/.stompy/calibrations/<leg>?
+def load_calibrations(directory=default_cal_dir, append=False):
+    d = os.path.abspath(os.path.expanduser(directory))
+    # look for legs
+    fns = os.listdir(d)
+    for fn in fns:
+        # lookup leg number
+        if fn not in consts.LEG_NUMBER_BY_NAME:
+            continue
+        ln = consts.LEG_NUMBER_BY_NAME[fn]
+        # load calibration
+        with open(os.path.join(d, fn), 'r') as f:
+            cal_data = pickle.load(f)
+        if append:
+            # append old to new
+            setup[ln] = setup.get(ln) + cal_data
+        else:
+            # overwrite
+            setup[ln] = cal_data
+
+
+# load initial calibrations
+load_calibrations(append=False)
+
+
+def save_calibrations(directory=default_cal_dir):
+    d = os.path.abspath(os.path.expanduser(directory))
+    for ln in setup:
+        leg_name = consts.LEG_NAME_BY_NUMBER[ln]
+        fn = os.path.join(d, leg_name)
+        with open(fn, 'w') as f:
+            pickle.dump(setup[ln], f)
+
+
+class CalfCalibrator(object):
+    def __init__(self):
+        self._a = 8.
+        self._b = 18.
+        self._bl = 18.
+        self._in2lb = 600.
+        self.load0 = None
+        self.value0 = None
+        self.load1 = None
+        self.value1 = None
+        self.slope = None
+        self.offset = None
+
+    def _tc(self, lb):
+        return numpy.arccos(
+            (self._a * self._a + self._b * self._b -
+                (self._bl - lb / self._in2lb) ** 2.) /
+            (2 * self._a * self._b))
+
+    def on_calf_scale(self, slope, offset):
+        self.slope = slope.value
+        self.offset = offset.value
+
+    def attach_manager(self, mgr):
+        self.mgr.on('calf_scale', self.on_calf_scale)
+
+    def compute_slope(self):
+        if self.load0 is None:
+            raise ValueError("load0 not set")
+        if self.load1 is None:
+            raise ValueError("load1 not set")
+        if self.value0 is None:
+            raise ValueError("value0 not set")
+        if self.value1 is None:
+            raise ValueError("value1 not set")
+        c0 = self._tc(self.load0)
+        c1 = self._tc(self.load1)
+        self.slope = (c0 - c1) / (self.value0 - self.value1)
+        return self.slope
+
+    def compute_offset(self):
+        if self.load0 is None:
+            raise ValueError("load0 not set")
+        if self.value0 is None:
+            raise ValueError("value0 not set")
+        if self.slope is None:
+            self.compute_slope()
+        self.offset = self._tc(self.load0) - self.value0 * self.slope
+        return self.offset
 
 
 def generate_calf_calibration(load0, value0, load1, value1, slope=None):

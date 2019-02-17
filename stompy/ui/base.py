@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Feb  3 15:18:37 2019
+# Created: Sun Feb 17 14:17:14 2019
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -505,12 +505,15 @@ class Ui_MainWindow(object):
         self.legsMenu.setObjectName(_fromUtf8("legsMenu"))
         self.modesMenu = QtGui.QMenu(self.menubar)
         self.modesMenu.setObjectName(_fromUtf8("modesMenu"))
+        self.calibrationMenu = QtGui.QMenu(self.menubar)
+        self.calibrationMenu.setObjectName(_fromUtf8("calibrationMenu"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
         MainWindow.setStatusBar(self.statusbar)
         self.menubar.addAction(self.legsMenu.menuAction())
         self.menubar.addAction(self.modesMenu.menuAction())
+        self.menubar.addAction(self.calibrationMenu.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabs.setCurrentIndex(2)
@@ -628,6 +631,7 @@ class Ui_MainWindow(object):
         self.tabs.setTabText(self.tabs.indexOf(self.walkTab), _translate("MainWindow", "Walk", None))
         self.legsMenu.setTitle(_translate("MainWindow", "Legs", None))
         self.modesMenu.setTitle(_translate("MainWindow", "Modes", None))
+        self.calibrationMenu.setTitle(_translate("MainWindow", "Calibration", None))
 
 from stompy.ui.nogl import LineChart, LegDisplay, BodyDisplay
 

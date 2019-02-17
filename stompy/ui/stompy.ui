@@ -1167,8 +1167,14 @@
      <string>Modes</string>
     </property>
    </widget>
+   <widget class="QMenu" name="calibrationMenu">
+    <property name="title">
+     <string>Calibration</string>
+    </property>
+   </widget>
    <addaction name="legsMenu"/>
    <addaction name="modesMenu"/>
+   <addaction name="calibrationMenu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
