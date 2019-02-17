@@ -397,7 +397,7 @@ class Teensy(LegController):
                 calibration.setup[self.leg_number].pop(i)
         cal = self.calibrators['calf']
         calibration.setup[self.leg_number].append(
-            ('calf_scale', cal.slope, cal.offset))
+            ('calf_scale', (cal.slope, cal.offset)))
 
     def compute_calf_zero(self, load=0, merge=True):
         v = self.adc['calf']
