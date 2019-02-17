@@ -219,7 +219,8 @@ class CalfCalibrator(object):
         self.offset = offset.value
 
     def attach_manager(self, mgr):
-        self.mgr.on('calf_scale', self.on_calf_scale)
+        mgr.on('calf_scale', self.on_calf_scale)
+        mgr.trigger('calf_scale')
 
     def compute_slope(self):
         if self.load0 is None:
