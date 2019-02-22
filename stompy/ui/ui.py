@@ -692,6 +692,9 @@ def run_ui(ui):
 def start():
     if joystick.ps3.available():
         joy = joystick.ps3.PS3Joystick()
+    elif joystick.steel.available():
+        joy = joystick.steel.SteelJoystick()
+        print("Connected to steel joystick")
     else:
         joy = None
 

@@ -126,6 +126,26 @@ codes_by_version = {
     },
 }
 
+default_mapping = {
+    'buttons': {
+        'one_right': 'deadman',
+        'one_left': 'sub_mode',
+        'square': 'report_stats',
+        'triangle': 'reset_stats',
+        'left': 'leg_index_dec',
+        'right': 'leg_index_inc',
+        'up': 'speed_inc',
+        'down': 'speed_dec',
+        'select': 'mode_inc',
+    },
+    'axes': {
+        'x0': 'thumb_left_x',
+        'y0': 'thumb_left_y',
+        'x1': 'thumb_right_x',
+        'y1': 'thumb_right_y',
+    },
+}
+
 POLL_TIMEOUT = 0.001
 THREAD_SLEEP = 0.01
 
@@ -140,6 +160,7 @@ def available(fn=None):
 class PS3Joystick(base.Joystick):
     def __init__(self, fn=None):
         super(PS3Joystick, self).__init__()
+        self.mapping = default_mapping
         self.codes = None
         if fn is None:
             fn = DEFAULT_FN

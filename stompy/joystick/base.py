@@ -13,6 +13,10 @@ class Joystick(signaler.Signaler):
         self.buttons = {}
         self.axes = {}
         self._reset_updates()
+        self.mapping = {
+            'buttons': {},
+            'axes': {}
+        }
 
     def _reset_updates(self):
         self._update = {
@@ -34,11 +38,19 @@ class Joystick(signaler.Signaler):
     def _report_axis(self, axis, value):
         self._update['axes'][axis] = value
         self.axes[axis] = value
+        if axis in self.mapping['axes']:
+            k = self.mapping['axes'][axis]
+            self._update['axes'][k] = value
+            self.axes[k] = value
         self._check_report()
 
     def _report_button(self, button, value):
         self._update['buttons'][button] = value
         self.buttons[button] = value
+        if button in self.mapping['buttons']:
+            k = self.mapping['buttons'][button]
+            self._update['buttons'][k] = value
+            self.buttons[k] = value
         self._check_report()
 
     def update(self):
