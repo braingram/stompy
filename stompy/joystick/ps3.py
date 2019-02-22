@@ -139,10 +139,9 @@ default_mapping = {
         'select': 'mode_inc',
     },
     'axes': {
-        'x0': 'thumb_left_x',
-        'y0': 'thumb_left_y',
-        'x1': 'thumb_right_x',
-        'y1': 'thumb_right_y',
+        'thumb_left_x': 'x',
+        'thumb_left_y': ('y', lambda v: 255 - v),
+        'thumb_right_y': ('z', lambda v: 255 - v),
     },
 }
 

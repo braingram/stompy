@@ -17,31 +17,34 @@ cmds = {
 }
 
 button_names = {
-    0: 'joystick_hat',
+    0: 'joy_button',
 }
 
 axis_names = {
-    0: 'x',
-    1: 'y',
+    0: 'joy_x',
+    1: 'joy_y',
+    2: 'joy_z',
 }
 
+# joystick event name to stompy function mapping
+# takes names defined above and maps them to names
+# that the main stompy controller will understand
 default_mapping = {
     'buttons': {
-        'joystick_hat': 'deadman',
+        'joy_button': 'deadman',
         #'one_left': 'sub_mode',
-        #'square': 'report_stats',
-        #'triangle': 'reset_stats',
         #'left': 'leg_index_dec',
         #'right': 'leg_index_inc',
         #'up': 'speed_inc',
         #'down': 'speed_dec',
         #'select': 'mode_inc',
+        #'square': 'report_stats',
+        #'triangle': 'reset_stats',
     },
     'axes': {
-        'x': 'x0',
-        'y': 'y0',
-        #'x1': 'thumb_right_x',
-        #'y1': 'thumb_right_y',
+        'joy_x': 'x',
+        'joy_y': 'y',
+        'joy_z': 'z',
     },
 }
 

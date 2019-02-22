@@ -147,6 +147,7 @@ class LegDisplay(QtGui.QWidget):
     def _paintLeg(self, painter, leg=None, transform=None):
         if leg is None:
             leg = self.leg
+        saved_brush = painter.brush()
 
         pts = [[0, 0, 0], ] + list(leg.points())
         if transform is not None:
@@ -194,7 +195,8 @@ class LegDisplay(QtGui.QWidget):
             #painter.drawPolygon(
             #    QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
             df(QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
-        painter.setBrush(QtGui.QBrush(None))
+        #painter.setBrush(QtGui.QBrush(None))
+        painter.setBrush(saved_brush)
 
     def reportTiming(self, nseconds=1.):
         t = time.time()

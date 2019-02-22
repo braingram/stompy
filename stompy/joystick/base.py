@@ -40,6 +40,9 @@ class Joystick(signaler.Signaler):
         self.axes[axis] = value
         if axis in self.mapping['axes']:
             k = self.mapping['axes'][axis]
+            if isinstance(k, tuple):
+                k, c = k
+                value = c(value)
             self._update['axes'][k] = value
             self.axes[k] = value
         self._check_report()
