@@ -20,6 +20,16 @@ ESTOP_HEARTBEAT = 6
 ESTOP_ON = 2
 ESTOP_DEFAULT = 2
 
+ESTOP_BY_NUMBER = {
+    ESTOP_OFF: 'off',
+    ESTOP_SOFT: 'soft',
+    ESTOP_HARD: 'hard',
+    ESTOP_HOLD: 'hold',
+    ESTOP_SENSOR_LIMIT: 'sensor limit',
+    ESTOP_FOLLOWING_ERROR: 'following error',
+    ESTOP_HEARTBEAT: 'heartbeat',
+}
+
 HEARTBEAT_TIMEOUT = 1.0
 HEARTBEAT_PERIOD = HEARTBEAT_TIMEOUT / 2.
 

@@ -18,12 +18,9 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_8">
       <item>
-       <widget class="QCheckBox" name="estopCheck">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
+       <widget class="QLabel" name="estopLabel">
         <property name="text">
-         <string>Estop</string>
+         <string>Estop: ?</string>
         </property>
        </widget>
       </item>

@@ -110,6 +110,7 @@ class LegDisplay(QtGui.QWidget):
             ],
             'limits': QtGui.QPen(QtCore.Qt.magenta, 1, QtCore.Qt.DashLine),
             'calf': QtGui.QPen(QtCore.Qt.cyan, 1),
+            'support': QtGui.QPen(QtCore.Qt.darkCyan, 1),
         }
         self.paintsPerSecond = 10.
         self._last_update_time = time.time() - 1.
@@ -197,6 +198,7 @@ class LegDisplay(QtGui.QWidget):
             df(QtGui.QPolygonF([QtCore.QPointF(*pt) for pt in tpts]))
         #painter.setBrush(QtGui.QBrush(None))
         painter.setBrush(saved_brush)
+        return x, y
 
     def reportTiming(self, nseconds=1.):
         t = time.time()
@@ -307,6 +309,7 @@ class BodyDisplay(LegDisplay):
         super(BodyDisplay, self).__init__(parent)
         del self.leg
         self.legs = {}
+        self.support_legs = []
 
     def add_leg(self, leg_number):
         self.legs[leg_number] = Leg(leg_number)
@@ -317,9 +320,19 @@ class BodyDisplay(LegDisplay):
         painter.begin(self)
         painter.setRenderHints(QtGui.QPainter.Antialiasing)
         self._paintAxes(painter)
+        supports = []
         for leg in self.legs:
             T = kinematics.body.leg_to_body_transforms[leg]
-            self._paintLeg(painter, self.legs[leg], T)
+            xy = self._paintLeg(painter, self.legs[leg], T)
+            if leg in self.support_legs:
+                supports.append(xy)
+        pen = self._pens['support']
+        if len(supports):
+            # project points
+            supports += [supports[0], ]
+            for p0, p1 in zip(supports[:-1], supports[1:]):
+                painter.setPen(pen)
+                painter.drawLine(p0[0], p0[1], p1[0], p1[1])
         painter.end()
 
 

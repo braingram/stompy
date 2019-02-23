@@ -95,6 +95,7 @@ class MultiLeg(signaler.Signaler):
         # monitor estop of all legs, broadcast when stopped
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
+            self.legs[i].on('xyz', lambda v, ln=i: self.on_leg_xyz(v, ln))
 
         # check if this is the test leg in a box
         if len(self.legs) == 1 and 7 in self.legs:
@@ -136,11 +137,17 @@ class MultiLeg(signaler.Signaler):
             self.res.set_speed(self.speed_scalar)
 
     def on_leg_estop(self, value, leg_number):
-        print("Leg estop: %s, %s" % (leg_number, value))
+        self.trigger('estop', value)
         if value:
             for i in self.legs:
                 if i != leg_number and self.legs[i].estop == consts.ESTOP_OFF:
                     self.legs[i].set_estop(value)
+
+    def on_leg_xyz(self, xyz, leg_number):
+        # find lowest 3 legs (most negative)
+        height = numpy.mean(
+            sorted([self.legs[i].xyz['z'] for i in self.legs])[:3])
+        self.trigger('height', -height)
 
     def set_mode(self, mode):
         if mode not in self.modes:
@@ -268,7 +275,6 @@ class MultiLeg(signaler.Signaler):
                 jv = 0
             jv = max(-1., min(1., jv / float(thumb_scale)))
             xyz.append(jv)
-        print('xyz', xyz)
         #lx = self.joy.axes.get('x0', thumb_mid) - thumb_mid
         #ly = self.joy.axes.get('y0', thumb_mid) - thumb_mid
         #rx = self.joy.axes.get('x1', thumb_mid) - thumb_mid

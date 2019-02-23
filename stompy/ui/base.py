@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Feb 17 14:17:14 2019
+# Created: Fri Feb 22 21:07:57 2019
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -33,10 +33,9 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.horizontalLayout_8 = QtGui.QHBoxLayout()
         self.horizontalLayout_8.setObjectName(_fromUtf8("horizontalLayout_8"))
-        self.estopCheck = QtGui.QCheckBox(self.centralwidget)
-        self.estopCheck.setEnabled(False)
-        self.estopCheck.setObjectName(_fromUtf8("estopCheck"))
-        self.horizontalLayout_8.addWidget(self.estopCheck)
+        self.estopLabel = QtGui.QLabel(self.centralwidget)
+        self.estopLabel.setObjectName(_fromUtf8("estopLabel"))
+        self.horizontalLayout_8.addWidget(self.estopLabel)
         self.legLabel = QtGui.QLabel(self.centralwidget)
         self.legLabel.setObjectName(_fromUtf8("legLabel"))
         self.horizontalLayout_8.addWidget(self.legLabel)
@@ -521,7 +520,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
-        self.estopCheck.setText(_translate("MainWindow", "Estop", None))
+        self.estopLabel.setText(_translate("MainWindow", "Estop: ?", None))
         self.legLabel.setText(_translate("MainWindow", "Leg: ?", None))
         self.modeLabel.setText(_translate("MainWindow", "Mode: ?", None))
         self.heightLabel.setText(_translate("MainWindow", "Height: ?", None))

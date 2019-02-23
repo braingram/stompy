@@ -6,14 +6,6 @@ import traceback
 import numpy
 from PyQt4 import QtCore, QtGui
 
-#import pyqtgraph
-#import pyqtgraph.opengl
-#from pyqtgraph.Qt import QtCore, QtGui
-
-#pyqtgraph.setConfigOption('background', 'w')
-#pyqtgraph.setConfigOption('foreground', 'k')
-
-
 from .. import body
 from .. import calibration
 from .. import consts
@@ -402,6 +394,8 @@ class BodyTab(Tab):
 
         # attach to all legs
         #self.controller.legs[i]
+        self.controller.on('height', self.on_height)
+        self.controller.on('mode', self.on_mode)
         for leg_number in self.controller.legs:
             self.display.add_leg(leg_number)
             self.controller.legs[leg_number].on(
@@ -481,31 +475,30 @@ class BodyTab(Tab):
         self.display.update()
         return
 
+    def on_height(self, height):
+        self.heightLabel.setText("Height: %0.2f" % height)
+
+    def on_mode(self, mode):
+        if mode == 'body_restriction':
+            self._update_support_legs()
+        else:
+            self.display.support_legs = []
+
     def on_res_state(self, state, leg_number):
-        return
+        self._update_support_legs()
+
+    def _update_support_legs(self):
         # draw polygon between supported legs
         lns = sorted(self.controller.res.feet)
-        pts = []
+        support_legs = []
         for ln in lns:
             if self.controller.res.feet[ln].state in ('stance', 'wait'):
-                pts.append(self.links[ln]['pts'][3])
-        if not len(pts):
+                support_legs.append(ln)
+        if not len(support_legs):
             return
-        pts.append(pts[0])
-        pts = numpy.array(pts)
-        # TODO calculate average 'height' of legs on the ground
-        height = numpy.mean(pts[:-1, 2])
-        self.heightLabel.setText("Height: %0.2f" % -height)
-        # TODO draw support triangle
+        self.display.support_legs = support_legs
+        self.display.update()
         # TODO calculate pitch and roll
-        #if 'support' not in self.body_links:
-        #    l = pyqtgraph.opengl.GLLinePlotItem(
-        #        pos=pts, color=[0., 0., 1., 1.],
-        #        width=1, antialias=True)
-        #    self.gl_widget.addItem(l)
-        #    self.body_links['support'] = l
-        #else:
-        #    self.body_links['support'].setData(pos=pts)
 
 
 class TabManager(object):
@@ -571,6 +564,13 @@ def load_ui(controller=None):
         controller.on('mode', lambda m: ui.modeLabel.setText("Mode: %s" % m))
         controller.on('set_leg', lambda m: ui.legLabel.setText(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
+        controller.on('estop', lambda v: (
+            ui.estopLabel.setText(
+                "Estop: %s" % consts.ESTOP_BY_NUMBER[v]),
+            ui.estopLabel.setStyleSheet((
+                "background-color: green;" if v == consts.ESTOP_OFF else
+                "background-color: none;"))
+        ))
     tm = TabManager(ui.tabs)
     tm.add_tab('PID', PIDTab(ui, controller))
     tm.add_tab('Leg', LegTab(ui, controller))
@@ -589,34 +589,6 @@ def load_ui(controller=None):
             'heading',
             lambda r, p, y: ui.imuLabel.setText(
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
-
-    """
-    def set_values(item):
-        if item.columnCount() == 2:
-            parent = item.parent()
-            if parent is not None:
-                parent = str(parent.text(0))
-            attr, value = str(item.text(0)), str(item.text(1))
-            if parent is not None:
-                attr = '.'.join((parent, attr))
-            ts = attr.split('.')
-            obj = controller
-            assert ts[0] == 'controller'
-            ts = ts[1:]
-            while len(ts) > 1:
-                obj = getattr(obj, ts.pop(0))
-                if obj is None:
-                    break
-            if obj is not None:
-                attr = ts[0]
-                if isinstance(obj, dict):
-                    old_value = obj[attr]
-                else:
-                    old_value = getattr(obj, attr)
-                item.setText(1, str(old_value))
-        for i in range(item.childCount()):
-            set_values(item.child(i))
-    """
 
     # update tree widget to show values from python
     #set_values(ui.configTree.invisibleRootItem())
