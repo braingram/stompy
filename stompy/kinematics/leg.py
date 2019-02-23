@@ -56,6 +56,7 @@ def angles_to_points(hip, thigh, knee):
 
 
 def point_to_angles(x, y, z):
+    # TODO doesn't work for x < 0
     l = (x * x + y * y) ** 0.5
     hip = numpy.arctan2(y, x)
     L = (z * z + (l - geometry.HIP_LENGTH) * (l - geometry.HIP_LENGTH)) ** 0.5

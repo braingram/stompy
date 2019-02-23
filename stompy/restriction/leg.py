@@ -104,6 +104,33 @@ def calculate_translation_swing_target(
     return sp
 
 
+def calculate_restriction(
+        xyz, angles, limits, limit_eps, calf_eps, max_calf_angle):
+    # use angle limits to compute restriction
+    r = 0
+    for j in ('hip', 'thigh', 'knee'):
+        jmin, jmax = limits[j]
+        jmid = (jmax + jmin) / 2.
+        jabsmax = float(max(
+            abs(jmid - jmax), abs(jmin - jmid)))
+        if angles[j] > jmid:
+            jl = angles[j] - jmax
+        else:
+            jl = jmin - angles[j]
+        # TODO should these be normalized to be 0 - 1
+        # take 'max' across joint angles, only the worst sets restriction
+        r = max(min(1.0, numpy.exp(limit_eps * (jl / jabsmax))), r)
+        #if self.leg.leg_number == 1:
+        #    print(j, jl, r)
+    # calf angle, if eps == 0, skip
+    if calf_eps > 0.001:
+        ca = abs(kinematics.leg.angles_to_calf_angle(
+            angles['hip'], angles['thigh'], angles['knee']))
+        r = max(min(1.0, numpy.exp(
+            calf_eps * ((ca - max_calf_angle) / max_calf_angle))), r)
+    return r
+
+
 class Foot(signaler.Signaler):
     def __init__(
             self, leg, cfg):
@@ -153,7 +180,13 @@ class Foot(signaler.Signaler):
                 speed=0)
         elif self.state == 'swing':
             z = self.unloaded_height + self.cfg.lift_height
-            if len(self.swing_info) == 3:  # rotation
+            if self.swing_info is None:  # assume target of 0, 0
+                sp = calculate_translation_swing_target(
+                    0, 0, self.cfg.lower_height,
+                    self.leg.leg_number, None, 0.,
+                    min_hip_distance=self.cfg.min_hip_distance,
+                    target_calf_angle=self.cfg.target_calf_angle)
+            elif len(self.swing_info) == 3:  # rotation
                 rx, ry, rspeed = self.swing_info
                 sp = calculate_swing_target(
                     rx, ry, self.cfg.lower_height,
@@ -214,6 +247,8 @@ class Foot(signaler.Signaler):
         if self.state == 'lift':
             self.unloaded_height = None
             self.last_lift_time = time.time()
+        elif self.state == 'swing':
+            pass
         self.send_plan()
         self.trigger('state', state)
 
@@ -226,19 +261,9 @@ class Foot(signaler.Signaler):
             - idr: slope of restriction change from last to new value
             - dr: smoothed idr
         """
-        # use angle limits to compute restriction
-        r = 0
-        for j in ('hip', 'thigh', 'knee'):
-            jmin, jmax = self.limits[j]
-            jmid = (jmax + jmin) / 2.
-            if angles[j] > jmid:
-                jl = angles[j] - jmax
-            else:
-                jl = jmin - angles[j]
-            # take 'max' across joint angles, only the worst sets restriction
-            r = max(min(1.0, numpy.exp(self.cfg.eps * jl)), r)
-            #if self.leg.leg_number == 1:
-            #    print(j, jl, r)
+        r = calculate_restriction(
+            xyz, angles, self.limits, self.cfg.eps,
+            self.cfg.calf_eps, self.cfg.max_calf_angle)
         # TODO use calf angle
         # add in the 'manual' restriction modifier (set from ui/controller)
         r += self.restriction_modifier

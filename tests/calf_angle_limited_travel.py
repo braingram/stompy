@@ -9,9 +9,9 @@ calf_angle_threshold = 26.
 
 
 def xyz_to_calf_angle(x, y, z):
+    h, t, k = stompy.kinematics.leg.point_to_angles(x, y, z)
     return numpy.degrees(
-        stompy.kinematics.leg.angles_to_calf_angle(
-            *stompy.kinematics.leg.point_to_angles(x, y, z)))
+        stompy.kinematics.leg.angles_to_calf_angle(h, t, k))
 
 
 x_steps = 30.

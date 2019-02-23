@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import numpy
+
 from .. import signaler
 
 
@@ -12,13 +14,15 @@ class RestrictionConfig(signaler.Signaler):
             'lower': 8.,
             'swing': 12.,
             'angular': 0.05}
-        self.r_thresh = 0.7
+        self.r_thresh = 0.3
         self.r_max = 0.85
         self.max_feet_up = 0
         self.speed_scalar = 1.
         self.height_slop = 3.
         self.dr_smooth = 0.5
-        self.eps = 0.9
+        self.eps = 1.0
+        self.calf_eps = 3.0
+        self.max_calf_angle = numpy.radians(30)
         self.lift_height = 8.0
         self.lower_height = -40.0
         self.unloaded_weight = 600.

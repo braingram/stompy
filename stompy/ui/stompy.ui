@@ -928,6 +928,28 @@
              </item>
              <item>
               <property name="text">
+               <string>controller.res.cfg.calf_eps</string>
+              </property>
+              <property name="text">
+               <string>0.9</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.max_calf_angle</string>
+              </property>
+              <property name="text">
+               <string>0.5</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>controller.res.cfg.dr_smooth</string>
               </property>
               <property name="text">

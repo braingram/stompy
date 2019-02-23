@@ -194,7 +194,9 @@ class Body(signaler.Signaler):
                     continue
                 if states[ln] not in ('stance', 'wait'):
                     continue
-                if self.feet[ln].restriction['r'] > self.cfg.r_thresh:
+                if (
+                        self.feet[ln].restriction is not None and
+                        self.feet[ln].restriction['r'] > self.cfg.r_thresh):
                     # found another restricted foot
                     #other_restricted.append(ln)
                     last_lift_times[ln] = self.feet[ln].last_lift_time
