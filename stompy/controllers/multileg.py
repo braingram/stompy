@@ -35,6 +35,8 @@ thumb_mid = 130
 thumb_db = 10  # +-
 thumb_scale = max(255 - thumb_mid, thumb_mid)
 
+leg_select_buttons = ['leg_select_%i' % i for i in range(1, 7)]
+
 max_radius = 100000.
 
 
@@ -193,6 +195,27 @@ class MultiLeg(signaler.Signaler):
         self.trigger('set_leg', index)
 
     def on_buttons(self, buttons):
+        if 'leg_mode_switch' in buttons:
+            if buttons['leg_mode_switch']:
+                self.set_mode('leg_body')
+            else:
+                if 'body_walk_switch' not in buttons:
+                    buttons['body_walk_switch'] = (
+                        self.joy.buttons.get('body_walk_switch', 0))
+        if 'body_walk_switch' in buttons:
+            if not self.joy.buttons.get('leg_mode_switch', 0):
+                if buttons['body_walk_switch']:
+                    self.set_mode('body_restriction')
+                else:
+                    self.set_mode('body_move')
+        for (ln, bn) in enumerate(leg_select_buttons):
+            if bn in buttons:
+                ln += 1
+                if buttons.get(bn, 0) and ln in self.legs:
+                    self.set_leg(ln)
+        if buttons.get('use_sliders_switch', 0):
+            self._set_speed_by_slider()
+            self._set_height_by_slider()
         if buttons.get('mode_inc', 0):  # advance mode
             mi = self.modes.index(self.mode)
             mi += 1
@@ -246,12 +269,34 @@ class MultiLeg(signaler.Signaler):
             print("Resetting loop time stats")
             self.leg.loop_time_stats.reset()
 
+    def _set_speed_by_slider(self):
+        self.speed_scalar = self.joy.axes.get('speed_axis', 0) / 255.
+        self.set_speed(self.speed_scalar)
+
+    def _set_height_by_slider(self):
+        if 'height_axis' not in self.joy.axes:
+            return
+        h = self.joy.axes['height_axis'] / 255.
+        h = (
+            h * (
+                self.res.cfg.min_lower_height -
+                self.res.cfg.max_lower_height) +
+            self.res.cfg.max_lower_height)
+        return
+        self.res.cfg.lower_height = h
+
     def on_axes(self, axes):
         # check if target vector has changed > some amount
         # if so, read and send new target
         if any((n in axes for n in ('x', 'y', 'z'))):
             if self.deadman:
                 self.set_target()
+        if 'speed_axis' in axes:
+            if self.joy.buttons.get('use_sliders_switch', 0):
+                self._set_speed_by_slider()
+        if 'height_axis' in axes:
+            if self.joy.buttons.get('use_sliders_switch', 0):
+                self._set_height_by_slider()
 
     def set_target(self):
         # from joystick
@@ -378,7 +423,10 @@ class MultiLeg(signaler.Signaler):
                 cry = 0.
                 # use both joystick x and y to determine 'speed'
                 # to allow for turning in place
-                sv = max(xyz[1], abs(xyz[0]))
+                if abs(xyz[0]) > abs(xyz[1]):
+                    sv = abs(xyz[0]) * numpy.sign(xyz[1])
+                else:
+                    sv = xyz[1]
                 rs = (
                     self.res.calc_stance_speed((crx, cry), sv)
                     * numpy.sign(crx))
