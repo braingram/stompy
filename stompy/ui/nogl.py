@@ -175,7 +175,7 @@ class LegDisplay(QtGui.QWidget):
         lpts = kinematics.leg.limits_at_z_3d(
             z, leg.number)
         # color limits by restriction
-        r = leg.restriction.get('r', 1.)
+        r = max(0., min(1., leg.restriction.get('r', 1.)))
         pen = QtGui.QPen(QtGui.QColor(
             255 * r, (1 - r) * 255, 0.), 2,
             QtCore.Qt.DashLine)

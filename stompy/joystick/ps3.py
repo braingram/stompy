@@ -131,6 +131,7 @@ default_mapping = {
         'one_right': 'deadman',
         'one_left': 'sub_mode',
         'square': 'report_stats',
+        'cross': 'restrict_leg',
         'triangle': 'reset_stats',
         'left': 'leg_index_dec',
         'right': 'leg_index_inc',

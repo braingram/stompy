@@ -199,14 +199,14 @@ class MultiLeg(signaler.Signaler):
             if mi == len(self.modes):
                 mi = 0
             self.set_mode(self.modes[mi])
-        elif buttons.get('speed_inc', 0):
+        if buttons.get('speed_inc', 0):
             # increase speed scalar
             self.set_speed(self.speed_scalar + self.speed_step)
             print("new speed: ", self.speed_scalar)
-        elif buttons.get('speed_dec', 0):
+        if buttons.get('speed_dec', 0):
             self.set_speed(self.speed_scalar - self.speed_step)
             print("new speed: ", self.speed_scalar)
-        elif 'leg_index_inc' in buttons or 'leg_index_dec' in buttons:
+        if 'leg_index_inc' in buttons or 'leg_index_dec' in buttons:
             di = None
             if buttons.get('leg_index_dec', 0):
                 di = -1
@@ -224,7 +224,7 @@ class MultiLeg(signaler.Signaler):
                         si = len(inds) - 1
                     i = inds[si]
                 self.set_leg(i)
-        elif 'deadman' in buttons:
+        if 'deadman' in buttons:
             if buttons['deadman'] and not self.deadman:
                 self.all_legs('set_estop', 0)
                 if self.mode != 'leg_pwm':
@@ -235,17 +235,14 @@ class MultiLeg(signaler.Signaler):
                 self.all_legs('set_estop', 1)
                 self.all_legs('stop')
                 self.deadman = False
-        elif (
-                buttons.get('restrict_leg', 0) and
-                self.mode == 'body_restriction'):
+        if 'restrict_leg' in buttons and self.mode == 'body_restriction':
             # add restriction to current leg
             if self.leg is not None:
                 foot = self.res.feet[self.leg.leg_number]
-                foot.restriction_modifiere = 1.
-                print("%s" % foot.restriction_modifier)
-        elif buttons.get('report_stats', 0):
+                foot.restriction_modifier = buttons['restrict_leg']
+        if buttons.get('report_stats', 0):
             print(self.leg.loop_time_stats)
-        elif buttons.get('reset_stats', 0):
+        if buttons.get('reset_stats', 0):
             print("Resetting loop time stats")
             self.leg.loop_time_stats.reset()
 
