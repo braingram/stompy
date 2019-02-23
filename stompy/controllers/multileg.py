@@ -148,7 +148,7 @@ class MultiLeg(signaler.Signaler):
     def on_leg_xyz(self, xyz, leg_number):
         # find lowest 3 legs (most negative)
         height = numpy.mean(
-            sorted([self.legs[i].xyz['z'] for i in self.legs])[:3])
+            sorted([self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
         self.trigger('height', -height)
 
     def set_mode(self, mode):
