@@ -18,12 +18,28 @@ cmds = {
 
 button_names = {
     0: 'joy_button',
+    # 1: 'body_walk',
+    # 2: 'speed_height',
+    # 3: 'isolate_legs',
+    4: 'leg_mode',
+    # 5: 'aux_1',
+    # 6: 'aux_2',
+    # 7: 'leg_1',
+    # 8: 'leg_2',
+    # 9: 'leg_3',
+    # 10: 'leg_4',
+    # 11: 'leg_5',
+    # 12: 'leg_6',
 }
 
 axis_names = {
     0: 'joy_x',
     1: 'joy_y',
     2: 'joy_z',
+    # 3: 'speed',
+    # 4: 'height',
+    # 5: 'aux_1',
+    # 6: 'aux_2',
 }
 
 # joystick event name to stompy function mapping
@@ -32,6 +48,7 @@ axis_names = {
 default_mapping = {
     'buttons': {
         'joy_button': 'deadman',
+        'leg_mode': 'mode_inc',
         #'one_left': 'sub_mode',
         #'left': 'leg_index_dec',
         #'right': 'leg_index_inc',
