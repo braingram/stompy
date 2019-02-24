@@ -314,19 +314,22 @@ class FakeTeensy(LegController):
             self._last_update = t
 
 
-def print_message(msg):
-    print("TEENSY-DEBUG->%r" % msg)
-
-
 class Teensy(LegController):
     def __init__(self, port):
         self.port = port
-        self.com = pycomando.Comando(serial.Serial(self.port, 9600))
+        self._serial = serial.Serial(self.port, 9600)
+        # set rising edge of RTS to reset comando
+        self._serial.setRTS(0)
+        self._serial.flushInput()
+        self._serial.flushOutput()
+        self._serial.setRTS(1)
+        #time.sleep(0.5)
+        # start up comando
+        self.com = pycomando.Comando(self._serial)
         self.cmd = pycomando.protocols.command.CommandProtocol()
-        self.text = pycomando.protocols.TextProtocol()
+        self._text = pycomando.protocols.text.TextProtocol()
+
         self.com.register_protocol(0, self.cmd)
-        self.com.register_protocol(1, self.text)
-        self.text.receive_message = print_message
         # used for callbacks
         self.mgr = pycomando.protocols.command.EventManager(self.cmd, cmds)
         # easier for calling
@@ -335,8 +338,6 @@ class Teensy(LegController):
         logger.debug("%s Get leg number" % port)
         ln = self.mgr.blocking_trigger('leg_number')[0].value
         super(Teensy, self).__init__(ln)
-
-        self._text = pycomando.protocols.text.TextProtocol()
 
         def print_text(txt, leg_number=ln):
             print("DEBUG[%s]:%s" % (leg_number, txt))
