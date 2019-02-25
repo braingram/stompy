@@ -73,6 +73,7 @@ class MultiLeg(signaler.Signaler):
         self.leg = self.legs[self.leg_index]
         # if a foot gets within this distance of leg 0, throw an estop
         self.min_hip_distance = 25.0
+        self.prevent_leg_xy_when_loaded = True
         self.min_hip_override = False
         self.mode = 'body_move'
         self.speeds = {
@@ -85,6 +86,7 @@ class MultiLeg(signaler.Signaler):
         self.speed_scalar = 1.0
         self.speed_step = 0.05
         self.speed_scalar_range = (0.1, 2.0)
+        self.height = numpy.nan
         self.joy = joy
         if self.joy is not None:
             self.joy.on('buttons', self.on_buttons)
@@ -147,9 +149,10 @@ class MultiLeg(signaler.Signaler):
 
     def on_leg_xyz(self, xyz, leg_number):
         # find lowest 3 legs (most negative)
-        height = numpy.mean(
-            sorted([self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
-        self.trigger('height', -height)
+        self.height = -numpy.mean(
+            sorted([
+                self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
+        self.trigger('height', self.height)
 
     def set_mode(self, mode):
         if mode not in self.modes:
@@ -167,6 +170,13 @@ class MultiLeg(signaler.Signaler):
             for i in self.res.feet:
                 self.res.feet[i].state = 'stance'
             self.res.enable(None)
+            if (
+                    self.res.cfg.set_height_on_mode_select and
+                    numpy.isfinite(self.height) and
+                    (self.res.cfg.min_lower_height < -self.height) and
+                    (-self.height < self.res.cfg.max_lower_height)):
+                self.res.cfg.lower_height = -self.height
+                self.trigger('config_updated')
             if self.deadman:
                 self.set_target()
         elif self.mode == 'leg_pwm':
@@ -272,6 +282,7 @@ class MultiLeg(signaler.Signaler):
     def _set_speed_by_slider(self):
         self.speed_scalar = self.joy.axes.get('speed_axis', 0) / 255.
         self.set_speed(self.speed_scalar)
+        # TODO update ui
 
     def _set_height_by_slider(self):
         if 'height_axis' not in self.joy.axes:
@@ -284,6 +295,7 @@ class MultiLeg(signaler.Signaler):
             self.res.cfg.max_lower_height)
         return
         self.res.cfg.lower_height = h
+        self.trigger('config_updated')
 
     def on_axes(self, axes):
         # check if target vector has changed > some amount
@@ -300,16 +312,6 @@ class MultiLeg(signaler.Signaler):
 
     def set_target(self):
         # from joystick
-        #az = (
-        #    self.joy.axes.get('one_left', 0) -
-        #    self.joy.axes.get('two_left', 0))
-        #if abs(az) < thumb_db:
-        #    az = 0
-        #else:
-        #    if az > 0:
-        #        az -= thumb_db
-        #    else:
-        #        az += thumb_db
         xyz = []
         for axis in ('x', 'y', 'z'):
             jv = self.joy.axes.get(axis, thumb_mid) - thumb_mid
@@ -317,28 +319,6 @@ class MultiLeg(signaler.Signaler):
                 jv = 0
             jv = max(-1., min(1., jv / float(thumb_scale)))
             xyz.append(jv)
-        #lx = self.joy.axes.get('x0', thumb_mid) - thumb_mid
-        #ly = self.joy.axes.get('y0', thumb_mid) - thumb_mid
-        #rx = self.joy.axes.get('x1', thumb_mid) - thumb_mid
-        #ry = self.joy.axes.get('x2', thumb_mid) - thumb_mid
-        # TODO remove thumb_db from joystick?
-        #if abs(lx) < thumb_db:
-        #    lx = 0
-        #if abs(ly) < thumb_db:
-        #    ly = 0
-        #if abs(rx) < thumb_db:
-        #    rx = 0
-        #if abs(ry) < thumb_db:
-        #    ry = 0
-        #if ax == 0 and ay == 0 and az == 0:
-        #    return
-        #lx = max(-1., min(1., lx / float(thumb_scale)))
-        #ly = max(-1., min(1., -ly / float(thumb_scale)))
-        #az = max(-1., min(1., az / 255.))
-        #rx = max(-1., min(1., rx / float(thumb_scale)))
-        #ry = max(-1., min(1., -ry / float(thumb_scale)))
-        #xyz = (lx, ly, az)
-        #xyz = (lx, ly, ry)
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
@@ -359,6 +339,10 @@ class MultiLeg(signaler.Signaler):
             if self.leg is None:
                 return
             speed = self.speed_scalar * self.speeds['leg']
+            if (
+                    self.prevent_leg_xy_when_loaded and
+                    (self.leg.angles['calf'] > self.res.cfg.loaded_weight)):
+                xyz = [0., 0., xyz[2]]
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -367,6 +351,10 @@ class MultiLeg(signaler.Signaler):
             if self.leg is None:
                 return
             speed = self.speed_scalar * self.speeds['body']
+            if (
+                    self.prevent_leg_xy_when_loaded and
+                    (self.leg.angles['calf'] > self.res.cfg.loaded_weight)):
+                xyz = [0., 0., xyz[2]]
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,

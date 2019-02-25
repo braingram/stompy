@@ -917,6 +917,17 @@
              </item>
              <item>
               <property name="text">
+               <string>controller.prevent_leg_xy_when_loaded</string>
+              </property>
+              <property name="text">
+               <string>True</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>controller.res.cfg.eps</string>
               </property>
               <property name="text">
@@ -1042,6 +1053,39 @@
               </property>
               <property name="text">
                <string>-50</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.min_lower_height</string>
+              </property>
+              <property name="text">
+               <string>-70</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.max_lower_height</string>
+              </property>
+              <property name="text">
+               <string>-40</string>
+              </property>
+              <property name="flags">
+               <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>controller.res.cfg.set_height_on_mode_select</string>
+              </property>
+              <property name="text">
+               <string>True</string>
               </property>
               <property name="flags">
                <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>

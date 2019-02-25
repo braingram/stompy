@@ -25,6 +25,7 @@ class RestrictionConfig(signaler.Signaler):
         self.max_calf_angle = numpy.radians(30)
         self.lift_height = 8.0
         self.lower_height = -40.0
+        self.set_height_on_mode_select = True
         self.min_lower_height = -70
         self.max_lower_height = -40
         self.unloaded_weight = 600.
