@@ -59,6 +59,7 @@ class MultiLeg(signaler.Signaler):
         #'leg_calibration',
         #'leg_restriction',
         'body_move',
+        'sit_stand',
         #'body_position_legs',
         'body_restriction',
     ]
@@ -75,7 +76,7 @@ class MultiLeg(signaler.Signaler):
         self.min_hip_distance = 25.0
         self.prevent_leg_xy_when_loaded = True
         self.min_hip_override = False
-        self.mode = 'body_move'
+        self.mode = 'sit_stand'
         self.speeds = {
             'raw': 0.5,
             'sensor': 1200,
@@ -361,6 +362,16 @@ class MultiLeg(signaler.Signaler):
                 linear=xyz, speed=speed)
         elif self.mode == 'leg_calibration':
             pass
+        elif self.mode == 'sit_stand':
+            speed = self.speed_scalar * self.speeds['body']
+            xyz = [0, 0, xyz[2]]
+            plan = {
+                'mode': consts.PLAN_VELOCITY_MODE,
+                'frame': consts.PLAN_BODY_FRAME,
+                'linear': -numpy.array(xyz),
+                'speed': speed,
+            }
+            self.all_legs('send_plan', **plan)
         elif self.mode == 'body_move':
             if self.joy.buttons.get('sub_mode', 0) == 0:
                 speed = self.speed_scalar * self.speeds['body']
