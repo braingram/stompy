@@ -71,13 +71,30 @@ def program_teensies_by_type(teensy_types=None):
             print("No hex file found for %s" % (t, ))
             continue
         # program this teensy with this type
+        if t not in ts:
+            print("Found no teensies of type: %s" % t)
+            continue
         for teensy_info in ts[t]:
-            serial = teensy_info['serial']
-            print("Programming: %s with %s" % (serial, hex_fn))
+            s = teensy_info['serial']
+            print("Programming: %s with %s" % (s, hex_fn))
             teensyloader.program_teensy(
                 hex_fn, mcu="TEENSY32",
-                dev=serial, autoboot=True)
+                dev=s, autoboot=True)
     return
+
+
+def reset_teensies_by_type(teensy_types=None):
+    ts = find_teensies_by_type()
+    print("Found teensies: %s" % (ts, ))
+    if teensy_types is None:
+        teensy_types = ts.keys()
+    for t in teensy_types:
+        # program this teensy with this type
+        for teensy_info in ts[t]:
+            s = teensy_info['serial']
+            print("Resetting: [%s] %s" % (t, s))
+            teensyloader.reset_teensy(
+                dev=s, mcu="TEENSY32")
 
 
 class StatsMonitor(object):

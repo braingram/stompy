@@ -86,7 +86,14 @@ class BodyController(signaler.Signaler):
 class TeensyBody(BodyController):
     def __init__(self, port):
         self.port = port
-        self.com = pycomando.Comando(serial.Serial(self.port, 9600))
+        self._serial = serial.Serial(self.port, 9600)
+        # set rising edge of RTS to reset comando
+        self._serial.setRTS(0)
+        self._serial.flushInput()
+        self._serial.flushOutput()
+        self._serial.setRTS(1)
+        time.sleep(0.1)
+        self.com = pycomando.Comando(self._serial)
         self.cmd = pycomando.protocols.command.CommandProtocol()
         self.com.register_protocol(0, self.cmd)
         mgr = pycomando.protocols.command.EventManager(
