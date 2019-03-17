@@ -17,7 +17,7 @@ except ImportError:
 
 if has_qt5:
     from PyQt5 import (QtGui, QtCore, QtWidgets)
-    from PyQt4.QtWidgets import (
+    from PyQt5.QtWidgets import (
         QGestureEvent, QPinchGesture,
         QWidget, QApplication)
 else:

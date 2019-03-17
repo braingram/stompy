@@ -4,9 +4,24 @@ import sys
 import traceback
 
 import numpy
-from PyQt4 import QtCore, QtGui
 
-from . import base
+from . import nogl
+if nogl.has_qt5:
+    from PyQt5 import QtCore, QtGui
+    from . import base5 as base
+    from PyQt5.QtWidgets import (
+        QGestureEvent, QPinchGesture,
+        QWidget, QApplication, QMainWindow,
+        QAction, QInputDialog)
+else:
+    from PyQt4 import QtCore, QtGui
+    from . import base as base
+    from PyQt4.QtGui import (
+        QGestureEvent, QPinchGesture,
+        QWidget, QApplication, QMainWindow,
+        QAction, QInputDialog)
+
+
 from .. import body
 from .. import calibration
 from .. import consts
@@ -496,32 +511,32 @@ class TabManager(object):
 
 
 def load_ui(controller=None):
-    app = QtGui.QApplication(sys.argv)
-    MainWindow = QtGui.QMainWindow()
+    app = QApplication(sys.argv)
+    MainWindow = QMainWindow()
     ui = base.Ui_MainWindow()
     ui.setupUi(MainWindow)
     # setup menus
     ui._calibrationMenu_actions = []
-    a = QtGui.QAction("Save", ui.calibrationMenu)
+    a = QAction("Save", ui.calibrationMenu)
     a.triggered.connect(lambda a: calibration.save_calibrations())
     ui._calibrationMenu_actions.append(a)
     ui.calibrationMenu.addAction(a)
     if controller is not None:
-        a = QtGui.QAction("Zero calf", ui.calibrationMenu)
+        a = QAction("Zero calf", ui.calibrationMenu)
         a.triggered.connect(lambda a: controller.leg.compute_calf_zero())
         ui._calibrationMenu_actions.append(a)
         ui.calibrationMenu.addAction(a)
 
         ui._legsMenu_actions = []
         for leg in controller.legs:
-            a = QtGui.QAction(
+            a = QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
             a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
         ui._modesMenu_actions = []
         for mode in controller.modes:
-            a = QtGui.QAction(mode, ui.modesMenu)
+            a = QAction(mode, ui.modesMenu)
             a.triggered.connect(lambda a, m=mode: controller.set_mode(m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
@@ -565,21 +580,21 @@ def load_ui(controller=None):
         # when clicked show InputDialog (or have check mark)
         value = controller.param[name]
         if isinstance(value, bool):
-            a = QtGui.QAction(
+            a = QAction(
                 name, ui.configurationMenu, checkable=True, checked=value)
             a.triggered.connect(
                 lambda value, n=name: controller.param.set_param(n, value))
             controller.param.on(
                 name, lambda nv, action=a: action.setChecked(nv))
         else:
-            a = QtGui.QAction(name, ui.configurationMenu)
+            a = QAction(name, ui.configurationMenu)
 
             def prompt_for_value(value, n=name):
                 cv = controller.param[n]
                 if isinstance(cv, float):
-                    f = QtGui.QInputDialog.getDouble
+                    f = QInputDialog.getDouble
                 else:
-                    f = QtGui.QInputDialog.getInt
+                    f = QInputDialog.getInt
                 # TODO add meta
                 nv, ok = f(MainWindow, n, n, cv)
                 if ok:
