@@ -458,8 +458,9 @@ class LineChart(QtGui.QWidget):
                 QtCore.Qt.AlignRight, label)
             painter.restore()
 
+            denom = float(maxv - minv)
             ys = (
-                (1. - (vs - minv) / float(maxv - minv))
+                (1. - (vs - minv) / denom)
                 * (wh - margin * 2) + margin)
             painter.drawPolyline(
                 QtGui.QPolygonF([

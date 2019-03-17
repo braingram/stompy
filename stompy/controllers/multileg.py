@@ -24,9 +24,12 @@ import time
 import numpy
 
 #from . import calibrator
+from .. import body
 from .. import consts
+from .. import joystick
 from .. import leg
 from .. import log
+from .. import param
 from .. import restriction
 from .. import signaler
 
@@ -66,27 +69,30 @@ class MultiLeg(signaler.Signaler):
 
     def __init__(self, legs, joy, bodies):
         super(MultiLeg, self).__init__()
+        self.param = param.Param()
         self.legs = legs
         self.bodies = bodies
         #self.calibrator = calibrator.CalibrationRoutine()
-        self.res = restriction.body.Body(legs)
+        self.res = restriction.body.Body(legs, self.param)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
-        # if a foot gets within this distance of leg 0, throw an estop
-        self.min_hip_distance = 25.0
-        self.prevent_leg_xy_when_loaded = True
-        self.min_hip_override = False
+
         self.mode = 'sit_stand'
-        self.speeds = {
-            'raw': 0.5,
-            'sensor': 1200,
-            'leg': 3.0,
-            'body': 3.0,
-            'body_angular': 0.05,
-        }
-        self.speed_scalar = 1.0
-        self.speed_step = 0.05
-        self.speed_scalar_range = (0.1, 2.0)
+
+        # if a foot gets within this distance of leg 0, throw an estop
+        self.param['min_hip_distance'] = 25.0
+        self.param['prevent_leg_xy_when_loaded'] = True
+        self.param['min_hip_override'] = False
+        # TODO clean these up to use as few speeds as possible
+        self.param['speed.raw'] = 0.5
+        self.param['speed.sensor'] = 1200
+        self.param['speed.leg'] = 3.0
+        self.param['speed.body'] = 3.0
+        self.param['speed.body_angular'] = 0.05
+        self.param['speed.scalar'] = 1.0
+        self.param['speed.step'] = 0.05
+        self.param['speed.scalar.range'] = (0.1, 2.0)
+
         self.height = numpy.nan
         self.joy = joy
         if self.joy is not None:
@@ -104,42 +110,34 @@ class MultiLeg(signaler.Signaler):
 
         # check if this is the test leg in a box
         if len(self.legs) == 1 and 7 in self.legs:
-            self.speeds = {
-                'raw': 0.5,
-                'sensor': 4800,
-                'leg': 3.0,
-                'body': 3.0,
-                'body_angular': 0.05,
-            }
+            self.param['speed.sensor'] = 4800
 
         # check if all legs are simulated
         if all([
                 isinstance(self.legs[k], leg.teensy.FakeTeensy)
                 for k in self.legs]):
-            self.speeds['leg'] = 18
-            self.speeds['body'] = self.speeds['leg']
-            self.res.cfg.speeds.update({
-                'stance': 12,
-                'swing': 12,
-                'lift': 12,
-                'lower': 12,
-            })
+            self.param['speed.leg'] = 18
+            self.param['speed.body'] = self.param['speed.leg']
+            self.param['res.speed.stance'] = 12
+            self.param['res.speed.swing'] = 12
+            self.param['res.speed.lift'] = 12
+            self.param['res.speed.lower'] = 12
+
             self.set_mode('body_restriction')
-            self.res.cfg.max_feet_up = 1
-            self.res.cfg.speed_by_restriction = True
+            self.param['res.max_feet_up'] = 1
+            self.param['res.speed.by_restriction'] = True
 
     def set_speed(self, speed):
-        old_speed = self.speed_scalar
-        self.speed_scalar = max(
-            self.speed_scalar_range[0],
-            min(self.speed_scalar_range[1], speed))
-        if old_speed == self.speed_scalar:
+        old_speed = self.param['speed.scalar']
+        self.param['speed.scalar'] = max(
+            self.param['speed.scalar.range'][0],
+            min(self.param['speed.scalar.range'][1], speed))
+        if old_speed == self.param['speed.scalar']:
             return
-        log.info({"set_speed": self.speed_scalar})
-        self.trigger('speed', self.speed_scalar)
-        # TODO resend target?
+        log.info({"set_speed": self.param['speed.scalar']})
+        self.trigger('speed', self.param['speed.scalar'])
         if self.mode == 'body_restriction':
-            self.res.set_speed(self.speed_scalar)
+            self.res.set_target()
 
     def on_leg_estop(self, value, leg_number):
         self.trigger('estop', value)
@@ -172,11 +170,11 @@ class MultiLeg(signaler.Signaler):
                 self.res.feet[i].state = 'stance'
             self.res.enable(None)
             if (
-                    self.res.cfg.set_height_on_mode_select and
+                    self.param['res.set_height_on_mode_select'] and
                     numpy.isfinite(self.height) and
-                    (self.res.cfg.min_lower_height < -self.height) and
-                    (-self.height < self.res.cfg.max_lower_height)):
-                self.res.cfg.lower_height = -self.height
+                    (self.param['res.min_lower_height'] < -self.height) and
+                    (-self.height < self.param['res.max_lower_height'])):
+                self.param['res.lower_height'] = -self.height
                 self.trigger('config_updated')
             if self.deadman:
                 self.set_target()
@@ -235,11 +233,11 @@ class MultiLeg(signaler.Signaler):
             self.set_mode(self.modes[mi])
         if buttons.get('speed_inc', 0):
             # increase speed scalar
-            self.set_speed(self.speed_scalar + self.speed_step)
-            print("new speed: ", self.speed_scalar)
+            self.set_speed(
+                self.param['speed.scalar'] + self.param['speed.step'])
         if buttons.get('speed_dec', 0):
-            self.set_speed(self.speed_scalar - self.speed_step)
-            print("new speed: ", self.speed_scalar)
+            self.set_speed(
+                self.param['speed.scalar'] - self.param['speed.step'])
         if 'leg_index_inc' in buttons or 'leg_index_dec' in buttons:
             di = None
             if buttons.get('leg_index_dec', 0):
@@ -281,8 +279,8 @@ class MultiLeg(signaler.Signaler):
             self.leg.loop_time_stats.reset()
 
     def _set_speed_by_slider(self):
-        self.speed_scalar = self.joy.axes.get('speed_axis', 0) / 255.
-        self.set_speed(self.speed_scalar)
+        self.param['speed.scalar'] = self.joy.axes.get('speed_axis', 0) / 255.
+        self.set_speed(self.param['speed.scalar'])
         # TODO update ui
 
     def _set_height_by_slider(self):
@@ -291,11 +289,11 @@ class MultiLeg(signaler.Signaler):
         h = self.joy.axes['height_axis'] / 255.
         h = (
             h * (
-                self.res.cfg.min_lower_height -
-                self.res.cfg.max_lower_height) +
-            self.res.cfg.max_lower_height)
+                self.param['res.min_lower_height'] -
+                self.param['res.max_lower_height']) +
+            self.param['res.max_lower_height'])
         return
-        self.res.cfg.lower_height = h
+        self.param['res.lower_height'] = h
         self.trigger('config_updated')
 
     def on_axes(self, axes):
@@ -323,7 +321,7 @@ class MultiLeg(signaler.Signaler):
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
-            speed = self.speed_scalar * self.speeds['raw']
+            speed = self.param['speed.scalar'] * self.param['speed.raw']
             self.leg.set_pwm(
                 xyz[0] * speed,
                 xyz[1] * speed,
@@ -331,7 +329,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_sensor':
             if self.leg is None:
                 return
-            speed = self.speed_scalar * self.speeds['sensor']
+            speed = self.param['speed.scalar'] * self.param['speed.sensor']
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_SENSOR_FRAME,
@@ -339,10 +337,11 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_leg':
             if self.leg is None:
                 return
-            speed = self.speed_scalar * self.speeds['leg']
+            speed = self.param['speed.scalar'] * self.param['speed.leg']
             if (
-                    self.prevent_leg_xy_when_loaded and
-                    (self.leg.angles['calf'] > self.res.cfg.loaded_weight)):
+                    self.param['prevent_leg_xy_when_loaded'] and
+                    (self.leg.angles['calf'] >
+                        self.param['res.loaded_weight'])):
                 xyz = [0., 0., xyz[2]]
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
@@ -351,10 +350,11 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_body':
             if self.leg is None:
                 return
-            speed = self.speed_scalar * self.speeds['body']
+            speed = self.param['speed.scalar'] * self.param['speed.body']
             if (
-                    self.prevent_leg_xy_when_loaded and
-                    (self.leg.angles['calf'] > self.res.cfg.loaded_weight)):
+                    self.param['prevent_leg_xy_when_loaded'] and
+                    (self.leg.angles['calf'] >
+                        self.param['res.loaded_weight'])):
                 xyz = [0., 0., xyz[2]]
             self.leg.send_plan(
                 mode=consts.PLAN_VELOCITY_MODE,
@@ -363,7 +363,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_calibration':
             pass
         elif self.mode == 'sit_stand':
-            speed = self.speed_scalar * self.speeds['body']
+            speed = self.param['speed.scalar'] * self.param['speed.body']
             xyz = [0, 0, xyz[2]]
             plan = {
                 'mode': consts.PLAN_VELOCITY_MODE,
@@ -374,7 +374,7 @@ class MultiLeg(signaler.Signaler):
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_move':
             if self.joy.buttons.get('sub_mode', 0) == 0:
-                speed = self.speed_scalar * self.speeds['body']
+                speed = self.param['speed.scalar'] * self.param['speed.body']
                 plan = {
                     'mode': consts.PLAN_VELOCITY_MODE,
                     'frame': consts.PLAN_BODY_FRAME,
@@ -384,7 +384,9 @@ class MultiLeg(signaler.Signaler):
             else:
                 # swap x and y
                 xyz = [xyz[1], xyz[0], xyz[2]]
-                speed = self.speed_scalar * self.speeds['body_angular']
+                speed = (
+                    self.param['speed.scalar'] *
+                    self.param['speed.body_angular'])
                 plan = {
                     'mode': consts.PLAN_ARC_MODE,
                     'frame': consts.PLAN_BODY_FRAME,
@@ -437,15 +439,16 @@ class MultiLeg(signaler.Signaler):
             self.joy.update()
         self.all_legs('update')
         if self.mode in ('body_move', 'body_restriction'):
-            if self.min_hip_override:
+            if self.param['min_hip_override']:
                 # check if override should be turned off
                 disable_override = True
                 threshold = self.min_hip_distance * 1.5
+                threshold = self.param['min_hip_distance'] * 1.5
                 for l in self.legs:
                     if self.legs[l].xyz.get('x', 0) < threshold:
                         disable_override = False
                 if disable_override:
-                    self.min_hip_override = False
+                    self.param['min_hip_override'] = False
                     # TODO trigger ui update?
                     self.trigger('config_updated')
             else:
@@ -456,7 +459,9 @@ class MultiLeg(signaler.Signaler):
                 for l in self.legs:
                     if self.legs[l].estop == consts.ESTOP_OFF:  # enabled
                         all_stopped = False
-                    if self.legs[l].xyz.get('x', 0) < self.min_hip_distance:
+                    if (
+                            self.legs[l].xyz.get('x', 0) <
+                            self.param['min_hip_distance']):
                         # set estop
                         trigger_estop = True
                 # one of the legs is too close to the hip and not all
@@ -466,3 +471,38 @@ class MultiLeg(signaler.Signaler):
                     self.all_legs('set_estop', consts.ESTOP_DEFAULT)
         # update all body teensies
         [self.bodies[k].update() for k in self.bodies]
+
+
+def build():
+    if joystick.ps3.available():
+        joy = joystick.ps3.PS3Joystick()
+    elif joystick.steel.available():
+        joy = joystick.steel.SteelJoystick()
+        print("Connected to steel joystick")
+    else:
+        joy = None
+
+    legs = leg.teensy.connect_to_teensies()
+
+    if len(legs) == 0:
+        raise IOError("No teensies found")
+
+    lns = sorted(legs.keys())
+    print("Connected to legs: %s" % (lns, ))
+
+    bodies = body.connect_to_teensies()
+    print("Connected to bodies: %s" % (sorted(bodies.keys())))
+
+    return MultiLeg(legs, joy, bodies)
+
+
+def run(controller=None):
+    if controller is None:
+        controller = build()
+    print("Built controller, running in loop [Ctrl-C to exit]")
+    while True:
+        try:
+            controller.update()
+            time.sleep(0.01)
+        except KeyboardInterrupt:
+            break

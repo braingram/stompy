@@ -9,12 +9,40 @@ it will produce 'requests' for plans that will be 'accepted'
 
 import numpy
 
-from . import cfg
 from .. import consts
 from .. import kinematics
 from . import leg
 from .. import log
 from .. import signaler
+
+
+parameters = {
+    'speed.stance': 8,
+    'speed.lift': 8.,
+    'speed.lower': 8.,
+    'speed.swing': 12.,
+    'speed.angular': 0.05,
+    'speed.by_restriction': False,
+    'r_thresh': 0.3,
+    'r_max': 0.85,
+    'max_feet_up': 1,
+    'height_slop': 3.,
+    'dr_smooth': 0.5,
+    'eps': 1.0,
+    'calf_eps': 3.0,
+    'max_calf_angle': numpy.radians(30),
+    'lift_height': 8.0,
+    'lower_height': -40.0,
+    'set_height_on_mode_select': True,
+    'min_lower_height': -70,
+    'max_lower_height': -40,
+    'unloaded_weight': 600.,
+    'loaded_weight': 400.,
+    'swing_slop': 5.0,
+    'step_ratio': 0.4,
+    'min_hip_distance': 25.0,
+    'target_calf_angle': 0.0,
+}
 
 
 class BodyTarget(object):
@@ -30,13 +58,13 @@ class BodyTarget(object):
 
 
 class Body(signaler.Signaler):
-    def __init__(self, legs, **kwargs):
+    def __init__(self, legs, param):
         """Takes leg controllers"""
         super(Body, self).__init__()
         self.logger = log.make_logger('Res-Body')
-        self.cfg = cfg.RestrictionConfig()
+        self.param = param
+        self.param.set_param_from_dictionary('res', parameters)
         self.legs = legs
-        self.cfg.max_feet_up = 1
         self.feet = {}
         self.halted = False
         self.enabled = False
@@ -53,7 +81,7 @@ class Body(signaler.Signaler):
                 else:
                     self.neighbors[n] = [inds[i - 1], inds[i + 1]]
         for i in self.legs:
-            self.feet[i] = leg.Foot(self.legs[i], self.cfg, **kwargs)
+            self.feet[i] = leg.Foot(self.legs[i], self.param)
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
         self.disable()
@@ -64,13 +92,15 @@ class Body(signaler.Signaler):
         self.halted = False
         # TODO set foot states, target?
 
-    def set_speed(self, speed_scalar):
-        self.cfg.speed_scalar = speed_scalar
-        self.set_target(self.target)
+    def get_mode_speed(self, mode):
+        # TODO this is in two places, find a way to get it in 1
+        return (
+            self.param.get('res.speed.%s' % (mode, )) *
+            self.param.get('speed.scalar'))
 
     def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms
-        speed = mag * self.cfg.get_speed('stance') * consts.PLAN_TICK
+        speed = mag * self.get_mode_speed('stance') * consts.PLAN_TICK
         # find furthest foot
         x, y = bxy
         z = 0.
@@ -83,16 +113,18 @@ class Body(signaler.Signaler):
         mr = numpy.sqrt(mr)
         # TODO account for radius sign
         rspeed = speed / mr
-        if numpy.abs(rspeed) > self.cfg.get_speed('angular'):
+        if numpy.abs(rspeed) > self.get_mode_speed('angular'):
             print("Limiting because of angular speed")
-            rspeed = self.cfg.get_speed('angular') * numpy.sign(rspeed)
-        if self.cfg.speed_by_restriction:
+            rspeed = self.get_mode_speed('angular') * numpy.sign(rspeed)
+        if self.param['res.speed.by_restriction']:
             rs = self.get_speed_by_restriction()
         else:
             rs = 1.
         return rspeed * rs
 
-    def set_target(self, target, update_swing=True):
+    def set_target(self, target=None, update_swing=True):
+        if target is None:
+            target = self.target
         if not isinstance(target, BodyTarget):
             raise ValueError("Body.set_target requires BodyTarget")
         self.logger.debug({"set_target": (target, update_swing)})
@@ -140,14 +172,14 @@ class Body(signaler.Signaler):
         if not self.enabled:
             return
         # TODO only unhalt on low-passed r?
-        if self.halted and restriction['r'] < self.cfg.r_max:
+        if self.halted and restriction['r'] < self.param['res.r_max']:
             # unhalt?
             maxed = False
             for i in self.feet:
                 # make sure foot is not in swing (or lower?)
                 if self.feet[i].state in ('swing', 'lower'):
                     continue
-                if self.feet[i].restriction['r'] > self.cfg.r_max:
+                if self.feet[i].restriction['r'] > self.param['res.r_max']:
                     maxed = True
             if not maxed:
                 print("Unhalt")
@@ -162,12 +194,12 @@ class Body(signaler.Signaler):
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
                 return
-        if restriction['r'] > self.cfg.r_max and not self.halted:
+        if restriction['r'] > self.param['res.r_max'] and not self.halted:
             self.halt()
             return
         # TODO scale stance speed by restriction?
         if (
-                (restriction['r'] > self.cfg.r_thresh) and
+                (restriction['r'] > self.param['res.r_thresh']) and
                 self.feet[leg_number].state == 'stance'):
             #if self.halted:
             #    print(
@@ -196,7 +228,8 @@ class Body(signaler.Signaler):
                     continue
                 if (
                         self.feet[ln].restriction is not None and
-                        self.feet[ln].restriction['r'] > self.cfg.r_thresh):
+                        self.feet[ln].restriction['r'] >
+                        self.param['res.r_thresh']):
                     # found another restricted foot
                     #other_restricted.append(ln)
                     last_lift_times[ln] = self.feet[ln].last_lift_time
@@ -204,8 +237,8 @@ class Body(signaler.Signaler):
             #    print("last_lift_times: %s" % last_lift_times)
             #    print("ns_up: %s, n_up: %s" % (ns_up, n_up))
             #  yes? pick least recently lifted
-            if ns_up == 0 and n_up < self.cfg.max_feet_up:
-                n_can_lift = self.cfg.max_feet_up - n_up
+            if ns_up == 0 and n_up < self.param['res.max_feet_up']:
+                n_can_lift = self.param['res.max_feet_up'] - n_up
                 #if self.halted:
                 #    print("n_can_lift: %s" % n_can_lift)
                 #if self.halted:

@@ -12,6 +12,7 @@ firmware_dir = os.path.abspath(os.path.expanduser('~/.stompy/hex/'))
 teensy_serial_by_type = {
     'body': [
         '2513500',  # test teensy [no hw]
+        '2180710',  # test teensy [no hw]
         '2595730'
     ],
     'leg': [

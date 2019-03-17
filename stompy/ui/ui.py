@@ -6,11 +6,11 @@ import traceback
 import numpy
 from PyQt4 import QtCore, QtGui
 
+from . import base
 from .. import body
 from .. import calibration
 from .. import consts
 from .. import controllers
-from . import base
 from .. import joystick
 from .. import kinematics
 from .. import leg
@@ -410,39 +410,6 @@ class BodyTab(Tab):
                 lambda a, i=leg_number: self.on_res_state(a, i))
         #self.show_top_view()
         self.set_view('top')
-        self.controller.on('config_updated', self.set_config_values)
-        self.set_config_values()
-        ui.configTree.resizeColumnToContents(0)
-
-    def set_config_values(self, item=None):
-        if item is None:
-            item = self.ui.configTree.invisibleRootItem()
-        if item.columnCount() == 2:
-            parent = item.parent()
-            if parent is not None:
-                parent = str(parent.text(0))
-            attr, value = str(item.text(0)), str(item.text(1))
-            if parent is not None:
-                attr = '.'.join((parent, attr))
-            ts = attr.split('.')
-            obj = self.controller
-            assert ts[0] == 'controller'
-            ts = ts[1:]
-            while len(ts) > 1:
-                obj = getattr(obj, ts.pop(0))
-                if obj is None:
-                    break
-            if obj is not None:
-                attr = ts[0]
-                if isinstance(obj, dict):
-                    old_value = obj[attr]
-                else:
-                    old_value = getattr(obj, attr)
-                item.setText(1, str(old_value))
-        for i in range(item.childCount()):
-            self.set_config_values(item.child(i))
-        if item == self.ui.configTree.invisibleRootItem():
-            self.ui.configTree.resizeColumnToContents(0)
 
     def set_leg_index(self, index):
         if self.controller is None:
@@ -558,11 +525,11 @@ def load_ui(controller=None):
             a.triggered.connect(lambda a, m=mode: controller.set_mode(m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
-        ui.modeLabel.setText("Mode: %s" % controller.mode)
-        ui.legLabel.setText(
+        ui.modesMenu.setTitle("Mode: %s" % controller.mode)
+        ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.leg_index])
-        controller.on('mode', lambda m: ui.modeLabel.setText("Mode: %s" % m))
-        controller.on('set_leg', lambda m: ui.legLabel.setText(
+        controller.on('mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
+        controller.on('set_leg', lambda m: ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
         controller.on('estop', lambda v: (
             ui.estopLabel.setText(
@@ -590,51 +557,38 @@ def load_ui(controller=None):
             lambda r, p, y: ui.imuLabel.setText(
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
 
-    # update tree widget to show values from python
-    #set_values(ui.configTree.invisibleRootItem())
-    #tm.tabs['Body'].set_config_values()
-    #ui.configTree.resizeColumnToContents(0)
-    # listen for configTree changes
-
-    def item_changed(item):
-        # TODO recurse through parents
-        parent = item.parent()
-        if parent is not None:
-            parent = str(parent.text(0))
-        attr, value = str(item.text(0)), str(item.text(1))
-        print(parent, attr, value)
-        if parent is not None:
-            attr = '.'.join((parent, attr))
-        # get old value
-        ts = attr.split('.')
-        obj = controller
-        assert ts[0] == 'controller'
-        ts = ts[1:]
-        while len(ts) > 1:
-            obj = getattr(obj, ts.pop(0))
-        attr = ts[0]
-        if isinstance(obj, dict):
-            old_value = obj[attr]
+    # param changes
+    ui._configurationMenu_actions = []
+    for name in sorted(controller.param.list_params()):
+        # TODO make submenus
+        # add item to menu
+        # when clicked show InputDialog (or have check mark)
+        value = controller.param[name]
+        if isinstance(value, bool):
+            a = QtGui.QAction(
+                name, ui.configurationMenu, checkable=True, checked=value)
+            a.triggered.connect(
+                lambda value, n=name: controller.param.set_param(n, value))
+            controller.param.on(
+                name, lambda nv, action=a: action.setChecked(nv))
         else:
-            old_value = getattr(obj, attr)
-        print("Old value: %s" % old_value)
-        try:
-            value = type(old_value)(value)
-        except Exception as e:
-            print("Error converting value %s: %s [%s]" % (attr, value, e))
-            item.setText(1, str(old_value))
-            return
-        try:
-            if isinstance(obj, dict):
-                obj[attr] = value
-            else:
-                setattr(obj, attr, value)
-        except Exception as e:
-            print("Error setting config %s = %s [%s]" % (attr, value, e))
-            item.setText(1, str(old_value))
-            return
+            a = QtGui.QAction(name, ui.configurationMenu)
 
-    ui.configTree.itemChanged.connect(item_changed)
+            def prompt_for_value(value, n=name):
+                cv = controller.param[n]
+                if isinstance(cv, float):
+                    f = QtGui.QInputDialog.getDouble
+                else:
+                    f = QtGui.QInputDialog.getInt
+                # TODO add meta
+                nv, ok = f(MainWindow, n, n, cv)
+                if ok:
+                    controller.param[n] = nv
+            # TODO have title include value?
+            a.triggered.connect(prompt_for_value)
+        ui._configurationMenu_actions.append(a)
+        ui.configurationMenu.addAction(a)
+
     MainWindow.show()
     timer = None
     if controller is not None:
@@ -662,27 +616,7 @@ def run_ui(ui):
 
 
 def start():
-    if joystick.ps3.available():
-        joy = joystick.ps3.PS3Joystick()
-    elif joystick.steel.available():
-        joy = joystick.steel.SteelJoystick()
-        print("Connected to steel joystick")
-    else:
-        joy = None
-
-    legs = leg.teensy.connect_to_teensies()
-
-    if len(legs) == 0:
-        raise IOError("No teensies found")
-
-    lns = sorted(legs.keys())
-    print("Connected to legs: %s" % (lns, ))
-
-    bodies = body.connect_to_teensies()
-    print("Connected to bodies: %s" % (sorted(bodies.keys())))
-
-    c = controllers.multileg.MultiLeg(legs, joy, bodies)
-
+    c = controllers.multileg.build()
     run_ui(load_ui(c))
 
 
