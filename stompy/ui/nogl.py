@@ -6,7 +6,25 @@ import sys
 import time
 
 import numpy
-from PyQt4 import (QtGui, QtCore)
+
+has_qt5 = False
+
+try:
+    import PyQt5
+    has_qt5 = True
+except ImportError:
+    pass
+
+if has_qt5:
+    from PyQt5 import (QtGui, QtCore, QtWidgets)
+    from PyQt4.QtWidgets import (
+        QGestureEvent, QPinchGesture,
+        QWidget, QApplication)
+else:
+    from PyQt4 import (QtGui, QtCore)
+    from PyQt4.QtGui import (
+        QGestureEvent, QPinchGesture,
+        QWidget, QApplication)
 
 from .. import kinematics
 from .. import geometry
@@ -92,9 +110,13 @@ class OrthoProjection(object):
         return opts
 
 
-class LegDisplay(QtGui.QWidget):
+class LegDisplay(QWidget):
     def __init__(self, parent=None):
         super(LegDisplay, self).__init__(parent)
+        for g in (
+                QtCore.Qt.PanGesture, QtCore.Qt.SwipeGesture,
+                QtCore.Qt.PinchGesture):
+            self.grabGesture(g)
         self.projection = OrthoProjection()
         self.leg = Leg()
         self._pens = {
@@ -114,6 +136,23 @@ class LegDisplay(QtGui.QWidget):
         }
         self.paintsPerSecond = 10.
         self._last_update_time = time.time() - 1.
+
+    def event(self, event):
+        if isinstance(event, QGestureEvent):
+            return self.gestureEvent(event)
+        return super(LegDisplay, self).event(event)
+
+    def gestureEvent(self, event):
+        r = True
+        for g in event.gestures():
+            if isinstance(g, QPinchGesture):
+                print('PINCH', g.scaleFactor())
+                self.projection.scalar *= g.scaleFactor()
+                self.update()
+                r = False
+            else:
+                print(g)
+        return r
 
     def update(self, *args, **kwargs):
         t = time.time()
@@ -355,7 +394,7 @@ class ChartData(object):
         self.data = []
 
 
-class LineChart(QtGui.QWidget):
+class LineChart(QWidget):
     _pens = [
         QtGui.QPen(QtCore.Qt.blue, 1),
         QtGui.QPen(QtCore.Qt.green, 1),
@@ -471,8 +510,7 @@ class LineChart(QtGui.QWidget):
 
 
 def main():
-    app = QtGui.QApplication(sys.argv)
-    #w = QtGui.QWidget()
+    app = QApplication(sys.argv)
     w = LegDisplay()
     w.resize(300, 300)
     w.move(300, 300)
