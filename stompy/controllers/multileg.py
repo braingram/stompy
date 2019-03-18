@@ -90,8 +90,8 @@ class MultiLeg(signaler.Signaler):
         self.param['speed.body'] = 3.0
         self.param['speed.body_angular'] = 0.05
         self.param['speed.scalar'] = 1.0
+        self.param.set_meta('speed.scalar', min=0.1, max=2.0, decimals=1)
         self.param['speed.step'] = 0.05
-        self.param['speed.scalar.range'] = (0.1, 2.0)
 
         self.height = numpy.nan
         self.joy = joy
@@ -129,9 +129,9 @@ class MultiLeg(signaler.Signaler):
 
     def set_speed(self, speed):
         old_speed = self.param['speed.scalar']
+        meta = self.param.get_meta('speed.scalar')
         self.param['speed.scalar'] = max(
-            self.param['speed.scalar.range'][0],
-            min(self.param['speed.scalar.range'][1], speed))
+            meta['min'], min(meta['max'], speed))
         if old_speed == self.param['speed.scalar']:
             return
         log.info({"set_speed": self.param['speed.scalar']})

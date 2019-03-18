@@ -5,6 +5,39 @@ import cPickle as pickle
 from . import signaler
 
 
+class Meta(object):
+    """Meta information about a parameter (range, values, etc)"""
+    def __init__(self, **kwargs):
+        """kwargs are used for is_valid check and for QInputDialog"""
+        self.kwargs = kwargs
+
+    def __getitem__(self, name):
+        return self.kwargs[name]
+
+    def is_valid(self, value):
+        if isinstance(value, int):
+            # for int look for min, max, step
+            if value < self.kwargs.get('min', value):
+                return False
+            if value > self.kwargs.get('max', value):
+                return False
+            # TODO step?
+            return True
+        elif isinstance(value, float):
+            # for float look for min, max, decimals
+            if value < self.kwargs.get('min', value):
+                return False
+            if value > self.kwargs.get('max', value):
+                return False
+            # TODO decimal
+            return True
+        else:
+            pass
+        # for item?
+        # for string?
+        return True
+
+
 class Param(signaler.Signaler):
     def __init__(self, filename=None):
         super(Param, self).__init__()
@@ -38,7 +71,9 @@ class Param(signaler.Signaler):
 
     # TODO check type? range checking?
 
-    def set_meta(self, name, meta):
+    def set_meta(self, name, meta=None, **kwargs):
+        if meta is None:
+            meta = Meta(**kwargs)
         self._meta[name] = meta
 
     def get_meta(self, name, default=None):

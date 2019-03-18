@@ -12,6 +12,7 @@ import stompy
 
 ignore_event_types = [77, 12, 2, 3, 5]
 
+
 class Leg(object):
     def __init__(self, number=0):
         # joint angles

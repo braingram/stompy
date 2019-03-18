@@ -574,20 +574,42 @@ def load_ui(controller=None):
 
     # param changes
     ui._configurationMenu_actions = []
+    ui._configurationMenu_submenus = {}
     for name in sorted(controller.param.list_params()):
-        # TODO make submenus
+        # make submenus
+        menu = ui.configurationMenu
+        if '.' in name:
+            # split submenus from name (leaving out last key)
+            sn = name.split('.')
+            subname = sn[-1]
+            sn = sn[:-1]
+            sd = ui._configurationMenu_submenus
+            n = ""
+            for ssn in sn:
+                if len(n):
+                    n = '%s.%s' % (n, ssn)
+                else:
+                    n = ssn
+                if n not in sd:
+                    #print("adding menu %s to %s" % (ssn, menu))
+                    ui._configurationMenu_submenus[n] = menu.addMenu(ssn)
+                menu = ui._configurationMenu_submenus[n]
+            menu = ui._configurationMenu_submenus['.'.join(sn)]
+        else:
+            subname = name
+
         # add item to menu
         # when clicked show InputDialog (or have check mark)
         value = controller.param[name]
         if isinstance(value, bool):
             a = QAction(
-                name, ui.configurationMenu, checkable=True, checked=value)
+                subname, menu, checkable=True, checked=value)
             a.triggered.connect(
                 lambda value, n=name: controller.param.set_param(n, value))
             controller.param.on(
                 name, lambda nv, action=a: action.setChecked(nv))
         else:
-            a = QAction(name, ui.configurationMenu)
+            a = QAction('[%s] %s' % (value, subname), menu)
 
             def prompt_for_value(value, n=name):
                 cv = controller.param[n]
@@ -595,16 +617,32 @@ def load_ui(controller=None):
                     f = QInputDialog.getDouble
                 else:
                     f = QInputDialog.getInt
-                # TODO add meta
-                nv, ok = f(MainWindow, n, n, cv)
+                kwargs = controller.param.get_meta(n, {})
+                nv, ok = f(MainWindow, n, n, cv, **kwargs)
                 if ok:
                     controller.param[n] = nv
-            # TODO have title include value?
+
+            if isinstance(value, float):
+                fmt = '[%0.2f] %s'
+            elif isinstance(value, int):
+                fmt = '[%i] %s'
+            else:
+                fmt = '[%s] %s'
+
+            def set_text(nv, action=a, n=subname, fmt=fmt):
+                action.setText(fmt % (nv, n))
+
+            # have title include value?
+            controller.param.on(name, set_text)
+            #controller.param.on(
+            #    name, lambda nv, action=a, n=name: action.setText(
+            #        '[%s]%s' % (nv, n)))
             a.triggered.connect(prompt_for_value)
         ui._configurationMenu_actions.append(a)
-        ui.configurationMenu.addAction(a)
+        menu.addAction(a)
 
     MainWindow.show()
+    #MainWindow.showFullScreen()
     timer = None
     if controller is not None:
         timer = QtCore.QTimer()

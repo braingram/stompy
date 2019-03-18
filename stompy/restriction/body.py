@@ -44,6 +44,10 @@ parameters = {
     'target_calf_angle': 0.0,
 }
 
+parameter_metas = {
+    'max_feet_up': {'min': 0, 'max': 3, 'step': 1},
+}
+
 
 class BodyTarget(object):
     def __init__(self, rotation_center, speed, dz):
@@ -64,6 +68,9 @@ class Body(signaler.Signaler):
         self.logger = log.make_logger('Res-Body')
         self.param = param
         self.param.set_param_from_dictionary('res', parameters)
+        [
+            self.param.set_meta('res.%s' % (k, ), parameter_metas[k])
+            for k in parameter_metas]
         self.legs = legs
         self.feet = {}
         self.halted = False
@@ -95,8 +102,8 @@ class Body(signaler.Signaler):
     def get_mode_speed(self, mode):
         # TODO this is in two places, find a way to get it in 1
         return (
-            self.param.get('res.speed.%s' % (mode, )) *
-            self.param.get('speed.scalar'))
+            self.param['res.speed.%s' % (mode, )] *
+            self.param['speed.scalar'])
 
     def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms

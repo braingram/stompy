@@ -159,8 +159,8 @@ class Foot(signaler.Signaler):
     def get_mode_speed(self, mode):
         # TODO this is in two places, find a way to get it in 1
         return (
-            self.param.get('res.speed.%s' % (mode, )) *
-            self.param.get('speed.scalar'))
+            self.param['res.speed.%s' % (mode, )] *
+            self.param['speed.scalar'])
 
     def send_plan(self):
         #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
