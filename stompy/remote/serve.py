@@ -32,7 +32,7 @@ class ObjectHandler(WebSocketHandler):
     def on_message(self, message):
         # decode message, handle response
         msg = json.loads(message)
-        protocol.valid_message(msg)
+        protocol.validate_message(msg)
         if msg['type'] == 'get':
             result = reduce(getattr, msg['name'].split('.'), self.obj)
             return self.make_result(result, msg)
@@ -57,7 +57,10 @@ class ObjectHandler(WebSocketHandler):
             obj[msg['key']] = msg['value']
             return
         elif msg['type'] == 'signal':
-            obj = reduce(getattr, msg['name'].split('.'), self.obj)
+            if msg['name'] == '':
+                obj = self.obj
+            else:
+                obj = reduce(getattr, msg['name'].split('.'), self.obj)
             # 'method': 'on/remove_on'
             if msg['method'] == 'on':
                 # attach callback using id
@@ -96,7 +99,7 @@ def serve(addr=None, port=5000):
     cb.start()
     app = tornado.web.Application([
         (r"/", MainHandler),
-        (r"/websocket", WebSocketHandler),
+        (r"/controller", ObjectHandler, {'obj': c}),
     ])
 
     if addr is None:

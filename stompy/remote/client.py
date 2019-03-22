@@ -6,7 +6,66 @@ import socket
 
 import websocket
 
+from . import protocol
 from .. import signaler
+
+
+class RPCClient(signaler.Signaler):
+    def __init__(
+            self, name='controller', addr=None, port=5000,
+            receive_timeout=0.01):
+        super(RPCClient, self).__init__()
+        self._receive_timeout = receive_timeout
+
+        if addr is None:
+            addr = socket.gethostbyname(
+                socket.gethostname() + '.local')
+            addr = 'ws://%s:%s/%s' % (
+                socket.gethostbyname(
+                    socket.gethostname() + '.local'),
+                port, name)
+        self._ws = websocket.WebSocket()
+        self._ws.connect(addr)
+        self._message_id = 0
+
+    def send(self, **message):
+        if 'id' not in message:
+            message['id'] = self._message_id
+            self._message_id += 1
+        # validate message
+        protocol.validate_message(message)
+        if message['type'] == 'signal':
+            if message['method'] == 'on':
+                # register callback
+                self.on(message['id'], message['function'])
+            elif message['method'] == 'remove_on':
+                # unregister callback
+                self.remove_on(message['id'], message['function'])
+            del message['function']
+        self._ws.send(json.dumps(message))
+        if (
+                message['type'] in ('get', 'getitem', 'call') and
+                not message.get('nonblock', False)):
+            return self._recv_result(message['id'])
+
+    def _in_waiting(self):
+        return len(select.select(
+            [self._ws.sock, ], [], [], self._receive_timeout)[0])
+
+    def _recv_result(self, wait_for_id=None):
+        if self._in_waiting():
+            msg = json.loads(self._ws.recv())
+            # call any callbacks for this msg
+            self.trigger(msg['id'], *msg['result'])
+        else:
+            msg = None
+        if wait_for_id is not None:
+            if msg is None or not 'id' in msg:
+                return self._recv_result()
+            return msg['result']
+
+    def update(self):
+        self._recv_result()
 
 
 class RPC(signaler.Signaler):
