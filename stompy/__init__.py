@@ -7,10 +7,11 @@ from . import joystick
 from . import kinematics
 from . import leg
 from . import log
+from . import remote
 from . import signaler
 
 
 __all__ = [
     'body',
     'consts', 'controllers', 'joystick', 'kinematics', 'leg', 'log',
-    'signaler']
+    'remote', 'signaler']

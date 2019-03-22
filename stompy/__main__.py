@@ -9,6 +9,7 @@ import argparse
 import sys
 
 from . import controllers
+from . import remote
 from . import ui
 from . import utils
 
@@ -17,7 +18,8 @@ parser = argparse.ArgumentParser(
     description="go stompy go!")
 
 parser.add_argument(
-    "command", type=str, choices=["program", "ui", "reset", "backend"])
+    "command", type=str, choices=[
+        "program", "ui", "reset", "backend", "remote"])
 parser.add_argument("-t", "--type", type=str, default=None)
 #parser.add_argument("-s", "--serials", type=str, default=None)
 
@@ -46,3 +48,6 @@ elif args.command == 'reset':
 elif args.command == 'backend':
     print("Starting stompy backend")
     controllers.multileg.run()
+elif args.command == 'remote':
+    print("Starting stompy remote backend")
+    remote.serve.serve()
