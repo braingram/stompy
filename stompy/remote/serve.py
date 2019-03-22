@@ -46,6 +46,7 @@ class ObjectHandler(WebSocketHandler):
                 attr = self.obj
             return self.make_result(attr[msg['key']], msg)
         elif msg['type'] == 'call':
+            print(msg)
             if msg['name'] != '':
                 f = reduce(getattr, msg['name'].split('.'), self.obj)
             else:
