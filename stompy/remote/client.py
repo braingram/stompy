@@ -56,7 +56,8 @@ class RPCClient(signaler.Signaler):
         if self._in_waiting():
             msg = json.loads(self._ws.recv())
             # call any callbacks for this msg
-            self.trigger(msg['id'], *msg['result'])
+            if msg['id'] in self._callbacks:
+                self.trigger(msg['id'], *msg['result'])
         else:
             msg = None
         if wait_for_id is not None:

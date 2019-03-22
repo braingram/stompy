@@ -34,13 +34,22 @@ class ObjectHandler(WebSocketHandler):
         msg = json.loads(message)
         protocol.validate_message(msg)
         if msg['type'] == 'get':
-            result = reduce(getattr, msg['name'].split('.'), self.obj)
+            if msg['name'] != '':
+                result = reduce(getattr, msg['name'].split('.'), self.obj)
+            else:
+                result = self.obj
             return self.make_result(result, msg)
         elif msg['type'] == 'getitem':
-            attr = reduce(getattr, msg['name'].split('.'), self.obj)
+            if msg['name'] != '':
+                attr = reduce(getattr, msg['name'].split('.'), self.obj)
+            else:
+                attr = self.obj
             return self.make_result(attr[msg['key']], msg)
         elif msg['type'] == 'call':
-            f = reduce(getattr, msg['name'].split('.'), self.obj)
+            if msg['name'] != '':
+                f = reduce(getattr, msg['name'].split('.'), self.obj)
+            else:
+                f = self.obj
             return self.make_result(
                 f(*msg.get('args', []), **msg.get('kwargs', {})), msg)
         elif msg['type'] == 'set':
@@ -53,7 +62,10 @@ class ObjectHandler(WebSocketHandler):
             setattr(obj, attr_name, msg['value'])
             return
         elif msg['type'] == 'setitem':
-            obj = reduce(getattr, msg['name'].split('.'), self.obj)
+            if msg['name'] != '':
+                obj = reduce(getattr, msg['name'].split('.'), self.obj)
+            else:
+                obj = self.obj
             obj[msg['key']] = msg['value']
             return
         elif msg['type'] == 'signal':
