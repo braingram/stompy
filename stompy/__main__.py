@@ -19,7 +19,8 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "command", type=str, choices=[
-        "program", "ui", "reset", "backend", "remote"])
+        "program", "ui", "reset", "backend", "remote",
+        "remote_ui"])
 parser.add_argument("-t", "--type", type=str, default=None)
 #parser.add_argument("-s", "--serials", type=str, default=None)
 
@@ -51,3 +52,6 @@ elif args.command == 'backend':
 elif args.command == 'remote':
     print("Starting stompy remote backend")
     remote.serve.serve()
+elif args.command == 'remote_ui':
+    print("Starting stompy remote ui")
+    ui.remote.start()
