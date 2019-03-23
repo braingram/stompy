@@ -20,7 +20,7 @@ class MainHandler(tornado.web.RequestHandler):
 def resolve_obj(obj, name):
     pi = name.find('.')
     bi = name.find('[')
-    if pi != -1 and pi < bi:  # period present and first
+    if pi != -1 and (pi < bi or bi == -1):  # period present and first
         # split by '.'
         # use get
         h, _, t = name.partition('.')
@@ -36,6 +36,9 @@ def resolve_obj(obj, name):
                     h = float(h)
                 else:
                     h = int(h)
+            else:
+                # strip quotes
+                h = h[1:-1]
             if len(t) == 0:
                 return obj, h, False
             if t[0] == '.':
@@ -62,7 +65,10 @@ class ObjectHandler(WebSocketHandler):
         pass
 
     def on_close(self):
-        pass
+        # discconnect all callbacks for this websocket
+        for mid in self._cbs:
+            f, obj, n = self._cbs[mid]
+            obj.remove_on(n, f)
 
     def on_message(self, message):
         # decode message, handle response
@@ -82,10 +88,11 @@ class ObjectHandler(WebSocketHandler):
             else:
                 obj[key] = msg['value']
         elif msg['type'] == 'call':
-            if msg['name'] != '':
-                f = reduce(getattr, msg['name'].split('.'), self.obj)
+            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
+            if is_attr:
+                f = getattr(obj, key)
             else:
-                f = self.obj
+                f = obj[key]
             return self.make_result(
                 f(*msg.get('args', []), **msg.get('kwargs', {})), msg)
         elif msg['type'] == 'signal':
@@ -97,12 +104,6 @@ class ObjectHandler(WebSocketHandler):
                     obj = getattr(obj, key)
                 else:
                     obj = obj[key]
-            """
-            if msg['name'] == '':
-                obj = self.obj
-            else:
-                obj = reduce(getattr, msg['name'].split('.'), self.obj)
-            """
             # 'method': 'on/remove_on'
             if msg['method'] == 'on':
                 # attach callback using id
@@ -111,14 +112,12 @@ class ObjectHandler(WebSocketHandler):
                         return s.make_result(args, m)
                     return cb
                 f = w()
-                self._cbs[msg['id']] = f
+                self._cbs[msg['id']] = (f, obj, msg['key'])
                 obj.on(msg['key'], f)
             elif msg['method'] == 'remove_on':
                 # detach callback using remove_on
                 # ignore missing callback removals?
-                #if msg['id'] not in self._cbs:
-                #    return
-                f = self._cbs[msg['id']]
+                (f, _, _) = self._cbs[msg['id']]
                 obj.remove_on(msg['key'], f)
 
     def make_result(self, result, message):

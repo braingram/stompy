@@ -25,7 +25,6 @@ else:
 from .. import body
 from .. import calibration
 from .. import consts
-from .. import controllers
 from .. import joystick
 from .. import kinematics
 from .. import leg
@@ -39,7 +38,7 @@ class Tab(object):
         self.controller = controller
         if self.controller is not None:
             self._last_leg_index = None
-            self.controller.on('set_leg', self.set_leg_index)
+            self.controller.on('', 'set_leg', self.set_leg_index)
             self.set_leg_index(
                 self.controller.get('leg_index'))
 
@@ -78,12 +77,12 @@ class PIDTab(Tab):
             return
         return  # TODO
         if self._last_leg_index is not None:
-            self.controller.legs[self._last_leg_index].remove_on(
+            self.controller.remove_on(
+                'legs[%s]' % self._last_leg_index,
                 'pid', self.on_pid)
         super(PIDTab, self).set_leg_index(index)  # update index
         if index is not None:
-            self.controller.leg.on(
-                'pid', self.on_pid)
+            self.controller.on('leg', 'pid', self.on_pid)
 
     def add_pid_values(self, output, setpoint, error):
         self.chart.appendData('Setpoint', setpoint)
@@ -316,25 +315,22 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.legs[self._last_leg_index].remove_on(
-                'angles', self.on_angles)
-            self.controller.legs[self._last_leg_index].remove_on(
-                'xyz', self.on_xyz)
-            self.controller.legs[self._last_leg_index].remove_on(
-                'adc', self.on_adc)
-            self.controller.res.feet[self._last_leg_index].remove_on(
+            lo = 'legs[%i]' % self._last_leg_index
+            self.controller.remove_on(lo, 'angles', self.on_angles)
+            self.controller.remove_on(lo, 'xyz', self.on_xyz)
+            self.controller.remove_on(lo, 'adc', self.on_adc)
+            self.controller.remove_on(
+                'res.feet[%i]' % self._last_leg_index,
                 'restriction', self.on_restriction)
         super(LegTab, self).set_leg_index(index)  # update index
         self.display.leg.number = index
         self.display.update()
         if index is not None:
-            self.controller.leg.on(
-                'angles', self.on_angles)
-            self.controller.leg.on(
-                'xyz', self.on_xyz)
-            self.controller.leg.on(
-                'adc', self.on_adc)
-            self.controller.res.feet[self._last_leg_index].on(
+            self.controller.on('leg', 'angles', self.on_angles)
+            self.controller.on('leg', 'xyz', self.on_xyz)
+            self.controller.on('leg', 'adc', self.on_adc)
+            self.controller.on(
+                'res.feet[%i]' % index,
                 'restriction', self.on_restriction)
 
     def set_view(self, view):
@@ -413,21 +409,21 @@ class BodyTab(Tab):
         self.heightLabel = ui.heightLabel
 
         # attach to all legs
-        #self.controller.legs[i]
-        self.controller.on('height', self.on_height)
-        self.controller.on('mode', self.on_mode)
-        for leg_number in self.controller.legs:
+        self.controller.on('', 'height', self.on_height)
+        self.controller.on('', 'mode', self.on_mode)
+        for leg_number in self.controller.call('legs.keys'):
             self.display.add_leg(leg_number)
-            self.controller.legs[leg_number].on(
-                'angles', lambda a, i=leg_number: self.on_angles(a, i))
-            self.controller.legs[leg_number].on(
-                'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
-            self.controller.res.feet[leg_number].on(
-                'restriction',
+            lo = 'legs[%i]' % leg_number
+            self.controller.on(
+                lo, 'angles', lambda a, i=leg_number: self.on_angles(a, i))
+            self.controller.on(
+                lo, 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+            self.controller.on(
+                lo, 'restriction',
                 lambda a, i=leg_number: self.on_restriction(a, i))
-            self.controller.res.feet[leg_number].on(
-                'state',
-                lambda a, i=leg_number: self.on_res_state(a, i))
+            self.controller.on(
+                'res.feet[%i]' % leg_number,
+                'state', lambda a, i=leg_number: self.on_res_state(a, i))
         #self.show_top_view()
         self.set_view('top')
 
@@ -476,10 +472,12 @@ class BodyTab(Tab):
 
     def _update_support_legs(self):
         # draw polygon between supported legs
-        lns = sorted(self.controller.res.feet)
+        lns = sorted(self.controller.call('res.feet.keys'))
         support_legs = []
         for ln in lns:
-            if self.controller.res.feet[ln].state in ('stance', 'wait'):
+            if (
+                    self.controller.get('res.feet[%i].state' % ln)
+                    in ('stance', 'wait')):
                 support_legs.append(ln)
         if not len(support_legs):
             return
@@ -528,30 +526,34 @@ def load_ui(controller=None):
     ui.calibrationMenu.addAction(a)
     if controller is not None:
         a = QAction("Zero calf", ui.calibrationMenu)
-        a.triggered.connect(lambda a: controller.leg.compute_calf_zero())
+        a.triggered.connect(
+            lambda a: controller.call('leg.compute_calf_zero'))
         ui._calibrationMenu_actions.append(a)
         ui.calibrationMenu.addAction(a)
 
         ui._legsMenu_actions = []
-        for leg in controller.legs:
+        for leg in controller.call('legs.keys'):
             a = QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
-            a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
+            a.triggered.connect(
+                lambda a, i=leg: controller.call('set_leg', i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
         ui._modesMenu_actions = []
-        for mode in controller.modes:
+        for mode in controller.get('modes'):
             a = QAction(mode, ui.modesMenu)
-            a.triggered.connect(lambda a, m=mode: controller.set_mode(m))
+            a.triggered.connect(
+                lambda a, m=mode: controller.call('set_mode', m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
-        ui.modesMenu.setTitle("Mode: %s" % controller.mode)
+        ui.modesMenu.setTitle("Mode: %s" % controller.get('mode'))
         ui.legsMenu.setTitle(
-            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.leg_index])
-        controller.on('mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
-        controller.on('set_leg', lambda m: ui.legsMenu.setTitle(
+            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.get('leg_index')])
+        controller.on(
+            '', 'mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
+        controller.on('', 'set_leg', lambda m: ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
-        controller.on('estop', lambda v: (
+        controller.on('', 'estop', lambda v: (
             ui.estopLabel.setText(
                 "Estop: %s" % consts.ESTOP_BY_NUMBER[v]),
             ui.estopLabel.setStyleSheet((
@@ -564,15 +566,19 @@ def load_ui(controller=None):
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
 
-    if 'imu' in controller.bodies:
-        controller.bodies['imu'].on(
+    if 'imu' in controller.call('bodies.keys'):
+        controller.on(
+            'bodies["imu"]',
             'feed_pressure', lambda v: ui.pressureLabel.setText("PSI: %i" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'engine_rpm', lambda v: ui.rpmLabel.setText("RPM: %0.0f" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'feed_oil_temp',
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'heading',
             lambda r, p, y: ui.imuLabel.setText(
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
@@ -580,7 +586,7 @@ def load_ui(controller=None):
     # param changes
     ui._configurationMenu_actions = []
     ui._configurationMenu_submenus = {}
-    for name in sorted(controller.param.list_params()):
+    for name in sorted(controller.call('param.list_params')):
         # make submenus
         menu = ui.configurationMenu
         if '.' in name:
@@ -605,27 +611,29 @@ def load_ui(controller=None):
 
         # add item to menu
         # when clicked show InputDialog (or have check mark)
-        value = controller.param[name]
+        value = controller.get('param["%s"]' % name)
         if isinstance(value, bool):
             a = QAction(
                 subname, menu, checkable=True, checked=value)
             a.triggered.connect(
-                lambda value, n=name: controller.param.set_param(n, value))
-            controller.param.on(
-                name, lambda nv, action=a: action.setChecked(nv))
+                (
+                    lambda value, n=name:
+                    controller.call('param.set_param', n, value)))
+            controller.on(
+                'param', name, lambda nv, action=a: action.setChecked(nv))
         else:
             a = QAction('[%s] %s' % (value, subname), menu)
 
             def prompt_for_value(value, n=name):
-                cv = controller.param[n]
+                cv = controller.get('param["%s"]' % name)
                 if isinstance(cv, float):
                     f = QInputDialog.getDouble
                 else:
                     f = QInputDialog.getInt
-                kwargs = controller.param.get_meta(n, {})
+                kwargs = controller.call('param.get_meta', n, {})
                 nv, ok = f(MainWindow, n, n, cv, **kwargs)
                 if ok:
-                    controller.param[n] = nv
+                    controller.set('param["%s"]' % n, nv)
 
             if isinstance(value, float):
                 fmt = '[%0.2f] %s'
@@ -638,7 +646,8 @@ def load_ui(controller=None):
                 action.setText(fmt % (nv, n))
 
             # have title include value?
-            controller.param.on(name, set_text)
+            controller.on(
+                'param', name, set_text)
             #controller.param.on(
             #    name, lambda nv, action=a, n=name: action.setText(
             #        '[%s]%s' % (nv, n)))
