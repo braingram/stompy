@@ -17,6 +17,41 @@ class MainHandler(tornado.web.RequestHandler):
         return "hi"
 
 
+def resolve_obj(obj, name):
+    pi = name.find('.')
+    bi = name.find('[')
+    if pi != -1 and pi < bi:  # period present and first
+        # split by '.'
+        # use get
+        h, _, t = name.partition('.')
+        return resolve_obj(getattr(obj, h), t)
+    elif bi != -1:  # bracket present
+        if bi == 0:
+            # get substring in bracket
+            # use getitem
+            h, _, t = name[1:].partition(']')
+            # convert h type
+            if h[0] not in ('"', "'"):
+                if '.' in h:
+                    h = float(h)
+                else:
+                    h = int(h)
+            if len(t) == 0:
+                return obj, h, False
+            if t[0] == '.':
+                t = t[1:]
+            return resolve_obj(obj[h], t)
+        else:
+            # get substring before bracket
+            # use get
+            h, _, t = name.partition('[')
+            return resolve_obj(getattr(obj, h), '[' + t)
+    else:
+        # neither, done
+        # use get
+        return obj, name, True
+
+
 class ObjectHandler(WebSocketHandler):
     def initialize(self, obj=None, **kwargs):
         self.obj = obj
@@ -34,46 +69,40 @@ class ObjectHandler(WebSocketHandler):
         msg = json.loads(message)
         protocol.validate_message(msg)
         if msg['type'] == 'get':
-            if msg['name'] != '':
-                result = reduce(getattr, msg['name'].split('.'), self.obj)
+            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
+            if is_attr:
+                result = getattr(obj, key)
             else:
-                result = self.obj
+                result = obj[key]
             return self.make_result(result, msg)
-        elif msg['type'] == 'getitem':
-            if msg['name'] != '':
-                attr = reduce(getattr, msg['name'].split('.'), self.obj)
+        elif msg['type'] == 'set':
+            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
+            if is_attr:
+                setattr(obj, key, msg['value'])
             else:
-                attr = self.obj
-            return self.make_result(attr[msg['key']], msg)
+                obj[key] = msg['value']
         elif msg['type'] == 'call':
-            print(msg)
             if msg['name'] != '':
                 f = reduce(getattr, msg['name'].split('.'), self.obj)
             else:
                 f = self.obj
             return self.make_result(
                 f(*msg.get('args', []), **msg.get('kwargs', {})), msg)
-        elif msg['type'] == 'set':
-            if '.' in msg['name']:
-                obj_name, _, attr_name = msg['name'].rpartition('.')
-                obj = reduce(getattr, obj_name.split('.'), self.obj)
-            else:
-                obj = self.obj
-                attr_name = msg['name']
-            setattr(obj, attr_name, msg['value'])
-            return
-        elif msg['type'] == 'setitem':
-            if msg['name'] != '':
-                obj = reduce(getattr, msg['name'].split('.'), self.obj)
-            else:
-                obj = self.obj
-            obj[msg['key']] = msg['value']
-            return
         elif msg['type'] == 'signal':
             if msg['name'] == '':
                 obj = self.obj
             else:
+                obj, key, is_attr = resolve_obj(self.obj, msg['name'])
+                if is_attr:
+                    obj = getattr(obj, key)
+                else:
+                    obj = obj[key]
+            """
+            if msg['name'] == '':
+                obj = self.obj
+            else:
                 obj = reduce(getattr, msg['name'].split('.'), self.obj)
+            """
             # 'method': 'on/remove_on'
             if msg['method'] == 'on':
                 # attach callback using id

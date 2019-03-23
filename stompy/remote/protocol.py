@@ -25,14 +25,17 @@ signal: has name, has method, has key [trigger handled by call]
 
 inspect: has name, has method, possible args, possible kwargs
 
-
 result message is:
     'result': (always a list for signals)
     'id': (message id)
     return message contents?
+
+combine get/getitem set/setitem by looking for '['
+be careful about '.' inside []
 """
 
-TYPES = ['call', 'get', 'set', 'getitem', 'setitem', 'signal']
+#TYPES = ['call', 'get', 'set', 'getitem', 'setitem', 'signal']
+TYPES = ['call', 'get', 'set', 'signal']
 
 
 class RPCError(Exception):
@@ -52,7 +55,8 @@ def validate_message(message):
     _has_key(message, 'name')
     if message['type'] in ('set', 'setitem'):
         _has_key(message, 'value')
-    if message['type'] in ('getitem', 'setitem', 'signal'):
+    #if message['type'] in ('getitem', 'setitem', 'signal'):
+    if message['type'] in 'signal':
         _has_key(message, 'key')
     if message['type'] == 'signal':
         _has_key(message, 'method')

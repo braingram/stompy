@@ -3,6 +3,7 @@
 import json
 import select
 import socket
+import time
 
 import websocket
 
@@ -39,6 +40,15 @@ class RPCClient(signaler.Signaler):
                 # register callback
                 super(RPCClient, self).on(message['id'], message['function'])
             elif message['method'] == 'remove_on':
+                # lookup correct id for this function
+                mid = None
+                for mid in self._callbacks:
+                    if self._callbacks[mid] == message['function']:
+                        break
+                if mid is None:
+                    # non-existant callback, do nothing
+                    return
+                message['id'] = mid
                 # unregister callback
                 super(RPCClient, self).remove_on(
                     message['id'], message['function'])
@@ -66,19 +76,22 @@ class RPCClient(signaler.Signaler):
                 return self._recv_result()
             return msg['result']
 
-    def update(self):
-        self._recv_result()
+    def update(self, max_time=0.1):
+        t0 = time.time()
+        while time.time() - t0 < max_time and self._in_waiting():
+            self._recv_result()
 
-    def on(self, key, function, obj=None):
+    def on(self, obj, key, function):
         if obj is None:
             obj = ''
         self.send(
             type='signal', key=key, name=obj,
             function=function, method='on')
 
-    def remove_on(self, key, function, obj=None):
+    def remove_on(self, obj, key, function):
         if obj is None:
             obj = ''
+        # lookup callback id for this guy
         self.send(
             type='signal', key=key, name=obj,
             function=function, method='remove_on')
@@ -97,16 +110,6 @@ class RPCClient(signaler.Signaler):
 
     def set(self, name, value):
         return self.send(type='set', name=name, value=value)
-
-    def getitem(self, key, obj=None):
-        if obj is None:
-            obj = ''
-        return self.send(type='getitem', name=obj, key=key)
-
-    def setitem(self, key, value, obj=None):
-        if obj is None:
-            obj = ''
-        return self.send(type='setitem', name=obj, key=key, value=value)
 
     def call(self, name, *args, **kwargs):
         kw = {'type': 'call', 'name': name}
