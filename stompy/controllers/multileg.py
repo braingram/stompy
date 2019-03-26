@@ -153,6 +153,14 @@ class MultiLeg(signaler.Signaler):
                 self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
         self.trigger('height', self.height)
 
+    def stop(self):
+        log.info({"stop": []})
+        # release the deadman
+        if self.deadman:
+            self.all_legs('set_estop', 1)
+            self.all_legs('stop')
+            self.deadman = False
+
     def set_mode(self, mode):
         if mode not in self.modes:
             raise Exception("Invalid mode: %s" % (mode, ))

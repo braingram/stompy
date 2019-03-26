@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import json
+import os
 import socket
 
 import tornado.ioloop
@@ -11,10 +12,12 @@ from .. import controllers
 from . import protocol
 
 
+template_path = os.path.join(os.path.dirname(__file__), 'templates')
+
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        # self.render("index.html")
-        return "hi"
+        return self.render(os.path.join(template_path, "index.html"))
 
 
 def resolve_obj(obj, name):
@@ -138,10 +141,11 @@ def serve(addr=None, port=5000):
     # setup periodic update
     cb = tornado.ioloop.PeriodicCallback(c.update, 10.0)
     cb.start()
+    static_path = os.path.join(os.path.dirname(__file__), 'static')
     app = tornado.web.Application([
         (r"/", MainHandler),
         (r"/controller", ObjectHandler, {'obj': c}),
-    ])
+    ], static_path=static_path)
 
     if addr is None:
         addr = socket.gethostbyname(
