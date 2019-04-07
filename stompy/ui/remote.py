@@ -25,6 +25,7 @@ else:
 from .. import body
 from .. import calibration
 from .. import consts
+from .. import controllers
 from .. import joystick
 from .. import kinematics
 from .. import leg
@@ -681,9 +682,12 @@ def run_ui(ui):
     sys.exit(ui['app'].exec_())
 
 
-def start():
-    #c = controllers.multileg.build()
-    c = remote.client.RPCClient()
+def start(remote_ui=False):
+    if remote_ui:
+        c = remote.client.RPCClient()
+    else:
+        c = remote.agent.RPCAgent(controllers.multileg.build())
+        c.update = c.obj.update
     run_ui(load_ui(c))
 
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sat Mar 30 16:03:50 2019
+# Created: Sun Apr  7 09:19:12 2019
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -53,12 +53,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_7.setContentsMargins(0, 0, 0, -1)
         self.horizontalLayout_7.setObjectName(_fromUtf8("horizontalLayout_7"))
         self.legDisplay = LegDisplay(self.legTab)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.legDisplay.sizePolicy().hasHeightForWidth())
         self.legDisplay.setSizePolicy(sizePolicy)
         self.legDisplay.setMinimumSize(QtCore.QSize(0, 0))
+        self.legDisplay.setAutoFillBackground(False)
+        self.legDisplay.setStyleSheet(_fromUtf8(""))
         self.legDisplay.setObjectName(_fromUtf8("legDisplay"))
         self.horizontalLayout_7.addWidget(self.legDisplay)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
@@ -444,7 +446,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.configurationMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(2)
+        self.tabs.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
