@@ -151,6 +151,7 @@ class MultiLeg(signaler.Signaler):
         self.height = -numpy.mean(
             sorted([
                 self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
+        # TODO limit this to only every N updates?
         self.trigger('height', self.height)
 
     def stop(self):

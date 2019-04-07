@@ -43,7 +43,9 @@ class RPCClient(signaler.Signaler):
                 # lookup correct id for this function
                 mid = None
                 for mid in self._callbacks:
-                    if self._callbacks[mid] == message['function']:
+                    if (
+                            len(self._callbacks[mid]) and
+                            self._callbacks[mid][0] == message['function']):
                         break
                 if mid is None:
                     # non-existant callback, do nothing
@@ -96,7 +98,7 @@ class RPCClient(signaler.Signaler):
             type='signal', key=key, name=obj,
             function=function, method='remove_on')
 
-    def trigger(self, key, obj, *args, **kwargs):
+    def trigger(self, obj, key, *args, **kwargs):
         if obj is None:
             function = 'trigger'
         else:

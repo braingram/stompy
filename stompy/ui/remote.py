@@ -315,10 +315,9 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            lo = 'legs[%i]' % self._last_leg_index
-            self.controller.remove_on(lo, 'angles', self.on_angles)
-            self.controller.remove_on(lo, 'xyz', self.on_xyz)
-            self.controller.remove_on(lo, 'adc', self.on_adc)
+            self.controller.remove_on('leg', 'angles', self.on_angles)
+            self.controller.remove_on('leg', 'xyz', self.on_xyz)
+            self.controller.remove_on('leg', 'adc', self.on_adc)
             self.controller.remove_on(
                 'res.feet[%i]' % self._last_leg_index,
                 'restriction', self.on_restriction)

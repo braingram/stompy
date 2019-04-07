@@ -8,6 +8,7 @@ import tornado.ioloop
 import tornado.web
 from tornado.websocket import WebSocketHandler
 
+from . import agent
 from .. import controllers
 from . import protocol
 
@@ -20,47 +21,10 @@ class MainHandler(tornado.web.RequestHandler):
         return self.render(os.path.join(template_path, "index.html"))
 
 
-def resolve_obj(obj, name):
-    pi = name.find('.')
-    bi = name.find('[')
-    if pi != -1 and (pi < bi or bi == -1):  # period present and first
-        # split by '.'
-        # use get
-        h, _, t = name.partition('.')
-        return resolve_obj(getattr(obj, h), t)
-    elif bi != -1:  # bracket present
-        if bi == 0:
-            # get substring in bracket
-            # use getitem
-            h, _, t = name[1:].partition(']')
-            # convert h type
-            if h[0] not in ('"', "'"):
-                if '.' in h:
-                    h = float(h)
-                else:
-                    h = int(h)
-            else:
-                # strip quotes
-                h = h[1:-1]
-            if len(t) == 0:
-                return obj, h, False
-            if t[0] == '.':
-                t = t[1:]
-            return resolve_obj(obj[h], t)
-        else:
-            # get substring before bracket
-            # use get
-            h, _, t = name.partition('[')
-            return resolve_obj(getattr(obj, h), '[' + t)
-    else:
-        # neither, done
-        # use get
-        return obj, name, True
-
-
 class ObjectHandler(WebSocketHandler):
     def initialize(self, obj=None, **kwargs):
         self.obj = obj
+        self.agent = agent.RPCAgent(self.obj)
         self.loop = tornado.ioloop.IOLoop.instance()
         self._cbs = {}
 
@@ -70,39 +34,53 @@ class ObjectHandler(WebSocketHandler):
     def on_close(self):
         # discconnect all callbacks for this websocket
         for mid in self._cbs:
-            f, obj, n = self._cbs[mid]
-            obj.remove_on(n, f)
+            #f, obj, n = self._cbs[mid]
+            #obj.remove_on(n, f)
+            f, r = self._cbs[mid]
+            r(f)
+        self._cbs = {}
 
     def on_message(self, message):
         # decode message, handle response
         msg = json.loads(message)
         protocol.validate_message(msg)
         if msg['type'] == 'get':
-            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
-            if is_attr:
-                result = getattr(obj, key)
-            else:
-                result = obj[key]
-            return self.make_result(result, msg)
+            return self.make_result(self.agent.get(msg['name']), msg)
         elif msg['type'] == 'set':
-            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
-            if is_attr:
-                setattr(obj, key, msg['value'])
-            else:
-                obj[key] = msg['value']
+            self.agent.set(msg['name'], msg['value'])
         elif msg['type'] == 'call':
-            obj, key, is_attr = resolve_obj(self.obj, msg['name'])
-            if is_attr:
-                f = getattr(obj, key)
-            else:
-                f = obj[key]
             return self.make_result(
-                f(*msg.get('args', []), **msg.get('kwargs', {})), msg)
+                self.agent.call(
+                    msg['name'],
+                    *msg.get('args', []),
+                    **msg.get('kwargs', {})),
+                msg)
         elif msg['type'] == 'signal':
+            if msg['method'] == 'on':
+                def w(m=msg, s=self, a=self.agent):
+                    def cb(*args):
+                        return s.make_result(args, m)
+
+                    def rcb(f):
+                        a.remove_on(m['name'], m['key'], f)
+                    return cb, rcb
+                f, r = w()
+                self._cbs[msg['id']] = (f, r)
+                self.agent.on(msg['name'], msg['key'], f)
+            elif msg['method'] == 'remove_on':
+                # removal is only by message id
+                if msg['id'] not in self._cbs:
+                    return
+                (f, r) = self._cbs[msg['id']]
+                r(f)
+                del self._cbs[msg['id']]
+                #self.agent.remove_on(msg['name'], msg['key'], f)
+
+            """
             if msg['name'] == '':
                 obj = self.obj
             else:
-                obj, key, is_attr = resolve_obj(self.obj, msg['name'])
+                obj, key, is_attr = agent.resolve_obj(self.obj, msg['name'])
                 if is_attr:
                     obj = getattr(obj, key)
                 else:
@@ -122,6 +100,7 @@ class ObjectHandler(WebSocketHandler):
                 # ignore missing callback removals?
                 (f, _, _) = self._cbs[msg['id']]
                 obj.remove_on(msg['key'], f)
+            """
 
     def make_result(self, result, message):
         rmsg = {
