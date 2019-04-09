@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+import sys
+
 import numpy
 import pylab
 
 import stompy
 
-calf_angle_threshold = 26.
+calf_angle_threshold = 22.5
+if len(sys.argv) > 1:
+    calf_angle_threshold = float(sys.argv[1])
 
 
 def xyz_to_calf_angle(x, y, z):

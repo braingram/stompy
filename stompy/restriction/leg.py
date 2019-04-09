@@ -95,6 +95,7 @@ def calculate_translation_swing_target(
     if c0x <= l or c0x >= r:
         c0x, _ = kinematics.leg.xy_center_at_z(z)
     # TODO calculate optimal step
+    # TODO limit by max calf angle (or something less)
     m = max(abs(dx), abs(dy))
     if m < 0.00001:
         ndx, ndy = 0, 0

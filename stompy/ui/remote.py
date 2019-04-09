@@ -22,13 +22,9 @@ else:
         QAction, QInputDialog)
 
 
-from .. import body
 from .. import calibration
 from .. import consts
 from .. import controllers
-from .. import joystick
-from .. import kinematics
-from .. import leg
 from .. import log
 from .. import remote
 
@@ -76,21 +72,21 @@ class PIDTab(Tab):
     def set_leg_index(self, index):
         if self.controller is None:
             return
-        return  # TODO
         if self._last_leg_index is not None:
             self.controller.remove_on(
                 'legs[%s]' % self._last_leg_index,
                 'pid', self.on_pid)
         super(PIDTab, self).set_leg_index(index)  # update index
         if index is not None:
-            self.controller.on('leg', 'pid', self.on_pid)
+            self.controller.on(
+                'legs[%s]' % index,
+                'pid', self.on_pid)
 
     def add_pid_values(self, output, setpoint, error):
         self.chart.appendData('Setpoint', setpoint)
         self.chart.appendData('Output', output)
         self.chart.appendData('Error', error)
         self.chart.update()
-        return
 
     def on_pid(self, pid):
         txt = str(self.ui.pidJointCombo.currentText()).lower()
@@ -316,9 +312,10 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.remove_on('leg', 'angles', self.on_angles)
-            self.controller.remove_on('leg', 'xyz', self.on_xyz)
-            self.controller.remove_on('leg', 'adc', self.on_adc)
+            lo = 'legs[%i]' % self._last_leg_index
+            self.controller.remove_on(lo, 'angles', self.on_angles)
+            self.controller.remove_on(lo, 'xyz', self.on_xyz)
+            self.controller.remove_on(lo, 'adc', self.on_adc)
             self.controller.remove_on(
                 'res.feet[%i]' % self._last_leg_index,
                 'restriction', self.on_restriction)
@@ -326,9 +323,10 @@ class LegTab(Tab):
         self.display.leg.number = index
         self.display.update()
         if index is not None:
-            self.controller.on('leg', 'angles', self.on_angles)
-            self.controller.on('leg', 'xyz', self.on_xyz)
-            self.controller.on('leg', 'adc', self.on_adc)
+            lo = 'legs[%i]' % index
+            self.controller.on(lo, 'angles', self.on_angles)
+            self.controller.on(lo, 'xyz', self.on_xyz)
+            self.controller.on(lo, 'adc', self.on_adc)
             self.controller.on(
                 'res.feet[%i]' % index,
                 'restriction', self.on_restriction)
