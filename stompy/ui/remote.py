@@ -59,7 +59,6 @@ class PIDTab(Tab):
         self.chart.addSeries('Error')
 
         super(PIDTab, self).__init__(ui, controller)
-        # TODO make ui map
         self.joint_config = {}
 
         self.ui.pidJointCombo.currentIndexChanged.connect(
@@ -101,169 +100,134 @@ class PIDTab(Tab):
 
     def read_joint_config(self):
         # get current joint
-        txt = str(self.ui.pidJointCombo.currentText())
-        try:
-            index = ['Hip', 'Thigh', 'Knee'].index(txt)
-        except ValueError:
-            return
-        self.joint_config = {}
-        return self.joint_config  # TODO
-        if (
-                self.controller.leg is None or
-                not hasattr(self.controller.leg, 'mgr')):
-            return self.joint_config
-        # get all values for this joint
-        # P, I, D, min, max
-        r = self.controller.leg.mgr.blocking_trigger('pid_config', index)
-        self.joint_config['pid'] = {
-            'p': r[1].value,
-            'i': r[2].value,
-            'd': r[3].value,
-            'min': r[4].value,
-            'max': r[5].value,
-        }
-
-        # following error threshold
-        r = self.controller.leg.mgr.blocking_trigger(
-            'following_error_threshold', index)
-        #print("Following error: %s" % r[1].value)
-        self.joint_config['following_error_threshold'] = r[1].value
-
-        # pwm: extend/retract min/max
-        r = self.controller.leg.mgr.blocking_trigger('pwm_limits', index)
-        self.joint_config['pwm'] = {
-            'extend_min': r[1].value,
-            'extend_max': r[2].value,
-            'retract_min': r[3].value,
-            'retract_max': r[4].value,
-        }
-
-        # adc limits
-        r = self.controller.leg.mgr.blocking_trigger('adc_limits', index)
-        self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
-
-        # dither
-        r = self.controller.leg.mgr.blocking_trigger('dither')
-        self.joint_config['dither'] = {'time': r[0].value, 'amp': r[1].value}
-
-        # seed time
-        #r = self.controller.leg.mgr.blocking_trigger('pid_future_time')
-        #self.joint_config['future_time'] = r[0].value
+        txt = str(self.ui.pidJointCombo.currentText()).lower()
+        self.joint_config = self.controller.call(
+            'leg.pid_joint_config', txt)
 
         # set ui elements by joint_config
-        self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
-        self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
-        self.ui.pidDSpin.setValue(self.joint_config['pid']['d'])
-        self.ui.pidMinSpin.setValue(self.joint_config['pid']['min'])
-        self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
-        self.ui.extendMinSpin.setValue(self.joint_config['pwm']['extend_min'])
-        self.ui.extendMaxSpin.setValue(self.joint_config['pwm']['extend_max'])
-        self.ui.pidErrorThresholdSpin.setValue(
-            self.joint_config['following_error_threshold'])
-        self.ui.retractMinSpin.setValue(
-            self.joint_config['pwm']['retract_min'])
-        self.ui.retractMaxSpin.setValue(
-            self.joint_config['pwm']['retract_max'])
-        self.ui.adcLimitMinSpin.setValue(self.joint_config['adc']['min'])
-        self.ui.adcLimitMaxSpin.setValue(self.joint_config['adc']['max'])
-        self.ui.ditherTimeSpin.setValue(self.joint_config['dither']['time'])
-        self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
-        #self.ui.seedFutureSpin.setValue(self.joint_config['future_time'])
-
-    def commit_values(self):
-        return  # TODO
-        if (
-                self.controller.leg is None or
-                not hasattr(self.controller.leg, 'mgr')):
-            return
-        # compare to joint config
-        # set ui elements by joint_config
-        values = {
-            'pid': {}, 'pwm': {}, 'adc': {}, 'dither': {}}
-        values['pid']['p'] = self.ui.pidPSpin.value()
-        values['pid']['i'] = self.ui.pidISpin.value()
-        values['pid']['d'] = self.ui.pidDSpin.value()
-        values['pid']['min'] = self.ui.pidMinSpin.value()
-        values['pid']['max'] = self.ui.pidMaxSpin.value()
-        values['following_error_threshold'] = \
-            self.ui.pidErrorThresholdSpin.value()
-        values['pwm']['extend_min'] = self.ui.extendMinSpin.value()
-        values['pwm']['extend_max'] = self.ui.extendMaxSpin.value()
-        values['pwm']['retract_min'] = self.ui.retractMinSpin.value()
-        values['pwm']['retract_max'] = self.ui.retractMaxSpin.value()
-        values['adc']['min'] = self.ui.adcLimitMinSpin.value()
-        values['adc']['max'] = self.ui.adcLimitMaxSpin.value()
-        values['dither']['time'] = self.ui.ditherTimeSpin.value()
-        values['dither']['amp'] = self.ui.ditherAmpSpin.value()
-        #values['future_time'] = self.ui.seedFutureSpin.value()
-
-        txt = str(self.ui.pidJointCombo.currentText())
-        try:
-            index = ['Hip', 'Thigh', 'Knee'].index(txt)
-        except ValueError:
-            return
-
-        v = values['pid']
-        j = self.joint_config['pid']
-        if (
-                v['p'] != j['p'] or v['i'] != j['i'] or v['d'] != j['i']):
-            args = (
-                index,
-                values['pid']['p'], values['pid']['i'], values['pid']['d'],
-                values['pid']['min'], values['pid']['max'])
-            # print("pid_config", args)
-            log.info({'pid_config': args})
-            self.controller.leg.mgr.trigger('pid_config', *args)
-
-        v = values['following_error_threshold']
-        j = self.joint_config['following_error_threshold']
-        if (v != j):
+        if 'pid' in self.joint_config:
+            if 'p' in self.joint_config['pid']:
+                self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
+            if 'i' in self.joint_config['pid']:
+                self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
+            if 'd' in self.joint_config['pid']:
+                self.ui.pidDSpin.setValue(self.joint_config['pid']['d'])
+            if 'min' in self.joint_config['pid']:
+                self.ui.pidMinSpin.setValue(self.joint_config['pid']['min'])
+            if 'max' in self.joint_config['pid']:
+                self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
+        if 'pwm' in self.joint_config:
+            if 'extend_min' in self.joint_config['pwm']:
+                self.ui.extendMinSpin.setValue(
+                    self.joint_config['pwm']['extend_min'])
+            if 'extend_max' in self.joint_config['pwm']:
+                self.ui.extendMaxSpin.setValue(
+                    self.joint_config['pwm']['extend_max'])
+            if 'retract_min' in self.joint_config['pwm']:
+                self.ui.retractMinSpin.setValue(
+                    self.joint_config['pwm']['retract_min'])
+            if 'retract_max' in self.joint_config['pwm']:
+                self.ui.retractMaxSpin.setValue(
+                    self.joint_config['pwm']['retract_max'])
+        if 'following_error_threshold' in self.joint_config:
             self.ui.pidErrorThresholdSpin.setValue(
                 self.joint_config['following_error_threshold'])
-            args = (index, float(v))
-            log.info({'following_error_threshold': args})
-            self.controller.leg.mgr.trigger(
-                'following_error_threshold', *args)
+        if 'adc' in self.joint_config:
+            if 'min' in self.joint_config['adc']:
+                self.ui.adcLimitMinSpin.setValue(
+                    self.joint_config['adc']['min'])
+            if 'max' in self.joint_config['adc']:
+                self.ui.adcLimitMaxSpin.setValue(
+                    self.joint_config['adc']['max'])
+        if 'dither' in self.joint_config:
+            if 'time' in self.joint_config['dither']:
+                self.ui.ditherTimeSpin.setValue(
+                    self.joint_config['dither']['time'])
+            if 'amp' in self.joint_config['dither']:
+                self.ui.ditherAmpSpin.setValue(
+                    self.joint_config['dither']['amp'])
 
-        v = values['pwm']
-        j = self.joint_config['pwm']
-        if (
-                v['extend_min'] != j['extend_min'] or
-                v['extend_max'] != j['extend_max'] or
-                v['retract_min'] != j['retract_min'] or
-                v['retract_max'] != j['retract_max']):
-            args = (
-                index,
-                int(values['pwm']['extend_min']),
-                int(values['pwm']['extend_max']),
-                int(values['pwm']['retract_min']),
-                int(values['pwm']['retract_max']))
-            # print("pwm_limits:", args)
-            log.info({'pwm_limits': args})
-            self.controller.leg.mgr.trigger('pwm_limits', *args)
-        v = values['adc']
-        j = self.joint_config['adc']
-        if (v['min'] != j['min'] or v['max'] != j['max']):
-            args = (index, values['adc']['min'], values['adc']['max'])
-            # print("adc_limits:", args)
-            log.info({'adc_limits': args})
-            self.controller.leg.mgr.trigger('adc_limits', *args)
-        v = values['dither']
-        #j = self.joint_config['dither']
-        if (v['time'] != j['time'] or v['amp'] != j['amp']):
-            args = (
-                #index, int(values['dither']['time']),
-                int(values['dither']['time']),
-                int(values['dither']['amp']))
-            # print("dither:", args)
-            log.info({'dither': args})
-            self.controller.leg.mgr.trigger('dither', *args)
-        #v = values['future_time']
-        #j = self.joint_config['future_time']
-        #if (v != j):
-        #    args = (int(v), )
-        #    log.info({'pid_future_time': args})
-        #    self.controller.leg.mgr.trigger('pid_future_time', *args)
+    def commit_values(self):
+        # compare ui to joint config
+        txt = str(self.ui.pidJointCombo.currentText()).lower()
+
+        if txt not in consts.JOINT_INDEX_BY_NAME:
+            return {}
+        index = consts.JOINT_INDEX_BY_NAME[txt]
+
+        settings = []
+        # compare self.joint_config to values make settings
+        if 'pid' in self.joint_config:
+            j = self.joint_config['pid']
+            v = {
+                'p': self.ui.pidPSpin.value(),
+                'i': self.ui.pidISpin.value(),
+                'd': self.ui.pidDSpin.value(),
+                'min': self.ui.pidMinSpin.value(),
+                'max': self.ui.pidMaxSpin.value(),
+            }
+
+            if (
+                    v['p'] != j['p'] or
+                    v['i'] != j['i'] or
+                    v['d'] != j['d'] or
+                    v['min'] != j['min'] or
+                    v['max'] != j['max']):
+                settings.append((
+                    'pid_config',
+                    (index, v['p'], v['i'], v['d'], v['min'], v['max'])))
+
+        if 'following_error_threshold' in self.joint_config:
+            v = self.ui.pidErrorThresholdSpin.value()
+            j = self.joint_config['following_error_threshold']
+            if (v != j):
+                settings.append((
+                    'following_error_threshold', (index, float(v))))
+
+        if 'pwm' in self.joint_config:
+            j = self.joint_config['pwm']
+            v = {
+                'extend_min': self.ui.extendMinSpin.value(),
+                'extend_max': self.ui.extendMaxSpin.value(),
+                'retract_min': self.ui.retractMinSpin.value(),
+                'retract_max': self.ui.retractMaxSpin.value(),
+            }
+            if (
+                    v['extend_min'] != j['extend_min'] or
+                    v['extend_max'] != j['extend_max'] or
+                    v['retract_min'] != j['retract_min'] or
+                    v['retract_max'] != j['retract_max']):
+                settings.append((
+                    'pwm_limits',
+                    (index,
+                    int(v['extend_min']),
+                    int(v['extend_max']),
+                    int(v['retract_min']),
+                    int(v['retract_max']))))
+
+        if 'adc' in self.joint_config:
+            j = self.joint_config['adc']
+            v = {
+                'min': self.ui.adcLimitMinSpin.value(),
+                'max': self.ui.adcLimitMaxSpin.value(),
+            }
+            if (v['min'] != j['min'] or v['max'] != j['max']):
+                settings.append((
+                    'adc_limits',
+                    (index, v['min'], v['max'])))
+
+        if 'dither' in self.joint_config:
+            j = self.joint_config['dither']
+            v = {
+                'time': self.ui.ditherTimeSpin.value(),
+                'amp': self.ui.ditherAmpSpin.value(),
+            }
+            if (v['time'] != j['time'] or v['amp'] != j['amp']):
+                settings.append((
+                    'dither',
+                    (int(v['time']), int(v['amp']))))
+
+        self.controller.call('leg.configure', settings)
         self.read_joint_config()
 
     def clear_pid_values(self):

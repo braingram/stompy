@@ -109,6 +109,13 @@ class LegController(signaler.Signaler):
         """Send stop plan"""
         self.send_plan(plans.stop())
 
+    def pid_joint_config(self, joint_index):
+        return {}
+
+    def configure(self, settings):
+        """takes a list of commands of form (name, (args))"""
+        return
+
 
 class FakeTeensy(LegController):
     def __init__(self, leg_number):
@@ -386,6 +393,51 @@ class Teensy(LegController):
 
         # request current calibration values
         self.calibrators['calf'].attach_manager(self.mgr)
+
+    def pid_joint_config(self, joint_index):
+        if joint_index in consts.JOINT_INDEX_BY_NAME:
+            joint_index = consts.JOINT_INDEX_BY_NAME[joint_index]
+        if joint_index not in consts.JOINT_NAME_BY_INDEX:
+            return {}
+        joint_config = {}
+        # get pid_config
+        r = self.mgr.blocking_trigger('pid_config', joint_index)
+        joint_config['pid'] = {
+            'p': r[1].value,
+            'i': r[2].value,
+            'd': r[3].value,
+            'min': r[4].value,
+            'max': r[5].value,
+        }
+        # following error threshold
+        r = self.mgr.blocking_trigger(
+            'following_error_threshold', joint_index)
+        joint_config['following_error_threshold'] = r[1].value
+
+        # pwm: extend/retract min/max
+        r = self.mgr.blocking_trigger('pwm_limits', joint_index)
+        joint_config['pwm'] = {
+            'extend_min': r[1].value,
+            'extend_max': r[2].value,
+            'retract_min': r[3].value,
+            'retract_max': r[4].value,
+        }
+
+        # adc limits
+        r = self.mgr.blocking_trigger('adc_limits', joint_index)
+        joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
+
+        # dither
+        r = self.mgr.blocking_trigger('dither')
+        joint_config['dither'] = {'time': r[0].value, 'amp': r[1].value}
+        return joint_config
+
+    def configure(self, settings):
+        """takes a list of commands of form (name, (args))"""
+        self.log.debug({'configure': settings})
+        for setting in settings:
+            cmd, args = setting
+            self.mgr.trigger(cmd, *args)
 
     def merge_calf_calibration(self):
         # merge into setup calibration
