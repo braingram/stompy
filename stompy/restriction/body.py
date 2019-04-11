@@ -45,7 +45,7 @@ parameters = {
 }
 
 parameter_metas = {
-    'max_feet_up': {'min': 0, 'max': 3, 'step': 1},
+    'max_feet_up': {'min': 0, 'max': 3},
 }
 
 

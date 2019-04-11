@@ -246,7 +246,8 @@ def limits_at_z_3d(z, leg_number, n_slices=11, wrap=True):
     return pts
 
 
-def limit_intersections(c, z, leg_number, min_hip_distance=None):
+def limit_intersections(
+        c, z, leg_number, min_hip_distance=None, max_calf_angle=None):
     # get 'left' [closest to hip] and 'right' circles
     # get hip limits (sets +-y angle)
     # TODO account for z translation
@@ -254,6 +255,11 @@ def limit_intersections(c, z, leg_number, min_hip_distance=None):
     # if l is too close to hip, extend it out
     if min_hip_distance is not None:
         l = max(l, min_hip_distance)
+    if max_calf_angle is not None:
+        rcalf = x_with_calf_angle(z, max_calf_angle)
+        if rcalf < r:
+            print("limiting r by calf: %s, %s" % (rcalf, r))
+            r = rcalf
     lc = {'center': (0, 0), 'radius': l}
     rc = {'center': (0, 0), 'radius': r}
     # intersection with hip lines

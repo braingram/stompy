@@ -63,7 +63,8 @@ def swing_position_from_intersections(tc, rspeed, c0, ipts, step_ratio):
 
 def calculate_swing_target(
         tx, ty, z, leg_number, rspeed, step_ratio,
-        min_hip_distance=None, target_calf_angle=0):
+        min_hip_distance=None, target_calf_angle=0,
+        max_calf_angle=None):
     # get x with vertical calf
     # vertical calf doesn't work with z > -19 or z < -75,
     # I don't think we can walk with
@@ -81,7 +82,9 @@ def calculate_swing_target(
         'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - 0.) ** 2.),
     }
     ipts = kinematics.leg.limit_intersections(
-        tc, z, leg_number, min_hip_distance=min_hip_distance)
+        tc, z, leg_number,
+        min_hip_distance=min_hip_distance,
+        max_calf_angle=max_calf_angle)
     sp = swing_position_from_intersections(
         [tx, ty], rspeed, [c0x, 0], ipts, step_ratio)
     return sp
@@ -89,8 +92,13 @@ def calculate_swing_target(
 
 def calculate_translation_swing_target(
         dx, dy, z, leg_number, rspeed, step_ratio,
-        min_hip_distance=None, target_calf_angle=0):
+        min_hip_distance=None, target_calf_angle=0,
+        max_calf_angle=None):
     l, r = kinematics.leg.limits_at_z_2d(z)
+    if max_calf_angle is not None:
+        rcalf = kinematics.leg.x_with_calf_angle(z, max_calf_angle)
+        if rcalf < r:
+            r = rcalf
     c0x = kinematics.leg.x_with_calf_angle(z, target_calf_angle)
     if c0x <= l or c0x >= r:
         c0x, _ = kinematics.leg.xy_center_at_z(z)
@@ -192,21 +200,24 @@ class Foot(signaler.Signaler):
                     0, 0, self.param['res.lower_height'],
                     self.leg.leg_number, None, 0.,
                     min_hip_distance=self.param['res.min_hip_distance'],
-                    target_calf_angle=self.param['res.target_calf_angle'])
+                    target_calf_angle=self.param['res.target_calf_angle'],
+                    max_calf_angle=self.param['res.max_calf_angle'])
             elif len(self.swing_info) == 3:  # rotation
                 rx, ry, rspeed = self.swing_info
                 sp = calculate_swing_target(
                     rx, ry, self.param['res.lower_height'],
                     self.leg.leg_number, rspeed, self.param['res.step_ratio'],
                     min_hip_distance=self.param['res.min_hip_distance'],
-                    target_calf_angle=self.param['res.target_calf_angle'])
+                    target_calf_angle=self.param['res.target_calf_angle'],
+                    max_calf_angle=self.param['res.max_calf_angle'])
             else:  # translation
                 lx, ly = self.swing_info
                 sp = calculate_translation_swing_target(
                     lx, ly, self.param['res.lower_height'],
                     self.leg.leg_number, None, self.param['res.step_ratio'],
                     min_hip_distance=self.param['res.min_hip_distance'],
-                    target_calf_angle=self.param['res.target_calf_angle'])
+                    target_calf_angle=self.param['res.target_calf_angle'],
+                    max_calf_angle=self.param['res.max_calf_angle'])
             self.swing_target = sp[0], sp[1]
             # print(self.swing_target, z)
             # TODO check if point is valid
