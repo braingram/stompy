@@ -22,14 +22,11 @@ else:
         QAction, QInputDialog)
 
 
-from .. import body
 from .. import calibration
 from .. import consts
 from .. import controllers
-from .. import joystick
-from .. import kinematics
-from .. import leg
 from .. import log
+from .. import remote
 
 
 class Tab(object):
@@ -38,8 +35,9 @@ class Tab(object):
         self.controller = controller
         if self.controller is not None:
             self._last_leg_index = None
-            self.controller.on('set_leg', self.set_leg_index)
-            self.set_leg_index(self.controller.leg_index)
+            self.controller.on('', 'set_leg', self.set_leg_index)
+            self.set_leg_index(
+                self.controller.get('leg_index'))
 
     def set_leg_index(self, index):
         self._last_leg_index = index
@@ -61,7 +59,6 @@ class PIDTab(Tab):
         self.chart.addSeries('Error')
 
         super(PIDTab, self).__init__(ui, controller)
-        # TODO make ui map
         self.joint_config = {}
 
         self.ui.pidJointCombo.currentIndexChanged.connect(
@@ -75,11 +72,13 @@ class PIDTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.legs[self._last_leg_index].remove_on(
+            self.controller.remove_on(
+                'legs[%s]' % self._last_leg_index,
                 'pid', self.on_pid)
         super(PIDTab, self).set_leg_index(index)  # update index
         if index is not None:
-            self.controller.leg.on(
+            self.controller.on(
+                'legs[%s]' % index,
                 'pid', self.on_pid)
 
     def add_pid_values(self, output, setpoint, error):
@@ -87,7 +86,6 @@ class PIDTab(Tab):
         self.chart.appendData('Output', output)
         self.chart.appendData('Error', error)
         self.chart.update()
-        return
 
     def on_pid(self, pid):
         txt = str(self.ui.pidJointCombo.currentText()).lower()
@@ -102,167 +100,134 @@ class PIDTab(Tab):
 
     def read_joint_config(self):
         # get current joint
-        txt = str(self.ui.pidJointCombo.currentText())
-        try:
-            index = ['Hip', 'Thigh', 'Knee'].index(txt)
-        except ValueError:
-            return
-        self.joint_config = {}
-        if (
-                self.controller.leg is None or
-                not hasattr(self.controller.leg, 'mgr')):
-            return self.joint_config
-        # get all values for this joint
-        # P, I, D, min, max
-        r = self.controller.leg.mgr.blocking_trigger('pid_config', index)
-        self.joint_config['pid'] = {
-            'p': r[1].value,
-            'i': r[2].value,
-            'd': r[3].value,
-            'min': r[4].value,
-            'max': r[5].value,
-        }
-
-        # following error threshold
-        r = self.controller.leg.mgr.blocking_trigger(
-            'following_error_threshold', index)
-        #print("Following error: %s" % r[1].value)
-        self.joint_config['following_error_threshold'] = r[1].value
-
-        # pwm: extend/retract min/max
-        r = self.controller.leg.mgr.blocking_trigger('pwm_limits', index)
-        self.joint_config['pwm'] = {
-            'extend_min': r[1].value,
-            'extend_max': r[2].value,
-            'retract_min': r[3].value,
-            'retract_max': r[4].value,
-        }
-
-        # adc limits
-        r = self.controller.leg.mgr.blocking_trigger('adc_limits', index)
-        self.joint_config['adc'] = {'min': r[1].value, 'max': r[2].value}
-
-        # dither
-        r = self.controller.leg.mgr.blocking_trigger('dither')
-        self.joint_config['dither'] = {'time': r[0].value, 'amp': r[1].value}
-
-        # seed time
-        #r = self.controller.leg.mgr.blocking_trigger('pid_future_time')
-        #self.joint_config['future_time'] = r[0].value
+        txt = str(self.ui.pidJointCombo.currentText()).lower()
+        self.joint_config = self.controller.call(
+            'leg.pid_joint_config', txt)
 
         # set ui elements by joint_config
-        self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
-        self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
-        self.ui.pidDSpin.setValue(self.joint_config['pid']['d'])
-        self.ui.pidMinSpin.setValue(self.joint_config['pid']['min'])
-        self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
-        self.ui.extendMinSpin.setValue(self.joint_config['pwm']['extend_min'])
-        self.ui.extendMaxSpin.setValue(self.joint_config['pwm']['extend_max'])
-        self.ui.pidErrorThresholdSpin.setValue(
-            self.joint_config['following_error_threshold'])
-        self.ui.retractMinSpin.setValue(
-            self.joint_config['pwm']['retract_min'])
-        self.ui.retractMaxSpin.setValue(
-            self.joint_config['pwm']['retract_max'])
-        self.ui.adcLimitMinSpin.setValue(self.joint_config['adc']['min'])
-        self.ui.adcLimitMaxSpin.setValue(self.joint_config['adc']['max'])
-        self.ui.ditherTimeSpin.setValue(self.joint_config['dither']['time'])
-        self.ui.ditherAmpSpin.setValue(self.joint_config['dither']['amp'])
-        #self.ui.seedFutureSpin.setValue(self.joint_config['future_time'])
-
-    def commit_values(self):
-        if (
-                self.controller.leg is None or
-                not hasattr(self.controller.leg, 'mgr')):
-            return
-        # compare to joint config
-        # set ui elements by joint_config
-        values = {
-            'pid': {}, 'pwm': {}, 'adc': {}, 'dither': {}}
-        values['pid']['p'] = self.ui.pidPSpin.value()
-        values['pid']['i'] = self.ui.pidISpin.value()
-        values['pid']['d'] = self.ui.pidDSpin.value()
-        values['pid']['min'] = self.ui.pidMinSpin.value()
-        values['pid']['max'] = self.ui.pidMaxSpin.value()
-        values['following_error_threshold'] = \
-            self.ui.pidErrorThresholdSpin.value()
-        values['pwm']['extend_min'] = self.ui.extendMinSpin.value()
-        values['pwm']['extend_max'] = self.ui.extendMaxSpin.value()
-        values['pwm']['retract_min'] = self.ui.retractMinSpin.value()
-        values['pwm']['retract_max'] = self.ui.retractMaxSpin.value()
-        values['adc']['min'] = self.ui.adcLimitMinSpin.value()
-        values['adc']['max'] = self.ui.adcLimitMaxSpin.value()
-        values['dither']['time'] = self.ui.ditherTimeSpin.value()
-        values['dither']['amp'] = self.ui.ditherAmpSpin.value()
-        #values['future_time'] = self.ui.seedFutureSpin.value()
-
-        txt = str(self.ui.pidJointCombo.currentText())
-        try:
-            index = ['Hip', 'Thigh', 'Knee'].index(txt)
-        except ValueError:
-            return
-
-        v = values['pid']
-        j = self.joint_config['pid']
-        if (
-                v['p'] != j['p'] or v['i'] != j['i'] or v['d'] != j['i']):
-            args = (
-                index,
-                values['pid']['p'], values['pid']['i'], values['pid']['d'],
-                values['pid']['min'], values['pid']['max'])
-            # print("pid_config", args)
-            log.info({'pid_config': args})
-            self.controller.leg.mgr.trigger('pid_config', *args)
-
-        v = values['following_error_threshold']
-        j = self.joint_config['following_error_threshold']
-        if (v != j):
+        if 'pid' in self.joint_config:
+            if 'p' in self.joint_config['pid']:
+                self.ui.pidPSpin.setValue(self.joint_config['pid']['p'])
+            if 'i' in self.joint_config['pid']:
+                self.ui.pidISpin.setValue(self.joint_config['pid']['i'])
+            if 'd' in self.joint_config['pid']:
+                self.ui.pidDSpin.setValue(self.joint_config['pid']['d'])
+            if 'min' in self.joint_config['pid']:
+                self.ui.pidMinSpin.setValue(self.joint_config['pid']['min'])
+            if 'max' in self.joint_config['pid']:
+                self.ui.pidMaxSpin.setValue(self.joint_config['pid']['max'])
+        if 'pwm' in self.joint_config:
+            if 'extend_min' in self.joint_config['pwm']:
+                self.ui.extendMinSpin.setValue(
+                    self.joint_config['pwm']['extend_min'])
+            if 'extend_max' in self.joint_config['pwm']:
+                self.ui.extendMaxSpin.setValue(
+                    self.joint_config['pwm']['extend_max'])
+            if 'retract_min' in self.joint_config['pwm']:
+                self.ui.retractMinSpin.setValue(
+                    self.joint_config['pwm']['retract_min'])
+            if 'retract_max' in self.joint_config['pwm']:
+                self.ui.retractMaxSpin.setValue(
+                    self.joint_config['pwm']['retract_max'])
+        if 'following_error_threshold' in self.joint_config:
             self.ui.pidErrorThresholdSpin.setValue(
                 self.joint_config['following_error_threshold'])
-            args = (index, float(v))
-            log.info({'following_error_threshold': args})
-            self.controller.leg.mgr.trigger(
-                'following_error_threshold', *args)
+        if 'adc' in self.joint_config:
+            if 'min' in self.joint_config['adc']:
+                self.ui.adcLimitMinSpin.setValue(
+                    self.joint_config['adc']['min'])
+            if 'max' in self.joint_config['adc']:
+                self.ui.adcLimitMaxSpin.setValue(
+                    self.joint_config['adc']['max'])
+        if 'dither' in self.joint_config:
+            if 'time' in self.joint_config['dither']:
+                self.ui.ditherTimeSpin.setValue(
+                    self.joint_config['dither']['time'])
+            if 'amp' in self.joint_config['dither']:
+                self.ui.ditherAmpSpin.setValue(
+                    self.joint_config['dither']['amp'])
 
-        v = values['pwm']
-        j = self.joint_config['pwm']
-        if (
-                v['extend_min'] != j['extend_min'] or
-                v['extend_max'] != j['extend_max'] or
-                v['retract_min'] != j['retract_min'] or
-                v['retract_max'] != j['retract_max']):
-            args = (
-                index,
-                int(values['pwm']['extend_min']),
-                int(values['pwm']['extend_max']),
-                int(values['pwm']['retract_min']),
-                int(values['pwm']['retract_max']))
-            # print("pwm_limits:", args)
-            log.info({'pwm_limits': args})
-            self.controller.leg.mgr.trigger('pwm_limits', *args)
-        v = values['adc']
-        j = self.joint_config['adc']
-        if (v['min'] != j['min'] or v['max'] != j['max']):
-            args = (index, values['adc']['min'], values['adc']['max'])
-            # print("adc_limits:", args)
-            log.info({'adc_limits': args})
-            self.controller.leg.mgr.trigger('adc_limits', *args)
-        v = values['dither']
-        #j = self.joint_config['dither']
-        if (v['time'] != j['time'] or v['amp'] != j['amp']):
-            args = (
-                #index, int(values['dither']['time']),
-                int(values['dither']['time']),
-                int(values['dither']['amp']))
-            # print("dither:", args)
-            log.info({'dither': args})
-            self.controller.leg.mgr.trigger('dither', *args)
-        #v = values['future_time']
-        #j = self.joint_config['future_time']
-        #if (v != j):
-        #    args = (int(v), )
-        #    log.info({'pid_future_time': args})
-        #    self.controller.leg.mgr.trigger('pid_future_time', *args)
+    def commit_values(self):
+        # compare ui to joint config
+        txt = str(self.ui.pidJointCombo.currentText()).lower()
+
+        if txt not in consts.JOINT_INDEX_BY_NAME:
+            return {}
+        index = consts.JOINT_INDEX_BY_NAME[txt]
+
+        settings = []
+        # compare self.joint_config to values make settings
+        if 'pid' in self.joint_config:
+            j = self.joint_config['pid']
+            v = {
+                'p': self.ui.pidPSpin.value(),
+                'i': self.ui.pidISpin.value(),
+                'd': self.ui.pidDSpin.value(),
+                'min': self.ui.pidMinSpin.value(),
+                'max': self.ui.pidMaxSpin.value(),
+            }
+
+            if (
+                    v['p'] != j['p'] or
+                    v['i'] != j['i'] or
+                    v['d'] != j['d'] or
+                    v['min'] != j['min'] or
+                    v['max'] != j['max']):
+                settings.append((
+                    'pid_config',
+                    (index, v['p'], v['i'], v['d'], v['min'], v['max'])))
+
+        if 'following_error_threshold' in self.joint_config:
+            v = self.ui.pidErrorThresholdSpin.value()
+            j = self.joint_config['following_error_threshold']
+            if (v != j):
+                settings.append((
+                    'following_error_threshold', (index, float(v))))
+
+        if 'pwm' in self.joint_config:
+            j = self.joint_config['pwm']
+            v = {
+                'extend_min': self.ui.extendMinSpin.value(),
+                'extend_max': self.ui.extendMaxSpin.value(),
+                'retract_min': self.ui.retractMinSpin.value(),
+                'retract_max': self.ui.retractMaxSpin.value(),
+            }
+            if (
+                    v['extend_min'] != j['extend_min'] or
+                    v['extend_max'] != j['extend_max'] or
+                    v['retract_min'] != j['retract_min'] or
+                    v['retract_max'] != j['retract_max']):
+                settings.append((
+                    'pwm_limits',
+                    (index,
+                    int(v['extend_min']),
+                    int(v['extend_max']),
+                    int(v['retract_min']),
+                    int(v['retract_max']))))
+
+        if 'adc' in self.joint_config:
+            j = self.joint_config['adc']
+            v = {
+                'min': self.ui.adcLimitMinSpin.value(),
+                'max': self.ui.adcLimitMaxSpin.value(),
+            }
+            if (v['min'] != j['min'] or v['max'] != j['max']):
+                settings.append((
+                    'adc_limits',
+                    (index, v['min'], v['max'])))
+
+        if 'dither' in self.joint_config:
+            j = self.joint_config['dither']
+            v = {
+                'time': self.ui.ditherTimeSpin.value(),
+                'amp': self.ui.ditherAmpSpin.value(),
+            }
+            if (v['time'] != j['time'] or v['amp'] != j['amp']):
+                settings.append((
+                    'dither',
+                    (int(v['time']), int(v['amp']))))
+
+        self.controller.call('leg.configure', settings)
         self.read_joint_config()
 
     def clear_pid_values(self):
@@ -311,25 +276,23 @@ class LegTab(Tab):
         if self.controller is None:
             return
         if self._last_leg_index is not None:
-            self.controller.legs[self._last_leg_index].remove_on(
-                'angles', self.on_angles)
-            self.controller.legs[self._last_leg_index].remove_on(
-                'xyz', self.on_xyz)
-            self.controller.legs[self._last_leg_index].remove_on(
-                'adc', self.on_adc)
-            self.controller.res.feet[self._last_leg_index].remove_on(
+            lo = 'legs[%i]' % self._last_leg_index
+            self.controller.remove_on(lo, 'angles', self.on_angles)
+            self.controller.remove_on(lo, 'xyz', self.on_xyz)
+            self.controller.remove_on(lo, 'adc', self.on_adc)
+            self.controller.remove_on(
+                'res.feet[%i]' % self._last_leg_index,
                 'restriction', self.on_restriction)
         super(LegTab, self).set_leg_index(index)  # update index
         self.display.leg.number = index
         self.display.update()
         if index is not None:
-            self.controller.leg.on(
-                'angles', self.on_angles)
-            self.controller.leg.on(
-                'xyz', self.on_xyz)
-            self.controller.leg.on(
-                'adc', self.on_adc)
-            self.controller.res.feet[self._last_leg_index].on(
+            lo = 'legs[%i]' % index
+            self.controller.on(lo, 'angles', self.on_angles)
+            self.controller.on(lo, 'xyz', self.on_xyz)
+            self.controller.on(lo, 'adc', self.on_adc)
+            self.controller.on(
+                'res.feet[%i]' % index,
                 'restriction', self.on_restriction)
 
     def set_view(self, view):
@@ -408,21 +371,21 @@ class BodyTab(Tab):
         self.heightLabel = ui.heightLabel
 
         # attach to all legs
-        #self.controller.legs[i]
-        self.controller.on('height', self.on_height)
-        self.controller.on('mode', self.on_mode)
-        for leg_number in self.controller.legs:
+        self.controller.on('', 'height', self.on_height)
+        self.controller.on('', 'mode', self.on_mode)
+        for leg_number in self.controller.call('legs.keys'):
             self.display.add_leg(leg_number)
-            self.controller.legs[leg_number].on(
-                'angles', lambda a, i=leg_number: self.on_angles(a, i))
-            self.controller.legs[leg_number].on(
-                'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
-            self.controller.res.feet[leg_number].on(
-                'restriction',
+            lo = 'legs[%i]' % leg_number
+            self.controller.on(
+                lo, 'angles', lambda a, i=leg_number: self.on_angles(a, i))
+            self.controller.on(
+                lo, 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+            self.controller.on(
+                lo, 'restriction',
                 lambda a, i=leg_number: self.on_restriction(a, i))
-            self.controller.res.feet[leg_number].on(
-                'state',
-                lambda a, i=leg_number: self.on_res_state(a, i))
+            self.controller.on(
+                'res.feet[%i]' % leg_number,
+                'state', lambda a, i=leg_number: self.on_res_state(a, i))
         #self.show_top_view()
         self.set_view('top')
 
@@ -471,10 +434,12 @@ class BodyTab(Tab):
 
     def _update_support_legs(self):
         # draw polygon between supported legs
-        lns = sorted(self.controller.res.feet)
+        lns = sorted(self.controller.call('res.feet.keys'))
         support_legs = []
         for ln in lns:
-            if self.controller.res.feet[ln].state in ('stance', 'wait'):
+            if (
+                    self.controller.get('res.feet[%i].state' % ln)
+                    in ('stance', 'wait')):
                 support_legs.append(ln)
         if not len(support_legs):
             return
@@ -523,30 +488,34 @@ def load_ui(controller=None):
     ui.calibrationMenu.addAction(a)
     if controller is not None:
         a = QAction("Zero calf", ui.calibrationMenu)
-        a.triggered.connect(lambda a: controller.leg.compute_calf_zero())
+        a.triggered.connect(
+            lambda a: controller.call('leg.compute_calf_zero'))
         ui._calibrationMenu_actions.append(a)
         ui.calibrationMenu.addAction(a)
 
         ui._legsMenu_actions = []
-        for leg in controller.legs:
+        for leg in controller.call('legs.keys'):
             a = QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
-            a.triggered.connect(lambda a, i=leg: controller.set_leg(i))
+            a.triggered.connect(
+                lambda a, i=leg: controller.call('set_leg', i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
         ui._modesMenu_actions = []
-        for mode in controller.modes:
+        for mode in controller.get('modes'):
             a = QAction(mode, ui.modesMenu)
-            a.triggered.connect(lambda a, m=mode: controller.set_mode(m))
+            a.triggered.connect(
+                lambda a, m=mode: controller.call('set_mode', m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
-        ui.modesMenu.setTitle("Mode: %s" % controller.mode)
+        ui.modesMenu.setTitle("Mode: %s" % controller.get('mode'))
         ui.legsMenu.setTitle(
-            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.leg_index])
-        controller.on('mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
-        controller.on('set_leg', lambda m: ui.legsMenu.setTitle(
+            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.get('leg_index')])
+        controller.on(
+            '', 'mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
+        controller.on('', 'set_leg', lambda m: ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
-        controller.on('estop', lambda v: (
+        controller.on('', 'estop', lambda v: (
             ui.estopLabel.setText(
                 "Estop: %s" % consts.ESTOP_BY_NUMBER[v]),
             ui.estopLabel.setStyleSheet((
@@ -559,15 +528,19 @@ def load_ui(controller=None):
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
 
-    if 'imu' in controller.bodies:
-        controller.bodies['imu'].on(
+    if 'imu' in controller.call('bodies.keys'):
+        controller.on(
+            'bodies["imu"]',
             'feed_pressure', lambda v: ui.pressureLabel.setText("PSI: %i" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'engine_rpm', lambda v: ui.rpmLabel.setText("RPM: %0.0f" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'feed_oil_temp',
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
-        controller.bodies['imu'].on(
+        controller.on(
+            'bodies["imu"]',
             'heading',
             lambda r, p, y: ui.imuLabel.setText(
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
@@ -575,7 +548,7 @@ def load_ui(controller=None):
     # param changes
     ui._configurationMenu_actions = []
     ui._configurationMenu_submenus = {}
-    for name in sorted(controller.param.list_params()):
+    for name in sorted(controller.call('param.list_params')):
         # make submenus
         menu = ui.configurationMenu
         if '.' in name:
@@ -600,27 +573,29 @@ def load_ui(controller=None):
 
         # add item to menu
         # when clicked show InputDialog (or have check mark)
-        value = controller.param[name]
+        value = controller.get('param["%s"]' % name)
         if isinstance(value, bool):
             a = QAction(
                 subname, menu, checkable=True, checked=value)
             a.triggered.connect(
-                lambda value, n=name: controller.param.set_param(n, value))
-            controller.param.on(
-                name, lambda nv, action=a: action.setChecked(nv))
+                (
+                    lambda value, n=name:
+                    controller.call('param.set_param', n, value)))
+            controller.on(
+                'param', name, lambda nv, action=a: action.setChecked(nv))
         else:
             a = QAction('[%s] %s' % (value, subname), menu)
 
             def prompt_for_value(value, n=name):
-                cv = controller.param[n]
+                cv = controller.get('param["%s"]' % n)
                 if isinstance(cv, float):
                     f = QInputDialog.getDouble
                 else:
                     f = QInputDialog.getInt
-                kwargs = controller.param.get_meta(n, {})
+                kwargs = controller.call('param.get_meta', n, {})
                 nv, ok = f(MainWindow, n, n, cv, **kwargs)
                 if ok:
-                    controller.param[n] = nv
+                    controller.set('param["%s"]' % n, nv)
 
             if isinstance(value, float):
                 fmt = '[%0.2f] %s'
@@ -633,7 +608,8 @@ def load_ui(controller=None):
                 action.setText(fmt % (nv, n))
 
             # have title include value?
-            controller.param.on(name, set_text)
+            controller.on(
+                'param', name, set_text)
             #controller.param.on(
             #    name, lambda nv, action=a, n=name: action.setText(
             #        '[%s]%s' % (nv, n)))
@@ -668,8 +644,12 @@ def run_ui(ui):
     sys.exit(ui['app'].exec_())
 
 
-def start():
-    c = controllers.multileg.build()
+def start(remote_ui=False):
+    if remote_ui:
+        c = remote.client.RPCClient()
+    else:
+        c = remote.agent.RPCAgent(controllers.multileg.build())
+        c.update = c.obj.update
     run_ui(load_ui(c))
 
 
