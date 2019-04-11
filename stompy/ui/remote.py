@@ -587,7 +587,7 @@ def load_ui(controller=None):
             a = QAction('[%s] %s' % (value, subname), menu)
 
             def prompt_for_value(value, n=name):
-                cv = controller.get('param["%s"]' % name)
+                cv = controller.get('param["%s"]' % n)
                 if isinstance(cv, float):
                     f = QInputDialog.getDouble
                 else:
