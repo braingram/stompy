@@ -11,6 +11,7 @@ if nogl.has_qt5:
     from . import base5 as base
     from PyQt5.QtWidgets import (
         QGestureEvent, QPinchGesture,
+        QSwipeGesture,
         QWidget, QApplication, QMainWindow,
         QAction, QInputDialog)
 else:
@@ -18,6 +19,7 @@ else:
     from . import base as base
     from PyQt4.QtGui import (
         QGestureEvent, QPinchGesture,
+        QSwipeGesture,
         QWidget, QApplication, QMainWindow,
         QAction, QInputDialog)
 
@@ -252,25 +254,10 @@ class PIDTab(Tab):
 
 
 class LegTab(Tab):
-    views = {
-        'side': {
-            'azimuth': numpy.pi,
-            'elevation': numpy.pi / 2,
-            'offset': (-200, 0),
-            'scalar': 3.,
-        },
-        'top': {
-            'azimuth': 0,
-            'elevation': 0,
-            'offset': (-200, 0),
-            'scalar': 3.,
-        },
-    }
-
     def __init__(self, ui, controller):
         self.display = ui.legDisplay
         super(LegTab, self).__init__(ui, controller)
-        self.set_view('side')
+        self.display.set_view('right')
 
     def set_leg_index(self, index):
         if self.controller is None:
@@ -294,13 +281,6 @@ class LegTab(Tab):
             self.controller.on(
                 'res.feet[%i]' % index,
                 'restriction', self.on_restriction)
-
-    def set_view(self, view):
-        if not isinstance(view, dict):
-            view = self.views[view]
-        for k in view:
-            setattr(self.display.projection, k, view[k])
-        self.display.update()
 
     def plot_leg(self, hip, thigh, knee):
         self.display.leg.set_angles(hip, thigh, knee)
@@ -350,21 +330,6 @@ class LegTab(Tab):
 
 
 class BodyTab(Tab):
-    views = {
-        'back': {
-            'azimuth': numpy.pi,
-            'elevation': numpy.pi / 2.,
-            'offset': (0, 0),
-            'scalar': 1.,
-        },
-        'top': {
-            'azimuth': numpy.pi,
-            'elevation': 0,
-            'offset': (0, 0),
-            'scalar': 1.,
-        },
-    }
-
     def __init__(self, ui, controller):
         self.display = ui.bodyDisplay
         super(BodyTab, self).__init__(ui, controller)
@@ -386,21 +351,13 @@ class BodyTab(Tab):
             self.controller.on(
                 'res.feet[%i]' % leg_number,
                 'state', lambda a, i=leg_number: self.on_res_state(a, i))
-        #self.show_top_view()
-        self.set_view('top')
+        self.display.set_view('top')
 
     def set_leg_index(self, index):
         if self.controller is None:
             return
         self.display.selected_leg = index
         super(BodyTab, self).set_leg_index(index)
-
-    def set_view(self, view):
-        if not isinstance(view, dict):
-            view = self.views[view]
-        for k in view:
-            setattr(self.display.projection, k, view[k])
-        self.display.update()
 
     def plot_leg(self, leg_number, hip, thigh, knee, calf):
         self.display.legs[leg_number].set_angles(hip, thigh, knee, calf)

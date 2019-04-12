@@ -258,7 +258,6 @@ def limit_intersections(
     if max_calf_angle is not None:
         rcalf = x_with_calf_angle(z, max_calf_angle)
         if rcalf < r:
-            print("limiting r by calf: %s, %s" % (rcalf, r))
             r = rcalf
     lc = {'center': (0, 0), 'radius': l}
     rc = {'center': (0, 0), 'radius': r}

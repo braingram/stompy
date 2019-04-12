@@ -19,11 +19,13 @@ if has_qt5:
     from PyQt5 import (QtGui, QtCore, QtWidgets)
     from PyQt5.QtWidgets import (
         QGestureEvent, QPinchGesture,
+        QSwipeGesture,
         QWidget, QApplication)
 else:
     from PyQt4 import (QtGui, QtCore)
     from PyQt4.QtGui import (
         QGestureEvent, QPinchGesture,
+        QSwipeGesture,
         QWidget, QApplication)
 
 from .. import kinematics
@@ -94,25 +96,49 @@ class OrthoProjection(object):
         #return yT * eT
         return eT * yT
 
+    def get_offset(self):
+        return numpy.array(self.offset) * numpy.array(self.window_size)
+
     def project_points(self, pts):
         """Project a set of xyz points to xy"""
         # TODO cache?
         T = self.to_transform()
         tpts = transforms.transform_3d_array(T, pts)
-        #print(tpts)
         # then apply scaling and throw out z
         spts = tpts[:, :2] * self.scalar
         spts[:, 0] *= -1  # swap to right hand coords
         # apply offset
-        #print(spts)
-        opts = spts + numpy.array(self.offset)[numpy.newaxis, :]
-        #print(opts)
+        opts = spts + numpy.array(self.get_offset())[numpy.newaxis, :]
         return opts
 
 
 class LegDisplay(QWidget):
+    views = {
+        'right': {
+            'azimuth': numpy.pi,
+            'elevation': numpy.pi / 2,
+            'offset': (0.25, 0.5),
+            'scalar': 3.,
+        },
+        'left': {
+            'azimuth': -numpy.pi,
+            'elevation': numpy.pi / 2,
+            'offset': (0.25, 0.5),
+            'scalar': 3.,
+        },
+        'top': {
+            'azimuth': 0,
+            'elevation': 0,
+            'offset': (0.5, 0.5),
+            'scalar': 3.,
+        },
+        # TODO front
+        # TODO back
+    }
+
     def __init__(self, parent=None):
         super(LegDisplay, self).__init__(parent)
+        self.setFocusPolicy(QtCore.Qt.ClickFocus)
         for g in (
                 QtCore.Qt.PanGesture, QtCore.Qt.SwipeGesture,
                 QtCore.Qt.PinchGesture):
@@ -137,6 +163,15 @@ class LegDisplay(QWidget):
         self.paintsPerSecond = 10.
         self._last_update_time = time.time() - 1.
 
+    def set_view(self, view):
+        if not isinstance(view, dict):
+            view = self.views[view]
+        for k in view:
+            #print("old: %s" % (getattr(self.projection, k),))
+            setattr(self.projection, k, view[k])
+            #print("new: %s" % (getattr(self.projection, k),))
+        self.update()
+
     def event(self, event):
         if isinstance(event, QGestureEvent):
             return self.gestureEvent(event)
@@ -146,10 +181,11 @@ class LegDisplay(QWidget):
         r = True
         for g in event.gestures():
             if isinstance(g, QPinchGesture):
-                print('PINCH', g.scaleFactor())
                 self.projection.scalar *= g.scaleFactor()
                 self.update()
                 r = False
+            elif isinstance(g, QSwipeGesture):
+                pass
             else:
                 print(g)
         return r
@@ -162,12 +198,15 @@ class LegDisplay(QWidget):
             self._last_update_time = t
 
     def resizeEvent(self, event):
+        self.projection.window_size = (self.width(), self.height())
+        return
         # account for any user applied offset
         os = event.oldSize()
-        ow, oh = os.width(), os.height()
-        ohw, ohh = ow / 2, oh / 2
-        dx = self.projection.offset[0] - ohw
-        dy = self.projection.offset[1] - ohh
+        if os.width() == -1:
+            return
+        dx = self.projection.offset[0] - os.width() / 2
+        dy = self.projection.offset[1] - os.height() / 2
+        print(os.width(), os.height(), self.width(), self.height(), dx, dy)
         # event.oldSize()
         self.projection.offset = (
             self.width() / 2 + dx,
@@ -175,7 +214,7 @@ class LegDisplay(QWidget):
 
     def _paintAxes(self, painter):
         # draw axes
-        sx, sy = self.projection.offset
+        sx, sy = self.projection.get_offset()
         #sx, sy = 0, 0
         for (i, pen) in enumerate(self._pens['axes']):
             pt = [0., 0., 0.]
@@ -283,6 +322,21 @@ class LegDisplay(QWidget):
 
         painter.end()
 
+    def keyPressEvent(self, event):
+        print(event.key())
+        k = event.key()
+        if k == QtCore.Qt.Key_T:
+            self.set_view('top')
+        elif k == QtCore.Qt.Key_L:
+            self.set_view('left')
+        elif k == QtCore.Qt.Key_R:
+            self.set_view('right')
+        elif k == QtCore.Qt.Key_F:
+            self.set_view('front')
+        elif k == QtCore.Qt.Key_B:
+            self.set_view('back')
+        return super(LegDisplay, self).keyPressEvent(event)
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
             # TODO bring out reset positions
@@ -315,14 +369,15 @@ class LegDisplay(QWidget):
                 update = True
             if update:
                 self.update()
+            print(self.projection.azimuth, self.projection.elevation)
             self._right_click_pos = (x1, y1)
         if hasattr(self, '_middle_click_pos'):
             # drag
             x0, y0 = self._middle_click_pos
             pt = event.pos()
             x1, y1 = pt.x(), pt.y()
-            dx = x1 - x0
-            dy = y1 - y0
+            dx = (x1 - x0) / float(self.width())
+            dy = (y1 - y0) / float(self.height())
             self.projection.offset = (
                 self.projection.offset[0] + dx,
                 self.projection.offset[1] + dy)
@@ -337,13 +392,45 @@ class LegDisplay(QWidget):
 
     def wheelEvent(self, event):
         d = event.delta()
-        #print(d)
         nd = max(-1., min(1., d / 1000.)) + 1.
         self.projection.scalar *= nd
         self.update()
 
 
 class BodyDisplay(LegDisplay):
+    views = {
+        'left': {
+            'azimuth': -numpy.pi / 2.,
+            'elevation': numpy.pi / 2.,
+            'offset': (0.5, 0.5),
+            'scalar': 1.,
+        },
+        'right': {
+            'azimuth': numpy.pi / 2.,
+            'elevation': numpy.pi / 2.,
+            'offset': (0.5, 0.5),
+            'scalar': 1.,
+        },
+        'front': {
+            'azimuth': 0,
+            'elevation': numpy.pi / 2.,
+            'offset': (0.5, 0.5),
+            'scalar': 1.,
+        },
+        'back': {
+            'azimuth': numpy.pi,
+            'elevation': numpy.pi / 2.,
+            'offset': (0.5, 0.5),
+            'scalar': 1.,
+        },
+        'top': {
+            'azimuth': numpy.pi,
+            'elevation': 0,
+            'offset': (0.5, 0.5),
+            'scalar': 1.,
+        },
+    }
+
     def __init__(self, parent=None):
         super(BodyDisplay, self).__init__(parent)
         del self.leg
