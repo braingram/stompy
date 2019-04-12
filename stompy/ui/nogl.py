@@ -185,7 +185,16 @@ class LegDisplay(QWidget):
                 self.update()
                 r = False
             elif isinstance(g, QSwipeGesture):
-                pass
+                d = g.verticalDirection()
+                if d == QSwipeGesture.SwipeDirection.NoDirection:
+                    d = g.horizontalDirection()
+                if d == QSwipeGesture.SwipeDirection.Down:
+                    self.set_view('top')
+                elif d == QSwipeGesture.SwipeDirection.Left:
+                    self.set_view('right')
+                elif d == QSwipeGesture.SwipeDirection.Right:
+                    self.set_view('left')
+                r = False
             else:
                 print(g)
         return r
