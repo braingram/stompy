@@ -415,8 +415,6 @@ class MultiLeg(signaler.Signaler):
             # need to calculate
             # - center of rotation (in body coordinates)
             # - linear speed during rotation
-            # TODO add dz
-            dz = 0.
             if omni_walk:
                 # calc direction by lx, ly
                 # rotate 90 for radius
@@ -440,6 +438,12 @@ class MultiLeg(signaler.Signaler):
                 rs = (
                     self.res.calc_stance_speed((crx, cry), sv)
                     * numpy.sign(crx))
+            # add dz
+            # TODO maybe this should be scaled down?
+            dz = -xyz[2] * self.res.get_mode_speed('stance') * consts.PLAN_TICK
+            if self.param['res.speed.by_restriction']:
+                dz *= self.res.get_speed_by_restriction()
+            print(dz)
             self.res.set_target(
                 restriction.body.BodyTarget((crx, cry), rs, dz))
 

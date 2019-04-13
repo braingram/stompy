@@ -123,6 +123,7 @@ class Body(signaler.Signaler):
         if numpy.abs(rspeed) > self.get_mode_speed('angular'):
             print("Limiting because of angular speed")
             rspeed = self.get_mode_speed('angular') * numpy.sign(rspeed)
+        # TODO this should adjust speed on times OTHER than set_target
         if self.param['res.speed.by_restriction']:
             rs = self.get_speed_by_restriction()
         else:
@@ -144,6 +145,9 @@ class Body(signaler.Signaler):
             # only update non-swing
             update_swing = False
         self.target = target
+        if target.dz != 0.0:
+            # TODO update stand height
+            pass
         for i in self.feet:
             self.feet[i].set_target(
                 target, update_swing=update_swing)

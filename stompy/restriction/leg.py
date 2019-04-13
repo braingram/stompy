@@ -248,7 +248,9 @@ class Foot(signaler.Signaler):
             self.leg.leg_number, bx, by, 0)
         lT = transforms.rotation_about_point_3d(
             rx, ry, rz, 0, 0, target.speed)
-        # TODO add z change
+        # add z change
+        if target.dz != 0.0:
+            lT = lT * transforms.translation_3d(0, 0, target.dz)
         if update_swing:
             self.swing_info = (rx, ry, target.speed)
             self.swing_target = None
