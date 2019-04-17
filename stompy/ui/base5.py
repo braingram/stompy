@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'stompy.ui'
 #
-# Created: Sun Apr  7 09:19:13 2019
+# Created: Mon Apr 15 19:41:56 2019
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -432,7 +432,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.configurationMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabs.setCurrentIndex(0)
+        self.tabs.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -486,7 +486,7 @@ class Ui_MainWindow(object):
         self.calibrationMenu.setTitle(_translate("MainWindow", "Calibration"))
         self.configurationMenu.setTitle(_translate("MainWindow", "Configuration"))
 
-from stompy.ui.nogl import BodyDisplay, LineChart, LegDisplay
+from stompy.ui.nogl import LineChart, BodyDisplay, LegDisplay
 
 if __name__ == "__main__":
     import sys

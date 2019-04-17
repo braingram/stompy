@@ -443,7 +443,6 @@ class MultiLeg(signaler.Signaler):
             dz = -xyz[2] * self.res.get_mode_speed('stance') * consts.PLAN_TICK
             if self.param['res.speed.by_restriction']:
                 dz *= self.res.get_speed_by_restriction()
-            print(dz)
             self.res.set_target(
                 restriction.body.BodyTarget((crx, cry), rs, dz))
 

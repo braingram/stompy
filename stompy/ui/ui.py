@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 import traceback
 
 import numpy
@@ -388,6 +389,14 @@ class BodyTab(Tab):
 
     def on_res_state(self, state, leg_number):
         self._update_support_legs()
+        # TODO throttle path updates
+        if not hasattr(self, '_path_update'):
+            self._path_update = time.time()
+        if (time.time() - self._path_update) > 5.0:
+            self._path_update = time.time()
+            self.display.path = [
+                p['position'] for p in
+                self.controller.call('res.odo.get_path')]
 
     def _update_support_legs(self):
         # draw polygon between supported legs

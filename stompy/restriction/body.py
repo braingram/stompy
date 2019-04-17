@@ -13,6 +13,7 @@ from .. import consts
 from .. import kinematics
 from . import leg
 from .. import log
+from . import odometer
 from .. import signaler
 
 
@@ -55,6 +56,12 @@ class BodyTarget(object):
         self.speed = speed
         self.dz = dz
 
+    def __eq__(self, other):
+        return (
+            (self.rotation_center == other.rotation_center) and
+            (self.speed == other.speed) and
+            (self.dz == other.dz))
+
     def __repr__(self):
         return (
             "BodyTarget(%r, %r, %r)" %
@@ -65,6 +72,7 @@ class Body(signaler.Signaler):
     def __init__(self, legs, param):
         """Takes leg controllers"""
         super(Body, self).__init__()
+        self.odo = odometer.Odometer()
         self.logger = log.make_logger('Res-Body')
         self.param = param
         self.param.set_param_from_dictionary('res', parameters)
@@ -97,6 +105,8 @@ class Body(signaler.Signaler):
         self.logger.debug("enable")
         self.enabled = True
         self.halted = False
+        # TODO always reset odometer on enable?
+        self.odo.reset()
         # TODO set foot states, target?
 
     def get_mode_speed(self, mode):
@@ -148,12 +158,19 @@ class Body(signaler.Signaler):
         if target.dz != 0.0:
             # TODO update stand height
             pass
+        self.odo.set_target(self.target)
         for i in self.feet:
             self.feet[i].set_target(
                 target, update_swing=update_swing)
 
     def disable(self):
         self.logger.debug("disable")
+        # save poses
+        import pickle
+        with open('poses.p', 'w') as f:
+            pickle.dump(self.odo.poses, f)
+        with open('path.p', 'w') as f:
+            pickle.dump(self.odo.get_path(), f)
         self.enabled = False
         for i in self.feet:
             self.feet[i].set_state(None)
@@ -182,6 +199,7 @@ class Body(signaler.Signaler):
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
+        self.odo.update()
         # TODO only unhalt on low-passed r?
         if self.halted and restriction['r'] < self.param['res.r_max']:
             # unhalt?

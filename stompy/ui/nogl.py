@@ -159,6 +159,7 @@ class LegDisplay(QWidget):
             'limits': QtGui.QPen(QtCore.Qt.magenta, 1, QtCore.Qt.DashLine),
             'calf': QtGui.QPen(QtCore.Qt.cyan, 1),
             'support': QtGui.QPen(QtCore.Qt.darkCyan, 1),
+            'path': QtGui.QPen(QtCore.Qt.black, 1),
         }
         self.paintsPerSecond = 10.
         self._last_update_time = time.time() - 1.
@@ -197,7 +198,7 @@ class LegDisplay(QWidget):
                 #    self.set_view('left')
                 r = False
             else:
-                print(g)
+                print("Gesture event: %s" % (g, ))
         return r
 
     def update(self, *args, **kwargs):
@@ -216,7 +217,7 @@ class LegDisplay(QWidget):
             return
         dx = self.projection.offset[0] - os.width() / 2
         dy = self.projection.offset[1] - os.height() / 2
-        print(os.width(), os.height(), self.width(), self.height(), dx, dy)
+        #print(os.width(), os.height(), self.width(), self.height(), dx, dy)
         # event.oldSize()
         self.projection.offset = (
             self.width() / 2 + dx,
@@ -333,7 +334,7 @@ class LegDisplay(QWidget):
         painter.end()
 
     def keyPressEvent(self, event):
-        print(event.key())
+        print("keyPressEvent: %s" % (event.key(), ))
         k = event.key()
         if k == QtCore.Qt.Key_T:
             self.set_view('top')
@@ -379,7 +380,7 @@ class LegDisplay(QWidget):
                 update = True
             if update:
                 self.update()
-            print(self.projection.azimuth, self.projection.elevation)
+            #print(self.projection.azimuth, self.projection.elevation)
             self._right_click_pos = (x1, y1)
         if hasattr(self, '_middle_click_pos'):
             # drag
@@ -446,6 +447,7 @@ class BodyDisplay(LegDisplay):
         del self.leg
         self.legs = {}
         self.support_legs = []
+        self.path = []
 
     def add_leg(self, leg_number):
         self.legs[leg_number] = Leg(leg_number)
@@ -462,11 +464,17 @@ class BodyDisplay(LegDisplay):
             xy = self._paintLeg(painter, self.legs[leg], T)
             if leg in self.support_legs:
                 supports.append(xy)
-        pen = self._pens['support']
         if len(supports):
+            pen = self._pens['support']
             # project points
             supports += [supports[0], ]
             for p0, p1 in zip(supports[:-1], supports[1:]):
+                painter.setPen(pen)
+                painter.drawLine(p0[0], p0[1], p1[0], p1[1])
+        if len(self.path):
+            pen = self._pens['path']
+            xys = self.projection.project_points(self.path)
+            for p0, p1 in zip(xys[:-1], xys[1:]):
                 painter.setPen(pen)
                 painter.drawLine(p0[0], p0[1], p1[0], p1[1])
         painter.end()
