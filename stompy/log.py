@@ -8,7 +8,10 @@ import datetime
 import glob
 import logging
 import os
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import time
 
 import numpy

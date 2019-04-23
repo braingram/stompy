@@ -165,7 +165,8 @@ class PS3Joystick(base.Joystick):
         if fn is None:
             fn = DEFAULT_FN
         self.fn = fn
-        self.f = open(fn, 'rb+')
+        #self.f = open(fn, 'rb+')
+        self.f = open(fn, 'rb')
         #self.keys = {}
         #self.axes = {}
         #self.report_ev_types = set((0x01, 0x03))

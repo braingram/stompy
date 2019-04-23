@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 from . import signaler
 

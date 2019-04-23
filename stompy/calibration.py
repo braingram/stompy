@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 import os
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import sys
 
 import numpy
 
@@ -164,16 +168,22 @@ setup = {
 # load calibrations from ~/.stompy/calibrations/<leg>?
 def load_calibrations(directory=default_cal_dir, append=False):
     d = os.path.abspath(os.path.expanduser(directory))
+    if not os.path.exists(d):
+        return
     # look for legs
     fns = os.listdir(d)
+    if (sys.version_info > (3, 0)):
+        pkwargs = {'encoding': 'latin1'}
+    else:
+        pkwargs = {}
     for fn in fns:
         # lookup leg number
         if fn not in consts.LEG_NUMBER_BY_NAME:
             continue
         ln = consts.LEG_NUMBER_BY_NAME[fn]
         # load calibration
-        with open(os.path.join(d, fn), 'r') as f:
-            cal_data = pickle.load(f)
+        with open(os.path.join(d, fn), 'rb') as f:
+            cal_data = pickle.load(f, **pkwargs)
         if append:
             # append old to new
             setup[ln] = setup.get(ln) + cal_data

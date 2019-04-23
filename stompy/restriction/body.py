@@ -57,6 +57,8 @@ class BodyTarget(object):
         self.dz = dz
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return (
             (self.rotation_center == other.rotation_center) and
             (self.speed == other.speed) and
@@ -166,11 +168,11 @@ class Body(signaler.Signaler):
     def disable(self):
         self.logger.debug("disable")
         # save poses
-        import pickle
-        with open('poses.p', 'w') as f:
-            pickle.dump(self.odo.poses, f)
-        with open('path.p', 'w') as f:
-            pickle.dump(self.odo.get_path(), f)
+        #import pickle
+        #with open('poses.p', 'wb') as f:
+        #    pickle.dump(self.odo.poses, f)
+        #with open('path.p', 'wb') as f:
+        #    pickle.dump(self.odo.get_path(), f)
         self.enabled = False
         for i in self.feet:
             self.feet[i].set_state(None)
