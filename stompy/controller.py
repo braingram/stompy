@@ -23,15 +23,14 @@ import time
 
 import numpy
 
-#from . import calibrator
-from .. import body
-from .. import consts
-from .. import joystick
-from .. import leg
-from .. import log
-from .. import param
-from .. import restriction
-from .. import signaler
+from . import body
+from . import consts
+from . import joystick
+from . import leg
+from . import log
+from . import param
+from . import restriction
+from . import signaler
 
 
 thumb_mid = 130
@@ -71,8 +70,13 @@ class MultiLeg(signaler.Signaler):
         super(MultiLeg, self).__init__()
         self.param = param.Param()
         self.legs = legs
+        if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
+            # all legs are fake
+            # TODO connect up odometer to fake terrain
+            # TODO make fake joystick or plan?
+            # TODO start playback of fake plans?
+            pass
         self.bodies = bodies
-        #self.calibrator = calibrator.CalibrationRoutine()
         self.res = restriction.body.Body(legs, self.param)
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]

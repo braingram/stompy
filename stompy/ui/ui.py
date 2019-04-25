@@ -27,7 +27,7 @@ else:
 
 from .. import calibration
 from .. import consts
-from .. import controllers
+from .. import controller
 from .. import log
 from .. import remote
 
@@ -614,7 +614,7 @@ def start(remote_ui=False):
     if remote_ui:
         c = remote.client.RPCClient()
     else:
-        c = remote.agent.RPCAgent(controllers.multileg.build())
+        c = remote.agent.RPCAgent(controller.build())
         c.update = c.obj.update
     run_ui(load_ui(c))
 

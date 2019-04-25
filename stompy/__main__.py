@@ -8,7 +8,7 @@ Main script
 import argparse
 import sys
 
-from . import controllers
+from . import controller
 from . import remote
 from . import ui
 from . import utils
@@ -48,7 +48,7 @@ elif args.command == 'reset':
     utils.reset_teensies_by_type(types)
 elif args.command == 'backend':
     print("Starting stompy backend")
-    controllers.multileg.run()
+    controller.run()
 elif args.command == 'remote':
     print("Starting stompy remote backend")
     remote.serve.serve()

@@ -9,7 +9,7 @@ import tornado.web
 from tornado.websocket import WebSocketHandler
 
 from . import agent
-from .. import controllers
+from .. import controller
 from . import protocol
 
 
@@ -115,7 +115,7 @@ class ObjectHandler(WebSocketHandler):
 
 
 def serve(addr=None, port=5000):
-    c = controllers.multileg.build()
+    c = controller.build()
 
     # setup periodic update
     cb = tornado.ioloop.PeriodicCallback(c.update, 10.0)

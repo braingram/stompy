@@ -2,7 +2,7 @@
 
 from . import body
 from . import consts
-from . import controllers
+from . import controller
 from . import joystick
 from . import kinematics
 from . import leg
@@ -13,5 +13,5 @@ from . import signaler
 
 __all__ = [
     'body',
-    'consts', 'controllers', 'joystick', 'kinematics', 'leg', 'log',
+    'consts', 'controller', 'joystick', 'kinematics', 'leg', 'log',
     'remote', 'signaler']

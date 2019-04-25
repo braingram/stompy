@@ -121,6 +121,7 @@ class FakeTeensy(LegController):
     def __init__(self, leg_number):
         super(FakeTeensy, self).__init__(leg_number)
         self._position_noise = 0.05  # in inches
+        self._loaded_height = -40
         self.on('plan', self._new_plan)
 
         self.estop = True
@@ -289,8 +290,10 @@ class FakeTeensy(LegController):
             # raise estop
             self.set_estop(consts.ESTOP_HOLD)
         # fake calf loading
-        zl = max(-45, min(-40, self.xyz['z']))
-        calf = -(zl + 40) * 400
+        zl = max(
+            self._loaded_height - 5, min(
+                self._loaded_height, self.xyz['z']))
+        calf = -(zl - self._loaded_height) * 400
         self.angles.update({
             'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)

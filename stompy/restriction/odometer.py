@@ -12,6 +12,8 @@ from .. import transforms
 class Odometer(signaler.Signaler):
     def __init__(self):
         super(Odometer, self).__init__()
+        self.pose_update_distance = 1.
+        self.max_pose_points = 100.
         self.reset()
 
     def reset(self):
@@ -21,55 +23,43 @@ class Odometer(signaler.Signaler):
         self._rticks = 0.
         self.position = [0., 0., 0.]
         self.angle = 0.
+        self.timestamp = time.time()
         self.poses = []
 
-    def get_path(self, simplify=True, zero=True, max_n=1200):
+    def get_path(self):
+        pose = {
+            'position': self.position[:],
+            'angle': self.angle,
+            'timestamp': self.timestamp,
+        }
+
         # simplify path to only 1 inch apart points
         if len(self.poses) == 0:
-            return []
+            return [pose, ]
 
         # return poses from last to first
-        pts = [self.poses[-1], ]
+        p = self.position
+        a = self.angle
+        dz = p[2]
+        #T = transforms.affine_2d(-p[0], -p[1], -a)
+        T = (
+            transforms.rotation_2d(-a) *
+            transforms.translation_2d(-p[0], -p[1]))
 
-        # if zero
-        if zero:
-            p = pts[0]['position']
-            a = pts[0]['angle']
-            dz = p[2]
-            #T = transforms.affine_2d(-p[0], -p[1], -a)
-            T = (
-                transforms.rotation_2d(-a) *
-                transforms.translation_2d(-p[0], -p[1]))
+        def transform_point(pt, T=T, dz=dz, a=a):
+            x, y = transforms.transform_2d(
+                T,
+                pt['position'][0],
+                pt['position'][1])
+            return {
+                'position': [x, y, pt['position'][2] - dz],
+                'angle': pt['angle'] - a,
+                'timestamp': pt['timestamp'],
+            }
 
-            def transform_point(pt, T=T, dz=dz, a=a):
-                x, y = transforms.transform_2d(
-                    T,
-                    pt['position'][0],
-                    pt['position'][1])
-                return {
-                    'position': [x, y, pt['position'][2] - dz],
-                    'angle': pt['angle'] - a,
-                    'timestamp': pt['timestamp'],
-                }
+        pts = [transform_point(pose), ]
+        pts.extend(transform_point(pt) for pt in self.poses[::-1])
 
-            pts[0] = transform_point(pts[0])
-        else:
-            transform_point = lambda pt: pt
-
-        for pt in self.poses[:-1][::-1]:
-            if len(pts) >= max_n:
-                break
-            pt = transform_point(pt)
-            if not simplify:
-                pts.append(pt)
-                continue
-            # check if pt was > 1 inch from pts[-1]
-            pp = pts[-1]['position']
-            p = pt['position']
-            d = numpy.linalg.norm((
-                p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]))
-            if d >= 1.0:
-                pts.append(pt)
         return pts
 
     def set_target(self, target):
@@ -111,13 +101,26 @@ class Odometer(signaler.Signaler):
         self.position[1] -= sa * pos[0] + ca * pos[1]
         self.position[2] -= self.target.dz * iticks
         self.angle -= iticks * self.target.speed
-
-        self.poses.append({
+        self.timestamp = timestamp
+        self.pose = {
             'angle': self.angle,
             'position': self.position[:],
-            'timestamp': timestamp,
-        })
-        self.trigger('pose', self.poses[-1])
+            'timestamp': self.timestamp,
+        }
+        if len(self.poses) == 0:
+            self.poses.append(self.pose)
+            self.trigger('pose', self.pose)
+        else:
+            # check that pose is > pose_distance
+            pp = self.poses[-1]['position']
+            p = self.pose['position']
+            d = numpy.linalg.norm((
+                p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]))
+            if d >= self.pose_update_distance:
+                self.poses.append(self.pose)
+                self.trigger('pose', self.pose)
+            if len(self.poses) > self.max_pose_points:
+                self.poses = self.poses[-self.max_pose_points:]
 
         # then set new plan
         if target is not None:
