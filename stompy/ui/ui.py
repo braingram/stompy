@@ -28,6 +28,8 @@ else:
 from .. import calibration
 from .. import consts
 from .. import controller
+from .. import joystick
+from .joystick import make_joystick_window
 from .. import log
 from .. import remote
 
@@ -616,6 +618,7 @@ def load_ui(controller=None):
         def update():
             try:
                 controller.update()
+                controller.joy.update()
             except Exception as e:
                 ex_type, ex, tb = sys.exc_info()
                 print("controller update error: %s" % e)
@@ -640,7 +643,24 @@ def start(remote_ui=False):
     else:
         c = remote.agent.RPCAgent(controller.build())
         c.update = c.obj.update
-    run_ui(load_ui(c))
+    ui = load_ui(c)
+    # connect to joystick
+    if joystick.ps3.available():
+        joy = joystick.ps3.PS3Joystick()
+    elif joystick.steel.available():
+        joy = joystick.steel.SteelJoystick()
+    else:
+        joy = joystick.fake.FakeJoystick()
+        c._joy_ui = make_joystick_window(joy)
+    # setup callbacks
+    c.joy = joy
+    joy.on(
+        'buttons',
+        lambda d: [c.call('joy._report_button', n, d[n]) for n in d])
+    joy.on(
+        'axes',
+        lambda d: [c.call('joy._report_axis', n, d[n]) for n in d])
+    run_ui(ui)
 
 
 if __name__ == "__main__":
