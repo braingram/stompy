@@ -70,14 +70,26 @@ class MultiLeg(signaler.Signaler):
         super(MultiLeg, self).__init__()
         self.param = param.Param()
         self.legs = legs
-        if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
-            # all legs are fake
-            # TODO connect up odometer to fake terrain
-            # TODO make fake joystick or plan?
-            # TODO start playback of fake plans?
-            pass
         self.bodies = bodies
         self.res = restriction.body.Body(legs, self.param)
+        if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
+            # all legs are fake
+            self._fake_legs = True
+
+            # TODO make fake joystick or plan?
+            # TODO start playback of fake plans?
+            # allow keyboard input
+
+            # TODO connect up odometer to fake terrain
+            self._terrain = restriction.odometer.FakeTerrain()
+            # connect pose callback
+            
+            def cbf(pose, l=self.legs, t=self._terrain):
+                t.new_pose(pose, l)
+
+            self.res.odo.on('pose', cbf)
+        else:
+            self._fake_legs = False
         self.leg_index = sorted(legs)[0]
         self.leg = self.legs[self.leg_index]
 
@@ -128,7 +140,7 @@ class MultiLeg(signaler.Signaler):
             self.param['res.speed.lower'] = 12
 
             self.set_mode('body_restriction')
-            self.param['res.max_feet_up'] = 1
+            self.param['res.max_feet_up'] = 3
             self.param['res.speed.by_restriction'] = True
 
     def set_speed(self, speed):
@@ -322,15 +334,16 @@ class MultiLeg(signaler.Signaler):
             if self.joy.buttons.get('use_sliders_switch', 0):
                 self._set_height_by_slider()
 
-    def set_target(self):
+    def set_target(self, xyz=None):
         # from joystick
-        xyz = []
-        for axis in ('x', 'y', 'z'):
-            jv = self.joy.axes.get(axis, thumb_mid) - thumb_mid
-            if abs(jv) < thumb_db:
-                jv = 0
-            jv = max(-1., min(1., jv / float(thumb_scale)))
-            xyz.append(jv)
+        if xyz is None:
+            xyz = []
+            for axis in ('x', 'y', 'z'):
+                jv = self.joy.axes.get(axis, thumb_mid) - thumb_mid
+                if abs(jv) < thumb_db:
+                    jv = 0
+                jv = max(-1., min(1., jv / float(thumb_scale)))
+                xyz.append(jv)
         if self.mode == 'leg_pwm':
             if self.leg is None:
                 return
@@ -386,7 +399,10 @@ class MultiLeg(signaler.Signaler):
             }
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_move':
-            if self.joy.buttons.get('sub_mode', 0) == 0:
+            sm = 0
+            if self.joy is not None:
+                sm = self.joy.buttons.get('sub_mode', 0)
+            if sm == 0:
                 speed = self.param['speed.scalar'] * self.param['speed.body']
                 plan = {
                     'mode': consts.PLAN_VELOCITY_MODE,
@@ -414,7 +430,10 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'body_restriction':
             # pass in rx, ly, az
             # also pass in mode for crab walking
-            omni_walk = bool(self.joy.buttons.get('sub_mode', 0))
+            sm = 1
+            if self.joy is not None:
+                sm = self.joy.buttons.get('sub_mode', 0)
+            omni_walk = bool(sm)
             # convert joystick input to a rotation about some point
             # need to calculate
             # - center of rotation (in body coordinates)

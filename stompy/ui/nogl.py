@@ -334,7 +334,7 @@ class LegDisplay(QWidget):
         painter.end()
 
     def keyPressEvent(self, event):
-        print("keyPressEvent: %s" % (event.key(), ))
+        #print("keyPressEvent: %s" % (event.key(), ))
         k = event.key()
         if k == QtCore.Qt.Key_T:
             self.set_view('top')

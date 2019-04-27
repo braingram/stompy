@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+import os
 import time
 
 import numpy
+import pylab
 
 from .. import consts
+from .. import kinematics
 from .. import signaler
 from .. import transforms
 
@@ -13,7 +16,7 @@ class Odometer(signaler.Signaler):
     def __init__(self):
         super(Odometer, self).__init__()
         self.pose_update_distance = 1.
-        self.max_pose_points = 100.
+        self.max_pose_points = 100
         self.reset()
 
     def reset(self):
@@ -109,7 +112,6 @@ class Odometer(signaler.Signaler):
         }
         if len(self.poses) == 0:
             self.poses.append(self.pose)
-            self.trigger('pose', self.pose)
         else:
             # check that pose is > pose_distance
             pp = self.poses[-1]['position']
@@ -118,10 +120,71 @@ class Odometer(signaler.Signaler):
                 p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]))
             if d >= self.pose_update_distance:
                 self.poses.append(self.pose)
-                self.trigger('pose', self.pose)
             if len(self.poses) > self.max_pose_points:
                 self.poses = self.poses[-self.max_pose_points:]
+        self.trigger('pose', self.pose)
 
         # then set new plan
         if target is not None:
             self.set_target(target)
+
+
+
+class FakeTerrain(signaler.Signaler):
+    """
+    Load image that is terrain
+    Take in pose (position and angle)
+    Compute foot positions (as pixel coordinates)
+    Update fake feet lower heights
+    """
+    def __init__(self, fn=None):
+        if fn is None:
+            fn = '~/.stompy/terrain.png'
+        self.load_image(fn)
+
+    def load_image(self, fn, hf=None):
+        fn = os.path.realpath(os.path.expanduser(fn))
+        if not os.path.exists(fn):
+            self.im = None
+        self.im = pylab.imread(fn)
+        if self.im.ndim == 3:
+            self.im = numpy.mean(self.im, axis=2)
+        self._im_center = (
+            self.im.shape[0] / 2,
+            self.im.shape[0] / 2,
+        )
+        if hf is None:
+            hf = lambda v: -(40 + 20. * v)
+        self.hf = hf
+
+    def new_pose(self, pose, legs):
+        if self.im is None:
+            return
+        # compute foot positions in pixel coordinates from pose
+        T = (
+            transforms.rotation_2d(pose['angle']) *
+            transforms.translation_2d(
+                pose['position'][0], pose['position'][1]))
+        # update legs with heights computed from pixels
+        for ln in legs:
+            leg = legs[ln]
+            if not hasattr(leg, '_loaded_height'):
+                # only works for fake legs
+                continue
+            # convert to body coodrinates
+            bxyz = kinematics.body.leg_to_body(
+                ln, leg.xyz['x'], leg.xyz['y'], leg.xyz['z'])
+            # convert to 'global' coordinates
+            x, y = transforms.transform_2d(T, bxyz[0], bxyz[1])
+            # offset by pixel center
+            ix = min(
+                self.im.shape[1] - 1, max(
+                    0, int(numpy.round(x + self._im_center[0]))))
+            iy = min(
+                self.im.shape[0] - 1, max(
+                    0, int(numpy.round(y + self._im_center[1]))))
+            v = self.im[iy, ix]
+            # update height at which leg becomes loaded including pose z
+            leg._loaded_height = self.hf(v) - pose['position'][2]
+            #if ln == 1:
+            #    print('terrain:', ix, iy, v, leg._loaded_height)

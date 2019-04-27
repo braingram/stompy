@@ -453,6 +453,30 @@ def load_ui(controller=None):
     ui._calibrationMenu_actions.append(a)
     ui.calibrationMenu.addAction(a)
     if controller is not None:
+        if controller.get('_fake_legs'):
+            # TODO might be easier/cleaner to fake a joystick
+            # this code is dangerous as it disables the estops
+            #controller.set('deadman', True)
+            #controller.call('all_legs', 'set_estop', 0)
+
+            def key_press(e):
+                print("key_pressed: %s" % (e, ))
+                #if e.modifiers() & QtCore.Qt.ShiftModifier:
+                #    print(" shift down!")
+                k = e.key()
+                print(" key: %s" % (k, ))
+                if k == QtCore.Qt.Key_Up:
+                    # send forward plan
+                    controller.call('set_target', [0., 1., 0.])
+                elif k == QtCore.Qt.Key_Down:
+                    # send backward plan
+                    controller.call('set_target', [0., -1., 0.])
+                # TODO turning
+                elif k == QtCore.Qt.Key_Escape:
+                    # send 0 plan
+                    controller.call('set_target', [0., 0., 0.])
+
+            MainWindow.keyPressEvent = key_press
         a = QAction("Zero calf", ui.calibrationMenu)
         a.triggered.connect(
             lambda a: controller.call('leg.compute_calf_zero'))
