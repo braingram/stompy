@@ -3,10 +3,10 @@
 import os
 import select
 import struct
-import threading
 import time
 
 from . import base
+from .. import consts
 from .. import signaler
 
 
@@ -166,7 +166,7 @@ class PS3Joystick(base.Joystick):
             fn = DEFAULT_FN
         self.fn = fn
         #self.f = open(fn, 'rb+')
-        self.f = open(fn, 'rb')
+        self.f = open(fn, 'rb', 0)
         #self.keys = {}
         #self.axes = {}
         #self.report_ev_types = set((0x01, 0x03))
@@ -190,7 +190,6 @@ class PS3Joystick(base.Joystick):
     def read_event(self):
         t_sec, t_usec, ev_type, code, value = struct.unpack(
             FMT, self.f.read(NB))
-
         e = {
             'ev_type': ev_type,
             'code': code,
@@ -217,30 +216,24 @@ class PS3Joystick(base.Joystick):
             if len(rf) == 0:
                 break
             e = self.read_event()
+            evs.append(e)
             #if e['ev_type'] in self.report_ev_types:
             #    evs.append(e)
             #    self.trigger('event', e)
             #    if 'type' in e:
             #        self.trigger(e['type'], e)
+        if time.time() - self._last_deadman > consts.HEARTBEAT_PERIOD:
+            if self.buttons.get('deadman', 0):
+                self._report_button('deadman', 1)
         super(PS3Joystick, self).update()
         return evs
-
-    def _update_thread_function(self):
-        while True:
-            self.update(poll=True)
-            time.sleep(THREAD_SLEEP)
-
-    def start_update_thread(self):
-        self._update_thread = threading.Thread(
-            target=self._update_thread_function)
-        self._update_thread.daemon = True
-        self._update_thread.start()
 
 
 def test_read_axes():
     ignore = {
         0x00: True,
-        0x01: True,
+        #0x01: True,
+        0x02: True,
         0x03: True,
         #0x03: {
         #    0x3b: True,
@@ -256,7 +249,7 @@ def test_read_axes():
 
     axes = {}
 
-    with open(DEFAULT_FN, 'rb') as f:
+    with open(DEFAULT_FN, 'rb', 0) as f:
         while True:
             try:
                 # rf, _, _ = select.select([f, ], [], [], 0.001)

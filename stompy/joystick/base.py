@@ -65,5 +65,7 @@ class Joystick(signaler.Signaler):
     def update(self):
         # if we haven't heard from the deadman, set it to 0
         if time.time() - self._last_deadman > consts.HEARTBEAT_TIMEOUT:
+            if self.buttons.get('deadman', 0):
+                print("deadman timed out")
             self._report_button('deadman', 0)
         self._check_report()
