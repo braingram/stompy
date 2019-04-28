@@ -146,6 +146,7 @@ class FakeTerrain(signaler.Signaler):
         fn = os.path.realpath(os.path.expanduser(fn))
         if not os.path.exists(fn):
             self.im = None
+            return
         self.im = pylab.imread(fn)
         if self.im.ndim == 3:
             self.im = numpy.mean(self.im, axis=2)
