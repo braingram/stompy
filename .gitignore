@@ -2,3 +2,4 @@
 MANIFEST.in
 *.egg-info
 *.swp
+*.pyc

@@ -29,6 +29,7 @@ from . import joystick
 from . import leg
 from . import log
 from . import param
+from . import playback
 from . import restriction
 from . import signaler
 
@@ -62,6 +63,7 @@ class MultiLeg(signaler.Signaler):
         #'leg_restriction',
         'body_move',
         'sit_stand',
+        'playback',
         #'body_position_legs',
         'body_restriction',
     ]
@@ -94,6 +96,8 @@ class MultiLeg(signaler.Signaler):
         self.leg = self.legs[self.leg_index]
 
         self.mode = 'sit_stand'
+
+        self.playback = None
 
         # if a foot gets within this distance of leg 0, throw an estop
         self.param['min_hip_distance'] = 25.0
@@ -206,6 +210,12 @@ class MultiLeg(signaler.Signaler):
             self.all_legs('enable_pid', False)
         else:
             self.all_legs('stop')
+        if self.mode == 'playback':
+            # load playback filename
+            #self.playback = playback.load_playback(
+            #    self.param.get('playback_filename', None))
+            if self._fake_legs:
+                self.playback = playback.make_leg_wiggle_playback()
 
     def all_legs(self, cmd, *args, **kwargs):
         log.info({"all_legs": (cmd, args, kwargs)})
@@ -464,7 +474,9 @@ class MultiLeg(signaler.Signaler):
     def update(self):
         self.joy.update()
         self.all_legs('update')
-        if self.mode in ('body_move', 'body_restriction'):
+        if self.mode == 'playback' and self.playback is not None:
+            self.playback.update(self)
+        if self.mode in ('body_move', 'body_restriction', 'playback'):
             if self.param['min_hip_override']:
                 # check if override should be turned off
                 disable_override = True

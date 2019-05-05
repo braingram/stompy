@@ -462,11 +462,11 @@ def load_ui(controller=None):
             #controller.call('all_legs', 'set_estop', 0)
 
             def key_press(e):
-                print("key_pressed: %s" % (e, ))
+                #print("key_pressed: %s" % (e, ))
                 #if e.modifiers() & QtCore.Qt.ShiftModifier:
                 #    print(" shift down!")
                 k = e.key()
-                print(" key: %s" % (k, ))
+                #print(" key: %s" % (k, ))
                 if k == QtCore.Qt.Key_Up:
                     # send forward plan
                     controller.call('set_target', [0., 1., 0.])

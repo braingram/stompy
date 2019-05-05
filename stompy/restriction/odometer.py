@@ -155,8 +155,8 @@ class FakeTerrain(signaler.Signaler):
             self.im.shape[0] / 2,
         )
         if hf is None:
-            hf = lambda v: -(40 + 20. * v)
-            #hf = lambda v: -(20 + 60. * v)
+            #hf = lambda v: -(40 + 20. * v)
+            hf = lambda v: -(20 + 60. * v)
         self.hf = hf
 
     def new_pose(self, pose, legs):
