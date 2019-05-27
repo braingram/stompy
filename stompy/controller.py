@@ -476,11 +476,10 @@ class MultiLeg(signaler.Signaler):
         self.all_legs('update')
         if self.mode == 'playback' and self.playback is not None:
             self.playback.update(self)
-        if self.mode in ('body_move', 'body_restriction', 'playback'):
+        elif self.mode in ('body_move', 'body_restriction', 'playback'):
             if self.param['min_hip_override']:
                 # check if override should be turned off
                 disable_override = True
-                threshold = self.min_hip_distance * 1.5
                 threshold = self.param['min_hip_distance'] * 1.5
                 for l in self.legs:
                     if self.legs[l].xyz.get('x', 0) < threshold:

@@ -70,6 +70,11 @@ from . import leg
 from . import signaler
 
 
+# if thrown in an action, causes entire playback to stop
+class AbortError(Exception):
+    pass
+
+
 class Action(object):
     next_id = 0
 
@@ -121,8 +126,7 @@ class Action(object):
         return True
 
 
-class Playback(signaler.Signaler):
-    #def __init__(self, filename, controller):
+class Sequence(object):
     def __init__(self, current, actions):
         #self.actions = {}  # actions by ids
         #self.current = {}  # current actions
@@ -155,9 +159,10 @@ class Playback(signaler.Signaler):
             self.running = False
 
         if not self.running:
-            return
+            return False
 
         # check if current plans are done
+        all_none = True
         for ln in controller.legs:
             c = self.current.get(ln, None)
             #if c is None:  # if plan is None, do nothing
@@ -165,6 +170,7 @@ class Playback(signaler.Signaler):
             #    pass
             #else:
             if c is not None:
+                all_none = False
                 if (
                         not c.running and
                         c.should_start(controller, self)):
@@ -188,6 +194,27 @@ class Playback(signaler.Signaler):
                             c.start(controller.legs[ln])
                         self.current[ln] = c
 
+        # if all plans are done (all current are None), go to next playback
+        return all_none
+
+
+class Playback(object):
+    def __init__(self, sequences):
+        self.sequences = sequences
+        self.aborted = False
+
+    def update(self, controller):
+        if self.aborted or len(self.sequences) == 0:
+            return
+        try:
+            r = self.sequences[0].update(controller)
+        except AbortError:
+            self.aborted = True
+            controller.stop()
+            return
+        if r:
+            self.sequences.pop(0)
+
 
 def make_leg_wiggle_playback():
     current = {
@@ -210,6 +237,82 @@ def make_leg_wiggle_playback():
     def above_z(xyz, z):
         # print(xyz)
         return xyz['z'] > z
+
+    actions = {
+        1: Action(  # lift
+            plan={
+                'mode': consts.PLAN_VELOCITY_MODE,
+                'frame': consts.PLAN_LEG_FRAME,
+                'linear': [0, 0, 1],
+                'speed': 3
+            },
+            state_id=1,
+            should_start=True,
+            should_stop=lambda c, p: above_z(c.legs[6].xyz, 0),
+            next_action=2,
+        ),
+        2: Action(  # move to x 70 y 0, z 0
+            plan={
+                'mode': consts.PLAN_TARGET_MODE,
+                'frame': consts.PLAN_LEG_FRAME,
+                'linear': [70, 0, 0],
+                'speed': 3,
+            },
+            state_id=2,
+            should_start=True,
+            should_stop=lambda c, p: close_enough(c.legs[6].xyz, [70, 0, 0], 1),
+            next_action=3,
+        ),
+        3: Action(  # move to x 90 y 0 z 0
+            plan={
+                'mode': consts.PLAN_TARGET_MODE,
+                'frame': consts.PLAN_LEG_FRAME,
+                'linear': [90, 0, 0],
+                'speed': 3,
+            },
+            state_id=3,
+            should_start=True,
+            should_stop=lambda c, p: close_enough(c.legs[6].xyz, [90, 0, 0], 1),
+            next_action=None,
+        ),
+    }
+    return Playback([Sequence(current, actions), ])
+
+
+def make_rear_playback():
+    # state ids are 'namespaced' by leg number * 100
+    # leg 1 states all start with 100, etc...
+    current = {
+        i: Action(
+            plan=None,
+            state_id=i*100,
+            should_start=True,
+            should_stop=True,
+            next_action=1,
+        ) for i in range(1, 7)}
+
+    def close_enough(xyz, target, margin):
+        return abs(
+            numpy.linalg.norm(
+                numpy.array([xyz['x'], xyz['y'], xyz['z']]) -
+                numpy.array(target))) < margin
+
+    def above_z(xyz, z):
+        return xyz['z'] > z
+
+    # from leg 1 to leg 6
+    # - lift leg until loaded less than N
+    # - lift N more inches
+    # - move to target x, y
+    # - lower until loaded more than N
+    # TODO level legs?
+    # lift body by moving simultaneously down with all legs
+    # pitch nose up by N degrees
+    # lift front two legs until unloaded
+    # lift front two legs N more inches
+    # move front two legs around
+    # lower front two legs until loaded
+    # unpitch body
 
     actions = {
         1: Action(  # lift

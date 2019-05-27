@@ -195,11 +195,14 @@ class Foot(signaler.Signaler):
                 speed=0)
         elif self.state == 'swing':
             z = self.unloaded_height + self.param['res.lift_height']
+            min_hip_distance = (
+                    self.param['min_hip_distance'] +
+                    self.param['res.min_hip_buffer'])
             if self.swing_info is None:  # assume target of 0, 0
                 sp = calculate_translation_swing_target(
                     0, 0, self.param['res.lower_height'],
                     self.leg.leg_number, None, 0.,
-                    min_hip_distance=self.param['res.min_hip_distance'],
+                    min_hip_distance=min_hip_distance,
                     target_calf_angle=self.param['res.target_calf_angle'],
                     max_calf_angle=self.param['res.max_calf_angle'])
             elif len(self.swing_info) == 3:  # rotation
@@ -207,7 +210,7 @@ class Foot(signaler.Signaler):
                 sp = calculate_swing_target(
                     rx, ry, self.param['res.lower_height'],
                     self.leg.leg_number, rspeed, self.param['res.step_ratio'],
-                    min_hip_distance=self.param['res.min_hip_distance'],
+                    min_hip_distance=min_hip_distance,
                     target_calf_angle=self.param['res.target_calf_angle'],
                     max_calf_angle=self.param['res.max_calf_angle'])
             else:  # translation
@@ -215,7 +218,7 @@ class Foot(signaler.Signaler):
                 sp = calculate_translation_swing_target(
                     lx, ly, self.param['res.lower_height'],
                     self.leg.leg_number, None, self.param['res.step_ratio'],
-                    min_hip_distance=self.param['res.min_hip_distance'],
+                    min_hip_distance=min_hip_distance,
                     target_calf_angle=self.param['res.target_calf_angle'],
                     max_calf_angle=self.param['res.max_calf_angle'])
             self.swing_target = sp[0], sp[1]

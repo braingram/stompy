@@ -31,6 +31,7 @@ parameters = {
     'dr_smooth': 0.5,
     'eps': 1.0,
     'calf_eps': 3.0,
+    'hip_eps': 3.0,
     'max_calf_angle': numpy.radians(30),
     'lift_height': 8.0,
     'lower_height': -40.0,
@@ -41,7 +42,8 @@ parameters = {
     'loaded_weight': 400.,
     'swing_slop': 5.0,
     'step_ratio': 0.4,
-    'min_hip_distance': 25.0,
+    #'min_hip_distance': 35.0,
+    'min_hip_buffer': 5.0,
     'target_calf_angle': 0.0,
 }
 
