@@ -198,29 +198,31 @@ class Foot(signaler.Signaler):
             min_hip_distance = (
                     self.param['min_hip_distance'] +
                     self.param['res.min_hip_buffer'])
+            tcar = numpy.radians(self.param['res.target_calf_angle'])
+            mcar = numpy.radians(self.param['res.max_calf_angle'])
             if self.swing_info is None:  # assume target of 0, 0
                 sp = calculate_translation_swing_target(
                     0, 0, self.param['res.lower_height'],
                     self.leg.leg_number, None, 0.,
                     min_hip_distance=min_hip_distance,
-                    target_calf_angle=self.param['res.target_calf_angle'],
-                    max_calf_angle=self.param['res.max_calf_angle'])
+                    target_calf_angle=tcar,
+                    max_calf_angle=mcar)
             elif len(self.swing_info) == 3:  # rotation
                 rx, ry, rspeed = self.swing_info
                 sp = calculate_swing_target(
                     rx, ry, self.param['res.lower_height'],
                     self.leg.leg_number, rspeed, self.param['res.step_ratio'],
                     min_hip_distance=min_hip_distance,
-                    target_calf_angle=self.param['res.target_calf_angle'],
-                    max_calf_angle=self.param['res.max_calf_angle'])
+                    target_calf_angle=tcar,
+                    max_calf_angle=mcar)
             else:  # translation
                 lx, ly = self.swing_info
                 sp = calculate_translation_swing_target(
                     lx, ly, self.param['res.lower_height'],
                     self.leg.leg_number, None, self.param['res.step_ratio'],
                     min_hip_distance=min_hip_distance,
-                    target_calf_angle=self.param['res.target_calf_angle'],
-                    max_calf_angle=self.param['res.max_calf_angle'])
+                    target_calf_angle=tcar,
+                    max_calf_angle=mcar)
             self.swing_target = sp[0], sp[1]
             # print(self.swing_target, z)
             # TODO check if point is valid
@@ -284,9 +286,10 @@ class Foot(signaler.Signaler):
             - idr: slope of restriction change from last to new value
             - dr: smoothed idr
         """
+        mcar = numpy.radians(self.param['res.max_calf_angle'])
         r = calculate_restriction(
             xyz, angles, self.limits, self.param['res.eps'],
-            self.param['res.calf_eps'], self.param['res.max_calf_angle'])
+            self.param['res.calf_eps'], mcar)
         # TODO use calf angle
         # add in the 'manual' restriction modifier (set from ui/controller)
         r += self.restriction_modifier

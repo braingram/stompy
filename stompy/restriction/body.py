@@ -32,7 +32,9 @@ parameters = {
     'eps': 1.0,
     'calf_eps': 3.0,
     'hip_eps': 3.0,
-    'max_calf_angle': numpy.radians(30),
+    #'max_calf_angle': numpy.radians(30),
+    'max_calf_angle': 30,
+    'target_calf_angle': 10.0,
     'lift_height': 8.0,
     'lower_height': -40.0,
     'set_height_on_mode_select': True,
@@ -44,7 +46,6 @@ parameters = {
     'step_ratio': 0.4,
     #'min_hip_distance': 35.0,
     'min_hip_buffer': 5.0,
-    'target_calf_angle': 0.0,
 }
 
 parameter_metas = {
