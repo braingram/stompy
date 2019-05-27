@@ -114,7 +114,9 @@ def calculate_translation_swing_target(
 
 
 def calculate_restriction(
-        xyz, angles, limits, limit_eps, calf_eps, max_calf_angle):
+        xyz, angles, limits, limit_eps, calf_eps, max_calf_angle,
+        min_hip_distance, min_hip_eps):
+    # TODO log individual restriction values?
     # use angle limits to compute restriction
     r = 0
     for j in ('hip', 'thigh', 'knee'):
@@ -135,8 +137,12 @@ def calculate_restriction(
     if calf_eps > 0.001:
         ca = abs(kinematics.leg.angles_to_calf_angle(
             angles['hip'], angles['thigh'], angles['knee']))
-        r = max(min(1.0, numpy.exp(
-            calf_eps * ((ca - max_calf_angle) / max_calf_angle))), r)
+        cr = numpy.exp(calf_eps * ((ca - max_calf_angle) / max_calf_angle))
+        r = max(min(1.0, cr), r)
+    if min_hip_eps > 0.001:
+        hr = numpy.exp(
+            min_hip_eps * ((min_hip_distance - xyz['x']) / min_hip_distance))
+        r = max(min(1.0, hr), r)
     return r
 
 
@@ -287,10 +293,13 @@ class Foot(signaler.Signaler):
             - dr: smoothed idr
         """
         mcar = numpy.radians(self.param['res.max_calf_angle'])
+        min_hip_distance = (
+            self.param['min_hip_distance'] +
+            self.param['res.min_hip_buffer'])
         r = calculate_restriction(
             xyz, angles, self.limits, self.param['res.eps'],
-            self.param['res.calf_eps'], mcar)
-        # TODO use calf angle
+            self.param['res.calf_eps'], mcar,
+            min_hip_distance, self.param['res.min_hip_eps'])
         # add in the 'manual' restriction modifier (set from ui/controller)
         r += self.restriction_modifier
         if self.restriction is not None:

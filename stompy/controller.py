@@ -100,7 +100,7 @@ class MultiLeg(signaler.Signaler):
         self.playback = None
 
         # if a foot gets within this distance of leg 0, throw an estop
-        self.param['min_hip_distance'] = 25.0
+        self.param['min_hip_distance'] = 30.0
         self.param['prevent_leg_xy_when_loaded'] = True
         self.param['min_hip_override'] = False
         # TODO clean these up to use as few speeds as possible

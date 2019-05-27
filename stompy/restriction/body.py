@@ -31,7 +31,7 @@ parameters = {
     'dr_smooth': 0.5,
     'eps': 1.0,
     'calf_eps': 3.0,
-    'hip_eps': 3.0,
+    'min_hip_eps': 3.0,
     #'max_calf_angle': numpy.radians(30),
     'max_calf_angle': 30,
     'target_calf_angle': 10.0,
