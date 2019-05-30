@@ -100,8 +100,8 @@ class TeensyBody(BodyController):
             self.cmd, base_cmds)
         self._text = pycomando.protocols.text.TextProtocol()
 
-        name = names[mgr.blocking_trigger('name')[0].value]
-        super(TeensyBody, self).__init__(name)
+        self.name = names[mgr.blocking_trigger('name')[0].value]
+        super(TeensyBody, self).__init__(self.name)
 
         self._last_hb = time.time()
         mgr.trigger('heartbeat')
@@ -109,9 +109,9 @@ class TeensyBody(BodyController):
         # clear callbacks, register name specific commands
         self.cmd.callbacks = {}
         self.mgr = pycomando.protocols.command.EventManager(
-            self.cmd, cmds[name])
+            self.cmd, cmds[self.name])
 
-        def print_text(txt, n=name):
+        def print_text(txt, n=self.name):
             print("DEBUG[body.%s]:%s" % (n, txt))
 
         self._text.register_callback(print_text)
@@ -131,13 +131,15 @@ class TeensyBody(BodyController):
                 self.trigger(cbn, *vs)
             return cb
 
-        r = reports.get(name, {})
+        r = reports.get(self.name, {})
         for k in r:
             self.mgr.on(k, make_callback(k))
             # setup reporting periods
             self.mgr.trigger(k, r[k])
 
     def __del__(self):
+        if not hasattr(self, 'name'):
+            return
         # disable reports
         r = reports.get(self.name, {})
         #print("body disabling reports")

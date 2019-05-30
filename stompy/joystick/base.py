@@ -50,6 +50,7 @@ class Joystick(signaler.Signaler):
         self._check_report()
 
     def _report_button(self, button, value):
+        #print(button, value)
         self._update['buttons'][button] = value
         self.buttons[button] = value
         if button == 'deadman':

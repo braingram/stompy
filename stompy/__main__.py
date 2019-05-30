@@ -54,4 +54,4 @@ elif args.command == 'remote':
     remote.serve.serve()
 elif args.command == 'remote_ui':
     print("Starting stompy remote ui")
-    ui.start()
+    ui.start(True)

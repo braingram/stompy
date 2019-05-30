@@ -43,18 +43,21 @@ class ObjectHandler(WebSocketHandler):
     def on_message(self, message):
         # decode message, handle response
         msg = json.loads(message)
+        #print("received:", msg)
         protocol.validate_message(msg)
         if msg['type'] == 'get':
+            #print("get:", msg)
             return self.make_result(self.agent.get(msg['name']), msg)
         elif msg['type'] == 'set':
             self.agent.set(msg['name'], msg['value'])
         elif msg['type'] == 'call':
-            return self.make_result(
+            r = self.make_result(
                 self.agent.call(
                     msg['name'],
                     *msg.get('args', []),
                     **msg.get('kwargs', {})),
                 msg)
+            return r
         elif msg['type'] == 'signal':
             if msg['method'] == 'on':
                 def w(m=msg, s=self, a=self.agent):
@@ -107,7 +110,8 @@ class ObjectHandler(WebSocketHandler):
             'result': result,
             'id': message['id']
         }
-        self.send(json.dumps(rmsg))
+        #print("result:", rmsg)
+        self.send(agent.dumps(rmsg))
 
     def send(self, message):
         # do actual writing in the ioloop

@@ -1,6 +1,21 @@
 #!/usr/bin/env python
 
+import json
+
 from .. import signaler
+
+
+dkeys = {}.keys().__class__
+
+
+class RemoteMessageEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, dkeys):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
+dumps = lambda i: json.dumps(i, cls=RemoteMessageEncoder)
 
 
 def resolve_obj(obj, name):
@@ -96,3 +111,6 @@ class RPCAgent(signaler.Signaler):
         else:
             f = obj[key]
         return f(*args, **kwargs)
+
+    def no_return_call(self, name, *args, **kwargs):
+        self.call(name, *args, **kwargs)

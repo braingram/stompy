@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 try:
     from PyQt5 import QtCore, QtGui
     from PyQt5.QtWidgets import (
@@ -35,6 +37,7 @@ class FakeJoystickUI(QWidget):
         del self.timer
 
     def send_deadman(self):
+        #print("sending deadman:", time.time())
         self.joy._report_button('deadman', self.deadman)
 
     def send_target(self):
@@ -62,7 +65,7 @@ class FakeJoystickUI(QWidget):
     def keyPressEvent(self, event):
         k = event.key()
         if k == QtCore.Qt.Key_Shift:
-            print("set deadman")
+            #print("set deadman")
             self.deadman = 1
             self.send_deadman()
             self.send_target()
@@ -70,7 +73,7 @@ class FakeJoystickUI(QWidget):
     def keyReleaseEvent(self, event):
         k = event.key()
         if k == QtCore.Qt.Key_Shift:
-            print("release deadman")
+            #print("release deadman")
             self.deadman = 0
             self.send_deadman()
 

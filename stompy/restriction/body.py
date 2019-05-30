@@ -104,6 +104,7 @@ class Body(signaler.Signaler):
             self.feet[i] = leg.Foot(self.legs[i], self.param)
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
+        print("Feet:", self.feet)
         self.disable()
 
     def enable(self, foot_states):

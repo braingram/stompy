@@ -232,7 +232,7 @@ class PIDTab(Tab):
                     'dither',
                     (int(v['time']), int(v['amp']))))
 
-        self.controller.call('leg.configure', settings)
+        self.controller.no_return_call('leg.configure', settings)
         self.read_joint_config()
 
     def clear_pid_values(self):
@@ -390,17 +390,18 @@ class BodyTab(Tab):
             self.display.support_legs = []
 
     def on_res_state(self, state, leg_number):
-        self._update_support_legs()
         # TODO throttle path updates
         if not hasattr(self, '_path_update'):
             self._path_update = time.time()
         if (time.time() - self._path_update) > 5.0:
+            self._update_support_legs()
             self._path_update = time.time()
             self.display.path = [
                 p['position'] for p in
                 self.controller.call('res.odo.get_path')]
 
     def _update_support_legs(self):
+        return  # TODO move this to the backend
         # draw polygon between supported legs
         lns = sorted(self.controller.call('res.feet.keys'))
         support_legs = []
@@ -469,19 +470,19 @@ def load_ui(controller=None):
                 #print(" key: %s" % (k, ))
                 if k == QtCore.Qt.Key_Up:
                     # send forward plan
-                    controller.call('set_target', [0., 1., 0.])
+                    controller.no_return_call('set_target', [0., 1., 0.])
                 elif k == QtCore.Qt.Key_Down:
                     # send backward plan
-                    controller.call('set_target', [0., -1., 0.])
+                    controller.no_return_call('set_target', [0., -1., 0.])
                 # TODO turning
                 elif k == QtCore.Qt.Key_Escape:
                     # send 0 plan
-                    controller.call('set_target', [0., 0., 0.])
+                    controller.no_return_call('set_target', [0., 0., 0.])
 
             MainWindow.keyPressEvent = key_press
         a = QAction("Zero calf", ui.calibrationMenu)
         a.triggered.connect(
-            lambda a: controller.call('leg.compute_calf_zero'))
+            lambda a: controller.no_return_call('leg.compute_calf_zero'))
         ui._calibrationMenu_actions.append(a)
         ui.calibrationMenu.addAction(a)
 
@@ -490,14 +491,14 @@ def load_ui(controller=None):
             a = QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
             a.triggered.connect(
-                lambda a, i=leg: controller.call('set_leg', i))
+                lambda a, i=leg: controller.no_return_call('set_leg', i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
         ui._modesMenu_actions = []
         for mode in controller.get('modes'):
             a = QAction(mode, ui.modesMenu)
             a.triggered.connect(
-                lambda a, m=mode: controller.call('set_mode', m))
+                lambda a, m=mode: controller.no_return_call('set_mode', m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
         ui.modesMenu.setTitle("Mode: %s" % controller.get('mode'))
@@ -572,7 +573,7 @@ def load_ui(controller=None):
             a.triggered.connect(
                 (
                     lambda value, n=name:
-                    controller.call('param.set_param', n, value)))
+                    controller.no_return_call('param.set_param', n, value)))
             controller.on(
                 'param', name, lambda nv, action=a: action.setChecked(nv))
         else:
@@ -660,6 +661,12 @@ def start(remote_ui=False):
     joy.on(
         'axes',
         lambda d: [c.call('joy._report_axis', n, d[n]) for n in d])
+    #joy.on(
+    #    'buttons',
+    #    lambda d: c.no_return_call('joy.trigger', 'buttons', d))
+    #joy.on(
+    #    'axes',
+    #    lambda d: c.no_return_call('joy.trigger', 'axes', d))
     run_ui(ui)
 
 

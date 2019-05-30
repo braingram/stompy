@@ -7,6 +7,7 @@ import time
 
 import websocket
 
+from . import agent
 from . import protocol
 from .. import signaler
 
@@ -55,7 +56,8 @@ class RPCClient(signaler.Signaler):
                 super(RPCClient, self).remove_on(
                     message['id'], message['function'])
             del message['function']
-        self._ws.send(json.dumps(message))
+        #print("send:", message)
+        self._ws.send(agent.dumps(message))
         if (
                 message['type'] in ('get', 'getitem', 'call') and
                 not message.get('nonblock', False)):
@@ -65,23 +67,30 @@ class RPCClient(signaler.Signaler):
         return len(select.select(
             [self._ws.sock, ], [], [], self._receive_timeout)[0])
 
-    def _recv_result(self, wait_for_id=None):
+    def _read_next_message(self):
         if self._in_waiting():
             msg = json.loads(self._ws.recv())
+            #print("receive_result:", msg)
             # call any callbacks for this msg
             if msg['id'] in self._callbacks:
                 super(RPCClient, self).trigger(msg['id'], *msg['result'])
         else:
             msg = None
-        if wait_for_id is not None:
-            if msg is None or not 'id' in msg:
-                return self._recv_result()
-            return msg['result']
+        return msg
+
+    def _recv_result(self, wait_for_id):
+        msg = None
+        t0 = time.time()
+        #print("Start waiting[", t0, "]:", wait_for_id)
+        while msg is None or msg['id'] != wait_for_id:
+            msg = self._read_next_message()
+        #print("Done waiting[", time.time() - t0, "]:", msg)
+        return msg['result']
 
     def update(self, max_time=0.1):
         t0 = time.time()
         while time.time() - t0 < max_time and self._in_waiting():
-            self._recv_result()
+            self._read_next_message()
 
     def on(self, obj, key, function):
         if obj is None:
@@ -115,6 +124,14 @@ class RPCClient(signaler.Signaler):
 
     def call(self, name, *args, **kwargs):
         kw = {'type': 'call', 'name': name}
+        if len(args):
+            kw['args'] = args
+        if len(kwargs):
+            kw['kwargs'] = kwargs
+        return self.send(**kw)
+
+    def no_return_call(self, name, *args, **kwargs):
+        kw = {'type': 'call', 'name': name, 'nonblock': True}
         if len(args):
             kw['args'] = args
         if len(kwargs):
