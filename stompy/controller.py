@@ -106,8 +106,8 @@ class MultiLeg(signaler.Signaler):
         # TODO clean these up to use as few speeds as possible
         self.param['speed.raw'] = 0.5
         self.param['speed.sensor'] = 1200
-        self.param['speed.leg'] = 3.0
-        self.param['speed.body'] = 3.0
+        self.param['speed.leg'] = 6.0
+        self.param['speed.body'] = 6.0
         self.param['speed.body_angular'] = 0.05
         self.param['speed.scalar'] = 1.0
         self.param.set_meta('speed.scalar', min=0.1, max=2.0, decimals=1)

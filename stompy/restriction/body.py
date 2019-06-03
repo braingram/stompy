@@ -18,10 +18,10 @@ from .. import signaler
 
 
 parameters = {
-    'speed.stance': 8,
-    'speed.lift': 8.,
-    'speed.lower': 8.,
-    'speed.swing': 12.,
+    'speed.stance': 5.,
+    'speed.lift': 6.,
+    'speed.lower': 6.,
+    'speed.swing': 8.,
     'speed.angular': 0.05,
     'speed.by_restriction': False,
     'r_thresh': 0.3,
@@ -35,7 +35,7 @@ parameters = {
     #'max_calf_angle': numpy.radians(30),
     'max_calf_angle': 30,
     'target_calf_angle': 10.0,
-    'lift_height': 8.0,
+    'lift_height': 12.0,
     'lower_height': -40.0,
     'set_height_on_mode_select': True,
     'min_lower_height': -70,
@@ -43,7 +43,8 @@ parameters = {
     'unloaded_weight': 600.,
     'loaded_weight': 400.,
     'swing_slop': 5.0,
-    'step_ratio': 0.4,
+    #'step_ratio': 0.4,
+    'step_ratio': 0.2,
     #'min_hip_distance': 35.0,
     'min_hip_buffer': 5.0,
 }
