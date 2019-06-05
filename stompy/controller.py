@@ -167,11 +167,13 @@ class MultiLeg(signaler.Signaler):
 
     def on_leg_xyz(self, xyz, leg_number):
         # find lowest 3 legs (most negative)
-        self.height = -numpy.mean(
-            sorted([
-                self.legs[i].xyz.get('z', numpy.nan) for i in self.legs])[:3])
+        lzs = {
+            l: self.legs[l].xyz.get('z', numpy.nan) for l in self.legs}
+	legs_by_height = sorted(lzs.keys(), key=lambda l: lzs[l])
+        self.height = -numpy.mean(sorted(lzs.values())[:3])
         # TODO limit this to only every N updates?
         self.trigger('height', self.height)
+        # TODO compute support triangle, body level, COM, etc
 
     def stop(self):
         log.info({"stop": []})
