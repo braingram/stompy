@@ -26,6 +26,7 @@ import numpy
 from . import body
 from . import consts
 from . import joystick
+from . import kinematics
 from . import leg
 from . import log
 from . import param
@@ -169,11 +170,28 @@ class MultiLeg(signaler.Signaler):
         # find lowest 3 legs (most negative)
         lzs = {
             l: self.legs[l].xyz.get('z', numpy.nan) for l in self.legs}
-	legs_by_height = sorted(lzs.keys(), key=lambda l: lzs[l])
+        legs_by_height = sorted(lzs.keys(), key=lambda l: lzs[l])
         self.height = -numpy.mean(sorted(lzs.values())[:3])
         # TODO limit this to only every N updates?
         self.trigger('height', self.height)
         # TODO compute support triangle, body level, COM, etc
+        # take lowest 3 feet
+        if len(self.legs) < 3:
+            return
+        return # TODO work-in-progress
+        low_legs = legs_by_height[:3]
+        pts = []
+        for ln in low_legs:
+            leg = self.legs[ln]
+            # get xyz convert to body coordinates
+            bxyz = kinematics.body.leg_to_body(
+                ln, leg.xyz.get('x', numpy.nan),
+                leg.xyz.get('y', numpy.nan),
+                leg.xyz.get('z', numpy.nan))
+            pts.append(bxyz)
+        pts = numpy.array(pts)
+        # make plane, compute pitch and roll
+        # compute COM
 
     def stop(self):
         log.info({"stop": []})

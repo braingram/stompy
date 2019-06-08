@@ -42,7 +42,7 @@ def load_dir(d=None):
     evs = []
     for fn in fns:
         with open(fn, 'rb') as f:
-            evs.extend(pickle.load(f))
+            evs.extend(pickle.load(f, encoding='latin1'))
     return evs
 
 
