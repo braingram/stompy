@@ -105,3 +105,29 @@ JOINT_INDEX_BY_NAME = {
 JOINT_NAME_BY_INDEX = {
     JOINT_INDEX_BY_NAME[k]: k for
     k in JOINT_INDEX_BY_NAME}
+
+GEOM_CYLINDER_MIN = 0
+GEOM_CYLINDER_MAX = 1
+GEOM_TRIANGLE_A = 2
+GEOM_TRIANGLE_B = 3
+GEOM_ZERO_ANGLE = 4
+GEOM_REST_ANGLE = 5
+GEOM_LENGTH = 6
+GEOM_MIN_ANGLE = 7
+GEOM_MAX_ANGLE = 8
+
+GEOM_INDEX_BY_NAME = {
+    'cylinder_min': GEOM_CYLINDER_MIN,
+    'cylinder_max': GEOM_CYLINDER_MAX,
+    'triangle_a': GEOM_TRIANGLE_A,
+    'triangle_b': GEOM_TRIANGLE_B,
+    'zero_angle': GEOM_ZERO_ANGLE,
+    'rest_angle': GEOM_REST_ANGLE,
+    'length': GEOM_LENGTH,
+    'min_angle': GEOM_MIN_ANGLE,
+    'max_angle': GEOM_MAX_ANGLE,
+}
+
+GEOM_NAME_BY_INDEX = {
+    GEOM_INDEX_BY_NAME[k]: k for
+    k in GEOM_INDEX_BY_NAME}

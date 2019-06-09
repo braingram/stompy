@@ -14,7 +14,7 @@ import pycomando
 
 from .. import consts
 from .. import calibration
-from .. import geometry
+#from .. import geometry
 from .. import kinematics
 from .. import log
 from . import plans
@@ -43,6 +43,7 @@ cmds = {
     12: 'reset_pids(bool)',  # i_only
     13: 'dither(uint32,int)=uint32,int',
     14: 'following_error_threshold(byte,float)=byte,float',
+    16: 'set_geometry(byte,byte,float)',
 
     21: 'report_adc(bool)=uint32,uint32,uint32,uint32',
     22: 'report_pid(bool)='
@@ -62,6 +63,7 @@ class LegController(signaler.Signaler):
         logger.debug("leg number = %s" % (self.leg_number, ))
 
         self.leg_name = consts.LEG_NAME_BY_NUMBER[self.leg_number]
+        self.geometry = kinematics.leg.LegGeometry(self.leg_number)
         #log.info({'leg_name': self.leg_name})
 
         self.log = log.make_logger(self.leg_name)
@@ -142,7 +144,7 @@ class FakeTeensy(LegController):
         self.angles = {
             'time': time.time(),
             'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
-        x, y, z = list(kinematics.leg.angles_to_points(
+        x, y, z = list(self.geometry.angles_to_points(
             self.angles['hip'], self.angles['thigh'], self.angles['knee']))[-1]
         self.xyz = {
             'time': time.time(), 'x': x, 'y': y, 'z': z}
@@ -253,37 +255,31 @@ class FakeTeensy(LegController):
             self.xyz['x'] += xyzn[0]
             self.xyz['y'] += xyzn[1]
             self.xyz['z'] += xyzn[2]
-        hip, thigh, knee = kinematics.leg.point_to_angles(
+        hip, thigh, knee = self.geometry.point_to_angles(
             self.xyz['x'], self.xyz['y'], self.xyz['z'])
         # check if angles are in limits, if not, stop
-        if self.leg_number in (2, 5):
-            hmin = geometry.HIP_MIDDLE_MIN_ANGLE
-            hmax = geometry.HIP_MIDDLE_MAX_ANGLE
-        else:
-            hmin = geometry.HIP_MIN_ANGLE
-            hmax = geometry.HIP_MAX_ANGLE
         in_limits = True
-        if hip < hmin:
-            hip = hmin
+        if hip < self.geometry.hip.min_angle:
+            hip = self.geometry.hip.min_angle
             in_limits = False
-        if hip > hmax:
-            hip = hmax
+        if hip > self.geometry.hip.max_angle:
+            hip = self.geometry.hip.max_angle
             in_limits = False
-        if thigh < geometry.THIGH_MIN_ANGLE:
-            thigh = geometry.THIGH_MIN_ANGLE
+        if thigh < self.geometry.thigh.min_angle:
+            thigh = self.geometry.thigh.min_angle
             in_limits = False
-        if thigh > geometry.THIGH_MAX_ANGLE:
-            thigh = geometry.THIGH_MAX_ANGLE
+        if thigh > self.geometry.thigh.max_angle:
+            thigh = self.geometry.thigh.max_angle
             in_limits = False
-        if knee < geometry.KNEE_MIN_ANGLE:
-            knee = geometry.KNEE_MIN_ANGLE
+        if knee < self.geometry.knee.min_angle:
+            knee = self.geometry.knee.min_angle
             in_limits = False
-        if knee > geometry.KNEE_MAX_ANGLE:
-            knee = geometry.KNEE_MAX_ANGLE
+        if knee > self.geometry.knee.max_angle:
+            knee = self.geometry.knee.max_angle
             in_limits = False
         if not in_limits:
             x, y, z = list(
-                kinematics.leg.angles_to_points(hip, thigh, knee))[-1]
+                self.geometry.angles_to_points(hip, thigh, knee))[-1]
             self.xyz['x'] = x
             self.xyz['y'] = y
             self.xyz['z'] = z
@@ -299,7 +295,7 @@ class FakeTeensy(LegController):
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
         # get angles from x, y, z
         #h, t, k = 0., 0., 0.
-        #x, y, z = list(kinematics.leg.angles_to_points(h, t, k))
+        #x, y, z = list(self.geometry.angles_to_points(h, t, k))
         #self.xyz.update({'x': x, 'y': y, 'z': z})
         #self.angles.update({'hip': h, 'thigh': t, 'knee': k})
 
@@ -361,6 +357,14 @@ class Teensy(LegController):
             f, args = v
             logger.debug("Calibration: %s, %s" % (f, args))
             self.mgr.trigger(f, *args)
+        # write out leg geometry
+        for (ji, jn) in enumerate(['hip', 'thigh', 'knee']):
+            j = getattr(self.geometry, jn)
+            for attr in consts.GEOM_INDEX_BY_NAME:
+                code = consts.GEOM_INDEX_BY_NAME[attr]
+                value = getattr(j, attr)
+                self.log.debug({'set_geometry': (ji, code, value)})
+                self.mgr.trigger('set_geometry', ji, code, value)
 
         self.mgr.on('estop', self.on_estop)
         self.loop_time_stats = utils.StatsMonitor()

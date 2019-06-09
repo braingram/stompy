@@ -29,7 +29,7 @@ else:
         QWidget, QApplication)
 
 from .. import kinematics
-from .. import geometry
+#from .. import geometry
 from .. import transforms
 
 
@@ -41,6 +41,8 @@ class Leg(object):
         self.knee = 0.
         self.calf = 0.
         self.number = number
+        # TODO make this not a hack
+        self.geometry = kinematics.leg.LegGeometry(self.number)
         self.restriction = {}
 
     def set_angles(self, hip, thigh, knee, calf=0.):
@@ -52,7 +54,7 @@ class Leg(object):
     def points(self):
         """Generate xyz points for links from angles"""
         return numpy.array(list(
-            kinematics.leg.angles_to_points(
+            self.geometry.angles_to_points(
                 self.hip, self.thigh, self.knee)))
 
     def _advance(self):
@@ -60,7 +62,7 @@ class Leg(object):
         if not hasattr(self, '_delta'):
             self._delta = ('hip', 0.05)
         if not hasattr(self, '_limits'):
-            self._limits = geometry.get_limits(self.number)
+            self._limits = self.geometry.get_limits()
         jn, da = self._delta
         jv = getattr(self, jn)
         nv = jv + da
@@ -261,8 +263,7 @@ class LegDisplay(QWidget):
 
         # draw limits
         z = pts[-1][2]
-        lpts = kinematics.leg.limits_at_z_3d(
-            z, leg.number)
+        lpts = leg.geometry.limits_at_z_3d(z)
         # color limits by restriction
         r = max(0., min(1., leg.restriction.get('r', 1.)))
         pen = QtGui.QPen(QtGui.QColor(
