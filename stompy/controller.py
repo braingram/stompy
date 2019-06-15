@@ -57,16 +57,16 @@ def axis_to_radius(axis):
 class MultiLeg(signaler.Signaler):
     modes = [
         'leg_pwm',
-        'leg_sensor',
+        #'leg_sensor',
         'leg_leg',
         'leg_body',
         #'leg_calibration',
         #'leg_restriction',
-        'body_move',
+        'body',
         'sit_stand',
         'playback',
         #'body_position_legs',
-        'body_restriction',
+        'walk',
     ]
 
     def __init__(self, legs, bodies):
@@ -143,7 +143,7 @@ class MultiLeg(signaler.Signaler):
             self.param['res.speed.lift'] = 12
             self.param['res.speed.lower'] = 12
 
-            self.set_mode('body_restriction')
+            self.set_mode('walk')
             self.param['res.max_feet_up'] = 3
             self.param['res.speed.by_restriction'] = True
 
@@ -156,7 +156,7 @@ class MultiLeg(signaler.Signaler):
             return
         log.info({"set_speed": self.param['speed.scalar']})
         self.trigger('speed', self.param['speed.scalar'])
-        if self.mode == 'body_restriction':
+        if self.mode == 'walk':
             self.res.set_target()
 
     def on_leg_estop(self, value, leg_number):
@@ -207,12 +207,12 @@ class MultiLeg(signaler.Signaler):
         # always reset speed scalar
         self.set_speed(1.)
         # handle mode transitions
-        if self.mode == 'body_restriction':
+        if self.mode == 'walk':
             self.res.disable()
         self.mode = mode
         self.trigger('mode', mode)
         # handle mode transitions
-        if self.mode == 'body_restriction':
+        if self.mode == 'walk':
             # TODO integrate this with enable
             for i in self.res.feet:
                 self.res.feet[i].state = 'stance'
@@ -268,9 +268,9 @@ class MultiLeg(signaler.Signaler):
         if 'body_walk_switch' in buttons:
             if not self.joy.buttons.get('leg_mode_switch', 0):
                 if buttons['body_walk_switch']:
-                    self.set_mode('body_restriction')
+                    self.set_mode('walk')
                 else:
-                    self.set_mode('body_move')
+                    self.set_mode('body')
         for (ln, bn) in enumerate(leg_select_buttons):
             if bn in buttons:
                 ln += 1
@@ -321,7 +321,7 @@ class MultiLeg(signaler.Signaler):
                 self.all_legs('set_estop', 1)
                 self.all_legs('stop')
                 self.deadman = False
-        if 'restrict_leg' in buttons and self.mode == 'body_restriction':
+        if 'restrict_leg' in buttons and self.mode == 'walk':
             # add restriction to current leg
             if self.leg is not None:
                 foot = self.res.feet[self.leg.leg_number]
@@ -380,14 +380,14 @@ class MultiLeg(signaler.Signaler):
                 xyz[0] * speed,
                 xyz[1] * speed,
                 xyz[2] * speed)
-        elif self.mode == 'leg_sensor':
-            if self.leg is None:
-                return
-            speed = self.param['speed.scalar'] * self.param['speed.sensor']
-            self.leg.send_plan(
-                mode=consts.PLAN_VELOCITY_MODE,
-                frame=consts.PLAN_SENSOR_FRAME,
-                linear=xyz, speed=speed)
+        #elif self.mode == 'leg_sensor':
+        #    if self.leg is None:
+        #        return
+        #    speed = self.param['speed.scalar'] * self.param['speed.sensor']
+        #    self.leg.send_plan(
+        #        mode=consts.PLAN_VELOCITY_MODE,
+        #        frame=consts.PLAN_SENSOR_FRAME,
+        #        linear=xyz, speed=speed)
         elif self.mode == 'leg_leg':
             if self.leg is None:
                 return
@@ -426,7 +426,7 @@ class MultiLeg(signaler.Signaler):
                 'speed': speed,
             }
             self.all_legs('send_plan', **plan)
-        elif self.mode == 'body_move':
+        elif self.mode == 'body':
             if self.joy.buttons.get('sub_mode', 0) == 0:
                 speed = self.param['speed.scalar'] * self.param['speed.body']
                 plan = {
@@ -452,7 +452,7 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'body_position_legs':
             pass
             # TODO
-        elif self.mode == 'body_restriction':
+        elif self.mode == 'walk':
             # pass in rx, ly, az
             # also pass in mode for crab walking
             omni_walk = bool(self.joy.buttons.get('sub_mode', 0))
@@ -496,7 +496,7 @@ class MultiLeg(signaler.Signaler):
         self.all_legs('update')
         if self.mode == 'playback' and self.playback is not None:
             self.playback.update(self)
-        elif self.mode in ('body_move', 'body_restriction', 'playback'):
+        elif self.mode in ('body', 'walk', 'playback', 'sit_stand'):
             if self.param['min_hip_override']:
                 # check if override should be turned off
                 disable_override = True

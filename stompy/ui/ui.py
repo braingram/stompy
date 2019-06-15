@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import time
 import traceback
@@ -8,16 +9,16 @@ import numpy
 
 from . import nogl
 if nogl.has_qt5:
-    from PyQt5 import QtCore, QtGui
-    from . import base5 as base
+    from PyQt5 import QtCore, QtGui, uic
+    #from . import base5 as base
     from PyQt5.QtWidgets import (
         QGestureEvent, QPinchGesture,
         QSwipeGesture,
         QWidget, QApplication, QMainWindow,
         QAction, QInputDialog)
 else:
-    from PyQt4 import QtCore, QtGui
-    from . import base as base
+    from PyQt4 import QtCore, QtGui, uic
+    #from . import base as base
     from PyQt4.QtGui import (
         QGestureEvent, QPinchGesture,
         QSwipeGesture,
@@ -33,6 +34,11 @@ from .joystick import make_joystick_window
 from .. import log
 from .. import remote
 
+
+this_dir = os.path.dirname(os.path.abspath(__file__))
+print("This directory:", this_dir)
+ui_filename = os.path.join(this_dir, 'stompy.ui')
+print(ui_filename)
 
 class Tab(object):
     def __init__(self, ui, controller):
@@ -384,7 +390,7 @@ class BodyTab(Tab):
         self.heightLabel.setText("Height: %0.2f" % height)
 
     def on_mode(self, mode):
-        if mode == 'body_restriction':
+        if mode == 'walk':
             self._update_support_legs()
         else:
             self.display.support_legs = []
@@ -447,8 +453,9 @@ class TabManager(object):
 def load_ui(controller=None):
     app = QApplication(sys.argv)
     MainWindow = QMainWindow()
-    ui = base.Ui_MainWindow()
-    ui.setupUi(MainWindow)
+    #ui = base.Ui_MainWindow()
+    ui = uic.loadUi(ui_filename, MainWindow)
+    #ui.setupUi(MainWindow)
     # setup menus
     ui._calibrationMenu_actions = []
     a = QAction("Save", ui.calibrationMenu)
@@ -487,21 +494,47 @@ def load_ui(controller=None):
         ui.calibrationMenu.addAction(a)
 
         ui._legsMenu_actions = []
-        for leg in controller.call('legs.keys'):
+        legs = list(controller.call('legs.keys'))
+        for leg in legs:
             a = QAction(
                 consts.LEG_NAME_BY_NUMBER[leg], ui.legsMenu)
             a.triggered.connect(
                 lambda a, i=leg: controller.no_return_call('set_leg', i))
             ui._legsMenu_actions.append(a)
             ui.legsMenu.addAction(a)
+
+        # enable/disable leg radio buttons
+        for i in range(1, 7):
+            r = getattr(ui, 'leg%iRadioButton' % i)
+            if i in legs:
+                r.setEnabled(True)
+                # attach leg select to click
+                r.clicked.connect(
+                    lambda c, li=i: controller.no_return_call('set_leg', li))
+            else:
+                r.setEnabled(False)
+
         ui._modesMenu_actions = []
-        for mode in controller.get('modes'):
+        modes = controller.get('modes')
+        for mode in modes:
             a = QAction(mode, ui.modesMenu)
             a.triggered.connect(
                 lambda a, m=mode: controller.no_return_call('set_mode', m))
             ui._modesMenu_actions.append(a)
             ui.modesMenu.addAction(a)
-        ui.modesMenu.setTitle("Mode: %s" % controller.get('mode'))
+        current_mode = controller.get('mode')
+        # enable/disable mode radio buttons
+        for mode in modes:
+            n = '%sRadioButton' % mode
+            if not hasattr(ui, n):
+                continue
+            r = getattr(ui, n)
+            r.setEnabled(True)
+            if mode == current_mode:
+                r.setChecked(True)
+            r.clicked.connect(
+                lambda c, m=mode: controller.no_return_call('set_mode', m))
+        ui.modesMenu.setTitle("Mode: %s" % current_mode)
         ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.get('leg_index')])
         controller.on(
