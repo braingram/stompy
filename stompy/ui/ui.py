@@ -572,6 +572,18 @@ def load_ui(controller=None):
                 "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
 
     # param changes
+    def new_speed(value):
+        ui.speedSlider.setValue(value)
+        ui.speedLabel.setText(str(value))
+        controller.call('set_target')
+
+    controller.on(
+        'param', 'speed.foot', new_speed)
+    ui.speedSlider.valueChanged.connect(
+        lambda v: controller.call('param.set_param', 'speed.foot', v))
+    spd = controller.get("param['speed.foot']")
+    ui.speedSlider.setValue(spd)
+    ui.speedLabel.setText(str(spd))
     ui._configurationMenu_actions = []
     ui._configurationMenu_submenus = {}
     for name in sorted(controller.call('param.list_params')):
