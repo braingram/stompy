@@ -352,8 +352,8 @@ class BodyTab(Tab):
             lo = 'legs[%i]' % leg_number
             self.controller.on(
                 lo, 'angles', lambda a, i=leg_number: self.on_angles(a, i))
-            self.controller.on(
-                lo, 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+            #self.controller.on(
+            #    lo, 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
             self.controller.on(
                 lo, 'restriction',
                 lambda a, i=leg_number: self.on_restriction(a, i))
@@ -378,8 +378,8 @@ class BodyTab(Tab):
             leg_number, angles['hip'], angles['thigh'], angles['knee'],
             angles['calf'])
 
-    def on_xyz(self, xyz, leg_number):
-        pass
+    #def on_xyz(self, xyz, leg_number):
+    #    pass
 
     def on_restriction(self, res, leg_number):
         self.display.legs[leg_number].restriction = res

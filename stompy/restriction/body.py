@@ -18,12 +18,12 @@ from .. import signaler
 
 
 parameters = {
-    'speed.stance': 5.,
-    'speed.lift': 6.,
-    'speed.lower': 6.,
-    'speed.swing': 8.,
-    'speed.angular': 0.05,
-    'speed.by_restriction': False,
+    #'speed.stance': 5.,
+    #'speed.lift': 6.,
+    #'speed.lower': 6.,
+    #'speed.swing': 8.,
+    #'speed.angular': 0.05,
+    'speed_by_restriction': False,
     'r_thresh': 0.3,
     'r_max': 0.85,
     'max_feet_up': 1,
@@ -105,6 +105,8 @@ class Body(signaler.Signaler):
             self.feet[i] = leg.Foot(self.legs[i], self.param)
             self.feet[i].on(
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
+            self.feet[i].on(
+                'state', lambda s, ln=i: self.on_foot_state(s, ln))
         print("Feet:", self.feet)
         self.disable()
 
@@ -116,15 +118,16 @@ class Body(signaler.Signaler):
         self.odo.reset()
         # TODO set foot states, target?
 
-    def get_mode_speed(self, mode):
-        # TODO this is in two places, find a way to get it in 1
-        return (
-            self.param['res.speed.%s' % (mode, )] *
-            self.param['speed.scalar'])
+    #def get_mode_speed(self, mode):
+    #    # TODO this is in two places, find a way to get it in 1
+    #    return (
+    #        self.param['res.speed.%s' % (mode, )] *
+    #        self.param['speed.scalar'])
 
     def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms
-        speed = mag * self.get_mode_speed('stance') * consts.PLAN_TICK
+        speed = mag * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
+        #speed = mag * self.get_mode_speed('stance') * consts.PLAN_TICK
         # find furthest foot
         x, y = bxy
         z = 0.
@@ -137,11 +140,16 @@ class Body(signaler.Signaler):
         mr = numpy.sqrt(mr)
         # TODO account for radius sign
         rspeed = speed / mr
-        if numpy.abs(rspeed) > self.get_mode_speed('angular'):
+        max_rspeed = (
+            self.param['speed.foot'] / self.param['arc_speed_radius'] *
+            self.param['speed.scalar'])
+        #max_rspeed = self.param['res.speed.angular'] * self.param['speed.scalar']
+        #if numpy.abs(rspeed) > self.get_mode_speed('angular'):
+        if numpy.abs(rspeed) > max_rspeed:
             print("Limiting because of angular speed")
-            rspeed = self.get_mode_speed('angular') * numpy.sign(rspeed)
+            rspeed = max_rspeed * numpy.sign(rspeed)
         # TODO this should adjust speed on times OTHER than set_target
-        if self.param['res.speed.by_restriction']:
+        if self.param['res.speed_by_restriction']:
             rs = self.get_speed_by_restriction()
         else:
             rs = 1.
@@ -202,6 +210,10 @@ class Body(signaler.Signaler):
             self.feet[i].restriction['r'] for i in self.feet
             if self.feet[i].state not in ('swing', 'lower')])
         return max(0., min(1., 1. - rmax))
+
+    def on_foot_state(self, state, leg_number):
+        # TODO update 'support' legs
+        pass
 
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:

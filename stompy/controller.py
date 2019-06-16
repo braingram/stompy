@@ -104,12 +104,16 @@ class MultiLeg(signaler.Signaler):
         self.param['min_hip_distance'] = 30.0
         self.param['prevent_leg_xy_when_loaded'] = True
         self.param['min_hip_override'] = False
-        # TODO clean these up to use as few speeds as possible
         self.param['speed.raw'] = 0.5
         self.param['speed.sensor'] = 1200
-        self.param['speed.leg'] = 6.0
-        self.param['speed.body'] = 6.0
-        self.param['speed.body_angular'] = 0.05
+        self.param['speed.foot'] = 5.0
+        #self.param['speed.leg'] = 6.0
+        #self.param['speed.body'] = 6.0
+        # assume a foot 120 inches from the rotation point to scale speeds
+        self.param['arc_speed_radius'] = 120.
+
+        #self.param['speed.body_angular'] = 0.05  # TODO convert from body
+
         self.param['speed.scalar'] = 1.0
         self.param.set_meta('speed.scalar', min=0.1, max=2.0, decimals=1)
         self.param['speed.step'] = 0.05
@@ -136,12 +140,13 @@ class MultiLeg(signaler.Signaler):
         if all([
                 isinstance(self.legs[k], leg.teensy.FakeTeensy)
                 for k in self.legs]):
-            self.param['speed.leg'] = 18
-            self.param['speed.body'] = self.param['speed.leg']
-            self.param['res.speed.stance'] = 12
-            self.param['res.speed.swing'] = 12
-            self.param['res.speed.lift'] = 12
-            self.param['res.speed.lower'] = 12
+            self.param['speed.foot'] = 12
+            #self.param['speed.leg'] = 18
+            #self.param['speed.body'] = self.param['speed.leg']
+            #self.param['res.speed.stance'] = 12
+            #self.param['res.speed.swing'] = 12
+            #self.param['res.speed.lift'] = 12
+            #self.param['res.speed.lower'] = 12
 
             self.set_mode('walk')
             self.param['res.max_feet_up'] = 3
@@ -167,6 +172,7 @@ class MultiLeg(signaler.Signaler):
                     self.legs[i].set_estop(value)
 
     def on_leg_xyz(self, xyz, leg_number):
+        # TODO throttle this? pull into a structure to manage this
         # find lowest 3 legs (most negative)
         lzs = {
             l: self.legs[l].xyz.get('z', numpy.nan) for l in self.legs}
@@ -175,10 +181,10 @@ class MultiLeg(signaler.Signaler):
         # TODO limit this to only every N updates?
         self.trigger('height', self.height)
         # TODO compute support triangle, body level, COM, etc
+        # look at legs in 'stance'
         # take lowest 3 feet
         if len(self.legs) < 3:
             return
-        return # TODO work-in-progress
         low_legs = legs_by_height[:3]
         pts = []
         for ln in low_legs:
@@ -191,7 +197,15 @@ class MultiLeg(signaler.Signaler):
             pts.append(bxyz)
         pts = numpy.array(pts)
         # make plane, compute pitch and roll
+        # compute plane normal
+        normal = numpy.cross((pts[0] - pts[1]), (pts[0] - pts[2]))
+        if normal[2] < 0:
+            normal *= -1.
+        # theta = arctan2(o, a)
+        pitch = numpy.degrees(numpy.arctan2(normal[0], normal[2]))
+        roll = numpy.degrees(numpy.arctan2(normal[1], normal[2]))
         # compute COM
+        return # TODO work-in-progress
 
     def stop(self):
         log.info({"stop": []})
@@ -391,7 +405,8 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_leg':
             if self.leg is None:
                 return
-            speed = self.param['speed.scalar'] * self.param['speed.leg']
+            #speed = self.param['speed.scalar'] * self.param['speed.leg']
+            speed = self.param['speed.scalar'] * self.param['speed.foot']
             if (
                     self.param['prevent_leg_xy_when_loaded'] and
                     (self.leg.angles['calf'] >
@@ -404,7 +419,8 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_body':
             if self.leg is None:
                 return
-            speed = self.param['speed.scalar'] * self.param['speed.body']
+            #speed = self.param['speed.scalar'] * self.param['speed.body']
+            speed = self.param['speed.scalar'] * self.param['speed.foot']
             if (
                     self.param['prevent_leg_xy_when_loaded'] and
                     (self.leg.angles['calf'] >
@@ -417,7 +433,8 @@ class MultiLeg(signaler.Signaler):
         elif self.mode == 'leg_calibration':
             pass
         elif self.mode == 'sit_stand':
-            speed = self.param['speed.scalar'] * self.param['speed.body']
+            #speed = self.param['speed.scalar'] * self.param['speed.body']
+            speed = self.param['speed.scalar'] * self.param['speed.foot']
             xyz = [0, 0, xyz[2]]
             plan = {
                 'mode': consts.PLAN_VELOCITY_MODE,
@@ -428,7 +445,8 @@ class MultiLeg(signaler.Signaler):
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body':
             if self.joy.buttons.get('sub_mode', 0) == 0:
-                speed = self.param['speed.scalar'] * self.param['speed.body']
+                #speed = self.param['speed.scalar'] * self.param['speed.body']
+                speed = self.param['speed.scalar'] * self.param['speed.foot']
                 plan = {
                     'mode': consts.PLAN_VELOCITY_MODE,
                     'frame': consts.PLAN_BODY_FRAME,
@@ -438,9 +456,12 @@ class MultiLeg(signaler.Signaler):
             else:
                 # swap x and y
                 xyz = [xyz[1], xyz[0], xyz[2]]
+                #speed = (
+                #    self.param['speed.scalar'] *
+                #    self.param['speed.body_angular'])
                 speed = (
                     self.param['speed.scalar'] *
-                    self.param['speed.body_angular'])
+                    self.param['speed.foot'] / self.param['arc_speed_radius'])
                 plan = {
                     'mode': consts.PLAN_ARC_MODE,
                     'frame': consts.PLAN_BODY_FRAME,
@@ -485,7 +506,7 @@ class MultiLeg(signaler.Signaler):
                     * numpy.sign(crx))
             # add dz
             # TODO maybe this should be scaled down?
-            dz = -xyz[2] * self.res.get_mode_speed('stance') * consts.PLAN_TICK
+            dz = -xyz[2] * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
             if self.param['res.speed.by_restriction']:
                 dz *= self.res.get_speed_by_restriction()
             self.res.set_target(

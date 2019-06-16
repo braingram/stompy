@@ -171,11 +171,11 @@ class Foot(signaler.Signaler):
         self.angles = None
         self.restriction_modifier = 0.
 
-    def get_mode_speed(self, mode):
-        # TODO this is in two places, find a way to get it in 1
-        return (
-            self.param['res.speed.%s' % (mode, )] *
-            self.param['speed.scalar'])
+    #def get_mode_speed(self, mode):
+    #    # TODO this is in two places, find a way to get it in 1
+    #    return (
+    #        self.param['res.speed.%s' % (mode, )] *
+    #        self.param['speed.scalar'])
 
     def send_plan(self):
         #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
@@ -189,7 +189,8 @@ class Foot(signaler.Signaler):
                 matrix=self.leg_target,
                 speed=0)
         elif self.state == 'lift':
-            v = self.get_mode_speed('lift')
+            #v = self.get_mode_speed('lift')
+            v = self.param['speed.foot'] * self.param['speed.scalar']
             T = (
                 self.leg_target *
                 transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
@@ -233,6 +234,14 @@ class Foot(signaler.Signaler):
             # print(self.swing_target, z)
             # TODO check if point is valid
             # TODO error out on invalid
+            #self.leg.send_plan(
+            #    mode=consts.PLAN_TARGET_MODE,
+            #    frame=consts.PLAN_LEG_FRAME,
+            #    linear=(
+            #        sp[0],
+            #        sp[1],
+            #        z),
+            #    speed=self.get_mode_speed('swing'))
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -240,9 +249,10 @@ class Foot(signaler.Signaler):
                     sp[0],
                     sp[1],
                     z),
-                speed=self.get_mode_speed('swing'))
+                speed=self.param['speed.foot'] * self.param['speed.scalar'])
         elif self.state == 'lower':
-            v = -self.get_mode_speed('lower')
+            #v = -self.get_mode_speed('lower')
+            v = -self.param['speed.foot'] * self.param['speed.scalar']
             T = (
                 self.leg_target *
                 transforms.translation_3d(0, 0, v * consts.PLAN_TICK))

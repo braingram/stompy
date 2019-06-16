@@ -789,6 +789,11 @@
             <height>130</height>
            </size>
           </property>
+          <property name="styleSheet">
+           <string notr="true">QRadioButton:checked{
+    background-color: lightgreen;
+}</string>
+          </property>
           <property name="title">
            <string>Leg</string>
           </property>
@@ -816,8 +821,14 @@
               </item>
               <item>
                <widget class="QRadioButton" name="leg6RadioButton">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
                 <property name="text">
                  <string>6</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
@@ -882,6 +893,11 @@
             <width>90</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QRadioButton:checked{
+    background-color: lightgreen;
+}</string>
           </property>
           <property name="title">
            <string>Mode</string>
