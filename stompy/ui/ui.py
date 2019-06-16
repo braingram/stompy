@@ -699,13 +699,21 @@ def start(remote_ui=False):
         joy = joystick.fake.FakeJoystick()
         c._joy_ui = make_joystick_window(joy)
     # setup callbacks
-    c.joy = joy
     joy.on(
         'buttons',
         lambda d: [c.call('joy._report_button', n, d[n]) for n in d])
     joy.on(
         'axes',
         lambda d: [c.call('joy._report_axis', n, d[n]) for n in d])
+
+    # relay local deadman back up to remote
+    def relay_deadman(buttons):
+        if (buttons.get('deadman', 1) == 0) and (joy.buttons.get('deadman', 0) == 1):
+            print("zeroing joy deadman")
+            joy._report_button('deadman', 0)
+
+    c.on('joy', 'buttons', relay_deadman)
+    c.joy = joy
     #joy.on(
     #    'buttons',
     #    lambda d: c.no_return_call('joy.trigger', 'buttons', d))

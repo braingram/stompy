@@ -214,6 +214,7 @@ class MultiLeg(signaler.Signaler):
             self.all_legs('set_estop', 1)
             self.all_legs('stop')
             self.deadman = False
+            self.joy._report_button('deadman', 0)
 
     def set_mode(self, mode):
         if mode not in self.modes:
