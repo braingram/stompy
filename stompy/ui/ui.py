@@ -537,10 +537,28 @@ def load_ui(controller=None):
         ui.modesMenu.setTitle("Mode: %s" % current_mode)
         ui.legsMenu.setTitle(
             "Leg: %s" % consts.LEG_NAME_BY_NUMBER[controller.get('leg_index')])
-        controller.on(
-            '', 'mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
-        controller.on('', 'set_leg', lambda m: ui.legsMenu.setTitle(
-            "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
+
+        def on_mode(mode):
+            ui.modesMenu.setTitle("Mode: %s" % mode)
+            n = '%sRadioButton' % mode
+            if not hasattr(ui, n):
+                # TODO uncheck all other modes?
+                return
+            r = getattr(ui, n)
+            r.setChecked(True)
+
+        controller.on( '', 'mode', on_mode)
+        #controller.on(
+        #    '', 'mode', lambda m: ui.modesMenu.setTitle("Mode: %s" % m))
+
+        def on_leg(leg):
+            ui.legsMenu.setTitle("Leg: %s" % consts.LEG_NAME_BY_NUMBER[leg])
+            r = getattr(ui, 'leg%iRadioButton' % leg)
+            r.setChecked(True)
+
+        controller.on('', 'set_leg', on_leg)
+        #controller.on('', 'set_leg', lambda m: ui.legsMenu.setTitle(
+        #    "Leg: %s" % consts.LEG_NAME_BY_NUMBER[m]))
         controller.on('', 'estop', lambda v: (
             ui.estopLabel.setText(
                 "Estop: %s" % consts.ESTOP_BY_NUMBER[v]),

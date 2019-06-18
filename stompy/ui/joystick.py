@@ -31,6 +31,12 @@ class FakeJoystickUI(QWidget):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.send_deadman)
         self.timer.start(int(consts.HEARTBEAT_PERIOD * 1000.))
+        self.joy.on('buttons', self.on_joy_buttons)
+
+    def on_joy_buttons(self, buttons):
+        if buttons.get('deadman', 1) == 0 and self.deadman:
+            print("setting self.deadman to 0")
+            self.deadman = 0
 
     def closeEvent(self, event):
         self.timer.stop()
