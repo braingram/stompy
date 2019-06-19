@@ -583,11 +583,18 @@ def load_ui(controller=None):
             'bodies["imu"]',
             'feed_oil_temp',
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
-        controller.on(
-            'bodies["imu"]',
-            'heading',
-            lambda r, p, y: ui.imuLabel.setText(
-                "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
+
+        def new_heading(self, roll, pitch, yaw):
+            ui.rollLabel.setText("Roll: %s" % roll)
+            ui.pitchLabel.setText("Pitch: %s" % pitch)
+            ui.yawLabel.setText("Yaw: %s" % yaw)
+
+        controller.on('bodies["imu"]', 'heading', new_heading)
+        #controller.on(
+        #    'bodies["imu"]',
+        #    'heading',
+        #    lambda r, p, y: ui.imuLabel.setText(
+        #        "IMU: %0.2f %0.2f %0.2f" % (r, p, y)))
 
     # param changes
     def new_speed(value):

@@ -124,6 +124,9 @@ class MultiLeg(signaler.Signaler):
         self.joy.on('axes', self.on_axes)
         self.deadman = False
 
+        if 'imu' in bodies:
+            pass
+
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
 
