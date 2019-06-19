@@ -584,7 +584,7 @@ def load_ui(controller=None):
             'feed_oil_temp',
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
 
-        def new_heading(self, roll, pitch, yaw):
+        def new_heading(roll, pitch, yaw):
             ui.rollLabel.setText("Roll: %s" % roll)
             ui.pitchLabel.setText("Pitch: %s" % pitch)
             ui.yawLabel.setText("Yaw: %s" % yaw)
