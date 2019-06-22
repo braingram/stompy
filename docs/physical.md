@@ -22,7 +22,7 @@ Weights
 - engine: ~780 lbs
 - oil (assuming 18 gallons): ~130 lbs
 - reservoir: 71 lbs
-- spine: ?
+- spine: 4020 lbs (from CAD, this seems high)
 - roll cage: ?
 - engine cage: ?
 
