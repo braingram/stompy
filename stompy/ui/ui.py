@@ -345,7 +345,8 @@ class BodyTab(Tab):
         self.heightLabel = ui.heightLabel
 
         # attach to all legs
-        self.controller.on('', 'height', self.on_height)
+        self.controller.on('stance', 'height', self.on_height)
+        self.controller.on('stance', 'support_legs', self.on_support_legs)
         self.controller.on('', 'mode', self.on_mode)
         for leg_number in self.controller.call('legs.keys'):
             self.display.add_leg(leg_number)
@@ -405,6 +406,10 @@ class BodyTab(Tab):
             self.display.path = [
                 p['position'] for p in
                 self.controller.call('res.odo.get_path')]
+
+    def on_support_legs(self, support_legs):
+        self.display.support_legs = support_legs
+        self.display.update()
 
     def _update_support_legs(self):
         return  # TODO move this to the backend

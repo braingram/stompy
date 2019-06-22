@@ -33,6 +33,7 @@ from . import param
 from . import playback
 from . import restriction
 from . import signaler
+from . import statics
 
 
 thumb_mid = 130
@@ -74,6 +75,7 @@ class MultiLeg(signaler.Signaler):
         self.param = param.Param()
         self.legs = legs
         self.bodies = bodies
+        self.stance = statics.Stance(legs)
         self.res = restriction.body.Body(legs, self.param)
         if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
             # all legs are fake
@@ -134,6 +136,7 @@ class MultiLeg(signaler.Signaler):
         for i in self.legs:
             self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
             self.legs[i].on('xyz', lambda v, ln=i: self.on_leg_xyz(v, ln))
+            self.res.feet[i].on('state', lambda v, ln=i: self.stance.on_leg_state(v, ln))
 
         # check if this is the test leg in a box
         if len(self.legs) == 1 and 7 in self.legs:
@@ -175,6 +178,15 @@ class MultiLeg(signaler.Signaler):
                     self.legs[i].set_estop(value)
 
     def on_leg_xyz(self, xyz, leg_number):
+        leg = self.legs[leg_number]
+        bxyz = kinematics.body.leg_to_body(
+            leg_number, leg.xyz.get('x', numpy.nan),
+            leg.xyz.get('y', numpy.nan),
+            leg.xyz.get('z', numpy.nan))
+        self.stance.on_leg_xyz(bxyz, leg_number)
+
+    """
+    def on_leg_xyz(self, xyz, leg_number):
         # TODO throttle this? pull into a structure to manage this
         # find lowest 3 legs (most negative)
         lzs = {
@@ -209,6 +221,7 @@ class MultiLeg(signaler.Signaler):
         roll = numpy.degrees(numpy.arctan2(normal[1], normal[2]))
         # compute COM
         return # TODO work-in-progress
+    """
 
     def stop(self):
         log.info({"stop": []})
