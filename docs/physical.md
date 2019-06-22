@@ -9,9 +9,9 @@ Given ~6000 lb weight of robot, with tripod gate, expect full travel (2460 lbs p
 
 Weights
 ====
-hip: 51 lbs
-upper calf: 87 lbs
-thigh: 135 lbs
-linkage: 8.4 lbs
-lower calf: 39.4 lbs
-ankle: 3.2 lbs
+- hip: 51 lbs
+- upper calf: 87 lbs
+- thigh: 135 lbs
+- linkage: 8.4 lbs
+- lower calf: 39.4 lbs
+- ankle: 3.2 lbs
