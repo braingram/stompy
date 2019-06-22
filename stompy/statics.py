@@ -67,7 +67,6 @@ class Stance(signaler.Signaler):
         # compute height by taking average of all zs
         self.support_polygon = numpy.array(self.support_polygon)
         self.trigger('support_legs', support_legs)
-        print(support_legs)
         self.trigger('support_polygon', self.support_polygon)
         self.height = -numpy.mean(self.support_polygon[:, 2])
         self.trigger('height', self.height)
