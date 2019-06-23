@@ -582,6 +582,9 @@ def load_ui(controller=None):
     tm.add_tab('Body', BodyTab(ui, controller))
     tm.show_current()
 
+    controller.on(
+            'stance', 'stability_margin',
+            lambda v: ui.stabilityLabel.setText("Stability: %.0f" % v))
     if 'imu' in controller.call('bodies.keys'):
         controller.on(
             'bodies["imu"]',

@@ -21,6 +21,15 @@ import numpy
 from . import signaler
 
 
+def point_to_line_2d(pt, l1, l2):
+    x0, y0 = pt[0], pt[1]
+    x1, y1 = l1[0], l1[1]
+    x2, y2 = l2[0], l2[1]
+    return (
+        abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / 
+        numpy.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2))
+
+
 class Stance(signaler.Signaler):
     def __init__(self, legs):
         super(Stance, self).__init__()
@@ -34,6 +43,7 @@ class Stance(signaler.Signaler):
         self.support_polygon = None
         # TODO probably higher up and some inches back
         self.COM = numpy.array([0.0, 0.0, 0.0])
+        self.COG = numpy.array([0.0, 0.0, 0.0])
 
     def on_leg_xyz(self, body_xyz, leg_number):
         # assume xyz is in body coordinates, no reason to know leg coordinates
@@ -61,7 +71,7 @@ class Stance(signaler.Signaler):
     def update_support_polygon(self):
         self.support_polygon = []
         support_legs = []
-        for leg in self.leg_states:
+        for leg in sorted(self.leg_states):
             if self.leg_states[leg] in ('stance', 'wait'):
                 if (
                         leg not in self.leg_positions or
@@ -77,6 +87,8 @@ class Stance(signaler.Signaler):
         self.trigger('support_polygon', self.support_polygon)
         self.height = -numpy.mean(self.support_polygon[:, 2])
         self.trigger('height', self.height)
+        if self.COG is not None:
+            self.update_stability_margin()
 
     def update_cog(self):
         """compute center of gravity using center of mass and roll and pitch"""
@@ -88,3 +100,21 @@ class Stance(signaler.Signaler):
         self.COG = stompy.transforms.transform_3d(
             R, self.COM[0], self.COM[1], self.height)
         self.trigger('COG', self.COG)
+        if self.support_triangle is not None and len(self.support_polygon):
+            self.update_stability_margin()
+
+    def update_stability_margin(self):
+        if self.support_polygon is None or len(self.support_polygon) < 3:
+            return
+        if self.COG is None:
+            return
+        # only do this in XY
+        pt = self.COG
+        l0 = self.support_polygon[0]
+        min_d = numpy.inf
+        for l1 in self.support_polygon[1:]:
+            min_d = min(point_to_line_2d(pt, l0, l1), min_d)
+            l0 = l1
+        l1 = self.support_polygon[0]
+        min_d = min(point_to_line_2d(pt, l0, l1), min_d)
+        self.trigger('stability_margin', min_d)
