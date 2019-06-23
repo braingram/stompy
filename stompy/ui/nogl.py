@@ -161,6 +161,7 @@ class LegDisplay(QWidget):
             'limits': QtGui.QPen(QtCore.Qt.magenta, 1, QtCore.Qt.DashLine),
             'calf': QtGui.QPen(QtCore.Qt.cyan, 1),
             'support': QtGui.QPen(QtCore.Qt.darkCyan, 1),
+            'COG': QtGui.QPen(QtCore.Qt.darkRed, 1),
             'path': QtGui.QPen(QtCore.Qt.black, 1),
         }
         self.paintsPerSecond = 10.
@@ -449,6 +450,7 @@ class BodyDisplay(LegDisplay):
         self.legs = {}
         self.support_legs = []
         self.path = []
+        self.COG = [0, 0, 0]
 
     def add_leg(self, leg_number):
         self.legs[leg_number] = Leg(leg_number)
@@ -478,6 +480,15 @@ class BodyDisplay(LegDisplay):
             for p0, p1 in zip(xys[:-1], xys[1:]):
                 painter.setPen(pen)
                 painter.drawLine(p0[0], p0[1], p1[0], p1[1])
+        if self.COG is not None:
+            pen = self._pens['COG']
+            xyz = self.projection.project_points([[
+                self.COG[0], self.COG[1], 0.]])[0]
+            painter.setPen(pen)
+            painter.setBrush(QtGui.QBrush(self._pens['COG'].color()))
+            r = 3
+            d = r * 2
+            painter.drawEllipse(xyz[0]-r, xyz[1]-r, d, d)
         painter.end()
 
 

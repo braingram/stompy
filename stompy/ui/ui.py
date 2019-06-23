@@ -346,6 +346,7 @@ class BodyTab(Tab):
 
         # attach to all legs
         self.controller.on('stance', 'height', self.on_height)
+        self.controller.on('stance', 'COG', self.on_COG)
         self.controller.on('stance', 'support_legs', self.on_support_legs)
         self.controller.on('', 'mode', self.on_mode)
         for leg_number in self.controller.call('legs.keys'):
@@ -389,6 +390,10 @@ class BodyTab(Tab):
 
     def on_height(self, height):
         self.heightLabel.setText("Height: %0.2f" % height)
+
+    def on_COG(self, COG):
+        self.display.COG = COG
+        self.display.update()
 
     def on_mode(self, mode):
         if mode == 'walk':

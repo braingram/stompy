@@ -29,10 +29,11 @@ class Stance(signaler.Signaler):
         for leg in legs:
             self.leg_positions[leg] = None
             self.leg_states[leg] = None
+        self.heading = None
         self.height = None
         self.support_polygon = None
         # TODO probably higher up and some inches back
-        self.CM = numpy.array([0.0, 0.0, 0.0])
+        self.COM = numpy.array([0.0, 0.0, 0.0])
 
     def on_leg_xyz(self, body_xyz, leg_number):
         # assume xyz is in body coordinates, no reason to know leg coordinates
@@ -53,12 +54,18 @@ class Stance(signaler.Signaler):
         if state in ('stance', 'wait') or old_state in ('stance', 'wait'):
             self.update_support_polygon()
 
+    def on_imu_heading(self, roll, pitch, yaw):
+        self.heading = (roll, pitch, yaw)
+        self.update_cog()
+
     def update_support_polygon(self):
         self.support_polygon = []
         support_legs = []
         for leg in self.leg_states:
             if self.leg_states[leg] in ('stance', 'wait'):
-                if leg not in self.leg_positions:
+                if (
+                        leg not in self.leg_positions or
+                        self.leg_positions[leg] is None):
                     # not enough data to compute support polygon
                     self.support_polygon = None
                     return
@@ -70,3 +77,14 @@ class Stance(signaler.Signaler):
         self.trigger('support_polygon', self.support_polygon)
         self.height = -numpy.mean(self.support_polygon[:, 2])
         self.trigger('height', self.height)
+
+    def update_cog(self):
+        """compute center of gravity using center of mass and roll and pitch"""
+        if self.height is None or self.heading is None:
+            return
+        # project COM down by height by pitch and roll
+        roll, pitch, yaw = self.heading
+        R = transforms.rotation_3d(roll, pitch, 0., degrees=True)
+        self.COG = stompy.transforms.transform_3d(
+            R, self.COM[0], self.COM[1], self.height)
+        self.trigger('COG', self.COG)
