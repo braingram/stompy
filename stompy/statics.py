@@ -19,6 +19,7 @@ For CG need to know:
 import numpy
 
 from . import signaler
+from . import transforms
 
 
 def point_to_line_2d(pt, l1, l2):

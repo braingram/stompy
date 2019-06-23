@@ -13,6 +13,7 @@ teensy_serial_by_type = {
     'body': [
         '2513500',  # test teensy [no hw]
         '2180710',  # test teensy [no hw]
+        '1385720',  # body computer 2.0
         '2595730'
     ],
     'leg': [
