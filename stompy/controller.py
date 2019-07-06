@@ -88,9 +88,14 @@ class MultiLeg(signaler.Signaler):
             # TODO connect up odometer to fake terrain
             self._terrain = restriction.odometer.FakeTerrain()
             # connect pose callback
-            
+
             def cbf(pose, l=self.legs, t=self._terrain):
                 t.new_pose(pose, l)
+                # fake roll pitch yaw
+                r = 0.
+                p = 0.
+                y = numpy.degrees(pose['angle'])
+                self.stance.on_imu_heading(r, p, y)
 
             self.res.odo.on('pose', cbf)
         else:
@@ -246,7 +251,8 @@ class MultiLeg(signaler.Signaler):
         if self.mode == 'walk':
             # TODO integrate this with enable
             for i in self.res.feet:
-                self.res.feet[i].state = 'stance'
+                #self.res.feet[i].state = 'stance'
+                self.res.feet[i].set_state('stance')
             self.res.enable(None)
             if (
                     self.param['res.set_height_on_mode_select'] and

@@ -97,25 +97,26 @@ class Stance(signaler.Signaler):
             return
         # project COM down by height by pitch and roll
         roll, pitch, yaw = self.heading
-        R = transforms.rotation_3d(roll, pitch, 0., degrees=True)
-        self.COG = stompy.transforms.transform_3d(
+        R = transforms.rotation_3d(pitch, roll, 0., degrees=True)
+        self.COG = transforms.transform_3d(
             R, self.COM[0], self.COM[1], self.height)
         self.trigger('COG', self.COG)
-        if self.support_triangle is not None and len(self.support_polygon):
+        if self.support_polygon is not None and len(self.support_polygon):
             self.update_stability_margin()
 
     def update_stability_margin(self):
         if self.support_polygon is None or len(self.support_polygon) < 3:
             return
         if self.COG is None:
-            return
+            cg = self.COM
+        else:
+            cg = self.COG
         # only do this in XY
-        pt = self.COG
         l0 = self.support_polygon[0]
         min_d = numpy.inf
         for l1 in self.support_polygon[1:]:
-            min_d = min(point_to_line_2d(pt, l0, l1), min_d)
+            min_d = min(point_to_line_2d(cg, l0, l1), min_d)
             l0 = l1
         l1 = self.support_polygon[0]
-        min_d = min(point_to_line_2d(pt, l0, l1), min_d)
+        min_d = min(point_to_line_2d(cg, l0, l1), min_d)
         self.trigger('stability_margin', min_d)
