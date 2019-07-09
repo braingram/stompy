@@ -65,8 +65,6 @@ def launch_dialog():
     ui.pushButton_p.clicked.connect(lambda c: next_value(c, '.'))
     ui.pushButton_n.clicked.connect(lambda c: next_value(c, '-'))
 
-    # TODO slider?
-
     if dialog.exec_():  # 0 if closed/canceled, 1 if OK
         # set new value
         var['value'] = type(var['value'])(ui.doubleSpinBox.value())

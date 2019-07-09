@@ -13,7 +13,7 @@ if nogl.has_qt5:
     #from . import base5 as base
     from PyQt5.QtWidgets import (
         QGestureEvent, QPinchGesture,
-        QSwipeGesture,
+        QSwipeGesture, QDialog,
         QWidget, QApplication, QMainWindow,
         QAction, QInputDialog)
 else:
@@ -36,9 +36,65 @@ from .. import remote
 
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
-print("This directory:", this_dir)
 ui_filename = os.path.join(this_dir, 'stompy.ui')
-print(ui_filename)
+dialog_ui_filename = os.path.join(this_dir, 'dialog.ui')
+
+
+def launch_dialog(name, value, meta):
+    dialog = QDialog()
+    ui = uic.loadUi(dialog_ui_filename, dialog)
+
+    # setup value display
+    if 'min' in meta:
+        ui.doubleSpinBox.setMinimum(meta['min'])
+    else:
+        ui.doubleSpinBox.setMinimum(value * 0.1)
+    if 'max' in meta:
+        ui.doubleSpinBox.setMaximum(meta['max'])
+    else:
+        ui.doubleSpinBox.setMaximum(value * 10.)
+    if 'step' in meta:
+        ui.doubleSpinBox.setSingleStep(meta['step'])
+    else:
+        ui.doubleSpinBox.setSingleStep(value * 0.1)
+    if 'decimals' in meta:
+        ui.doubleSpinBox.setDecimals(meta['decimals'])
+    else:
+        pass
+    ui.doubleSpinBox.setValue(value)
+    ui.spin_text = ""
+
+    def clear_text():
+        ui.spin_text = ""
+        ui.doubleSpinBox.clear()
+
+    # connect to clear button
+    ui.clearButton.clicked.connect(clear_text)
+
+    def next_value(clicked, v):
+        if v == '-':
+            if len(ui.spin_text) and ui.spin_text == '-':
+                ui.spin_text = ui.spin_text[1:]
+            else:
+                ui.spin_text = '-' + ui.spin_text
+        else:
+            ui.spin_text += str(v)
+        sv = ui.doubleSpinBox.valueFromText(ui.spin_text)
+        ui.doubleSpinBox.setValue(sv)
+
+    # connect up buttons
+    for i in range(10):
+        w = getattr(ui, 'pushButton_%i' % i)
+        w.clicked.connect(lambda c, v=i: next_value(c, v))
+
+    ui.pushButton_p.clicked.connect(lambda c: next_value(c, '.'))
+    ui.pushButton_n.clicked.connect(lambda c: next_value(c, '-'))
+
+    if dialog.exec_():  # 0 if closed/canceled, 1 if OK
+        # set new value
+        return type(value)(ui.doubleSpinBox.value()), True
+    return value, False
+
 
 class Tab(object):
     def __init__(self, ui, controller):
@@ -664,12 +720,14 @@ def load_ui(controller=None):
 
             def prompt_for_value(value, n=name):
                 cv = controller.get('param["%s"]' % n)
-                if isinstance(cv, float):
-                    f = QInputDialog.getDouble
-                else:
-                    f = QInputDialog.getInt
-                kwargs = controller.call('param.get_meta', n, {})
-                nv, ok = f(MainWindow, n, n, cv, **kwargs)
+                meta = controller.call('param.get_meta', n, {})
+                #    if isinstance(cv, float):
+                #        f = QInputDialog.getDouble
+                #    else:
+                #        f = QInputDialog.getInt
+                #    kwargs = controller.call('param.get_meta', n, {})
+                #    nv, ok = f(MainWindow, n, n, cv, **kwargs)
+                nv, ok = launch_dialog(n, cv, meta)
                 if ok:
                     controller.set('param["%s"]' % n, nv)
 
