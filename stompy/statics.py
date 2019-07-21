@@ -32,6 +32,7 @@ def point_to_line_2d(pt, l1, l2):
 
 
 class Stance(signaler.Signaler):
+    _loaded_states = ('stance', 'wait', 'loaded')
     def __init__(self, legs):
         super(Stance, self).__init__()
         self.leg_positions = {}
@@ -52,7 +53,7 @@ class Stance(signaler.Signaler):
         # if leg is 'supporting' update support triangle
         if leg_number not in self.leg_states:
             return
-        if self.leg_states[leg_number] in ('stance', 'wait'):
+        if self.leg_states[leg_number] in self._loaded_states:
             self.update_support_polygon()
 
     def on_leg_state(self, state, leg_number):
@@ -62,7 +63,9 @@ class Stance(signaler.Signaler):
             old_state = None
         self.leg_states[leg_number] = state
         # if leg is now or was 'supporting' update support triangle
-        if state in ('stance', 'wait') or old_state in ('stance', 'wait'):
+        if (
+                state in self._loaded_states or
+                old_state in self._loaded_states):
             self.update_support_polygon()
 
     def on_imu_heading(self, roll, pitch, yaw):
@@ -73,7 +76,7 @@ class Stance(signaler.Signaler):
         self.support_polygon = []
         support_legs = []
         for leg in sorted(self.leg_states):
-            if self.leg_states[leg] in ('stance', 'wait'):
+            if self.leg_states[leg] in self._loaded_states:
                 if (
                         leg not in self.leg_positions or
                         self.leg_positions[leg] is None):
@@ -86,10 +89,11 @@ class Stance(signaler.Signaler):
         self.support_polygon = numpy.array(self.support_polygon)
         self.trigger('support_legs', support_legs)
         self.trigger('support_polygon', self.support_polygon)
-        self.height = -numpy.mean(self.support_polygon[:, 2])
-        self.trigger('height', self.height)
-        if self.COG is not None:
-            self.update_stability_margin()
+        if self.support_polygon is not None and len(self.support_polygon):
+            self.height = -numpy.mean(self.support_polygon[:, 2])
+            self.trigger('height', self.height)
+            if self.COG is not None:
+                self.update_stability_margin()
 
     def update_cog(self):
         """compute center of gravity using center of mass and roll and pitch"""

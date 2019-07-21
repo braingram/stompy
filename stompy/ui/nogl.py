@@ -462,7 +462,7 @@ class BodyDisplay(LegDisplay):
         painter.setRenderHints(QtGui.QPainter.Antialiasing)
         self._paintAxes(painter)
         supports = []
-        for leg in self.legs:
+        for leg in sorted(self.legs):
             T = kinematics.body.leg_to_body_transforms[leg]
             xy = self._paintLeg(painter, self.legs[leg], T)
             if leg in self.support_legs:

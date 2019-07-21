@@ -139,9 +139,14 @@ class MultiLeg(signaler.Signaler):
 
         # monitor estop of all legs, broadcast when stopped
         for i in self.legs:
-            self.legs[i].on('estop', lambda v, ln=i: self.on_leg_estop(v, ln))
-            self.legs[i].on('xyz', lambda v, ln=i: self.on_leg_xyz(v, ln))
-            self.res.feet[i].on('state', lambda v, ln=i: self.stance.on_leg_state(v, ln))
+            self.legs[i].on(
+                'estop', lambda v, ln=i: self.on_leg_estop(v, ln))
+            self.legs[i].on(
+                'xyz', lambda v, ln=i: self.on_leg_xyz(v, ln))
+            self.res.feet[i].on(
+                'state', lambda v, ln=i: self.stance.on_leg_state(v, ln))
+            self.legs[i].on(
+                'angles', lambda v, ln=i: self.on_leg_angles(v, ln))
 
         # check if this is the test leg in a box
         if len(self.legs) == 1 and 7 in self.legs:
@@ -181,6 +186,22 @@ class MultiLeg(signaler.Signaler):
             for i in self.legs:
                 if i != leg_number and self.legs[i].estop == consts.ESTOP_OFF:
                     self.legs[i].set_estop(value)
+
+    def on_leg_angles(self, angles, leg_number):
+        # if not in restriction mode, check load
+        if self.mode == 'walk':
+            return
+        # if loaded, mark leg as loaded in stance
+        # load threshold
+        lt = self.param['res.loaded_weight']
+        ut = self.param['res.unloaded_weight']
+        # TODO add hysteresis
+        if (angles['calf'] > lt):
+            # loaded
+            self.stance.on_leg_state('loaded', leg_number)
+        else:
+            # unloaded
+            self.stance.on_leg_state('unloaded', leg_number)
 
     def on_leg_xyz(self, xyz, leg_number):
         leg = self.legs[leg_number]
