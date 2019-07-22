@@ -365,7 +365,7 @@ class Foot(signaler.Signaler):
                     self.angles['calf'] > self.param['res.loaded_weight']):
                 new_state = 'wait'
         elif self.state == 'wait':
-            if self.restriction['dr'] > 0.:
+            if self.restriction['dr'] > self.param['res.wait_dr_thresh']:
                 # print(
                 #     "exiting wait[%s]: %s" %
                 #     (self.leg.leg_number, self.restriction))

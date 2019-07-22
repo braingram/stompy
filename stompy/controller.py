@@ -273,6 +273,8 @@ class MultiLeg(signaler.Signaler):
             # TODO integrate this with enable
             for i in self.res.feet:
                 #self.res.feet[i].state = 'stance'
+                # check load, if loaded, set to 'wait'
+                # else set to ?
                 self.res.feet[i].set_state('stance')
             self.res.enable(None)
             if (

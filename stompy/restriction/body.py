@@ -25,10 +25,12 @@ parameters = {
     #'speed.angular': 0.05,
     'speed_by_restriction': False,
     'r_thresh': 0.3,
-    'r_max': 0.85,
+    #'r_max': 0.85,
+    'r_max': 0.6,
     'max_feet_up': 1,
     'height_slop': 3.,
     'dr_smooth': 0.5,
+    'wait_dr_thresh': 0.01,
     'eps': 1.0,
     'calf_eps': 3.0,
     'min_hip_eps': 3.0,
@@ -43,10 +45,10 @@ parameters = {
     'unloaded_weight': 600.,
     'loaded_weight': 400.,
     'swing_slop': 5.0,
-    #'step_ratio': 0.4,
-    'step_ratio': 0.2,
+    'step_ratio': 0.6,
+    #'step_ratio': 0.2,
     #'min_hip_distance': 35.0,
-    'min_hip_buffer': 5.0,
+    'min_hip_buffer': 10.0,
 }
 
 parameter_metas = {
@@ -219,13 +221,21 @@ class Body(signaler.Signaler):
         if not self.enabled:
             return
         self.odo.update()
+        # TODO only halt if moving INTO a restricted area
+        # TODO unhalt if moving OUT of a restricted area
         # TODO only unhalt on low-passed r?
-        if self.halted and restriction['r'] < self.param['res.r_max']:
+        # TODO unhalt if feet are in 'wait'
+        # TODO also unhalt on lower?
+        if (
+                self.halted and
+                (
+                    restriction['r'] < self.param['res.r_max'] or
+                    self.feet[leg_number] == 'wait')):
             # unhalt?
             maxed = False
             for i in self.feet:
                 # make sure foot is not in swing (or lower?)
-                if self.feet[i].state in ('swing', 'lower'):
+                if self.feet[i].state in ('swing', 'lower', 'wait'):
                     continue
                 if self.feet[i].restriction['r'] > self.param['res.r_max']:
                     maxed = True
@@ -242,7 +252,11 @@ class Body(signaler.Signaler):
                 self.halted = False
                 self.set_target(self._pre_halt_target, update_swing=False)
                 return
-        if restriction['r'] > self.param['res.r_max'] and not self.halted:
+        # TODO also don't halt if in 'lower'?
+        if (
+                restriction['r'] > self.param['res.r_max'] and
+                not self.halted and
+                self.feet[leg_number].state != 'wait'):
             self.halt()
             return
         # TODO scale stance speed by restriction?
