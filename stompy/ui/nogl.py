@@ -7,26 +7,11 @@ import time
 
 import numpy
 
-has_qt5 = False
-
-try:
-    import PyQt5
-    has_qt5 = True
-except ImportError:
-    pass
-
-if has_qt5:
-    from PyQt5 import (QtGui, QtCore, QtWidgets)
-    from PyQt5.QtWidgets import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture,
-        QWidget, QApplication)
-else:
-    from PyQt4 import (QtGui, QtCore)
-    from PyQt4.QtGui import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture,
-        QWidget, QApplication)
+from PyQt5 import (QtGui, QtCore, QtWidgets)
+from PyQt5.QtWidgets import (
+    QGestureEvent, QPinchGesture,
+    QSwipeGesture,
+    QWidget, QApplication)
 
 from .. import kinematics
 #from .. import geometry

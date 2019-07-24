@@ -7,23 +7,12 @@ import traceback
 
 import numpy
 
-from . import nogl
-if nogl.has_qt5:
-    from PyQt5 import QtCore, QtGui, uic
-    #from . import base5 as base
-    from PyQt5.QtWidgets import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture, QDialog,
-        QWidget, QApplication, QMainWindow,
-        QAction, QInputDialog)
-else:
-    from PyQt4 import QtCore, QtGui, uic
-    #from . import base as base
-    from PyQt4.QtGui import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture,
-        QWidget, QApplication, QMainWindow,
-        QAction, QInputDialog)
+from PyQt5 import QtCore, QtGui, uic
+from PyQt5.QtWidgets import (
+    QGestureEvent, QPinchGesture,
+    QSwipeGesture, QDialog,
+    QWidget, QApplication, QMainWindow,
+    QAction, QInputDialog)
 
 
 from .. import calibration
@@ -32,6 +21,7 @@ from .. import controller
 from .. import joystick
 from .joystick import make_joystick_window
 from .. import log
+from . import nogl
 from .. import remote
 
 

@@ -2,20 +2,12 @@
 
 import time
 
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture,
-        QWidget, QApplication, QMainWindow,
-        QAction, QInputDialog)
-except ImportError:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import (
-        QGestureEvent, QPinchGesture,
-        QSwipeGesture,
-        QWidget, QApplication, QMainWindow,
-        QAction, QInputDialog)
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import (
+    QGestureEvent, QPinchGesture,
+    QSwipeGesture,
+    QWidget, QApplication, QMainWindow,
+    QAction, QInputDialog)
 
 from .. import consts
 
