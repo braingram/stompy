@@ -6,12 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1038</width>
-    <height>657</height>
+    <width>1230</width>
+    <height>767</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">font-size: 25px;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -873,8 +876,8 @@
             <rect>
              <x>10</x>
              <y>30</y>
-             <width>78</width>
-             <height>89</height>
+             <width>101</width>
+             <height>140</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -961,7 +964,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>90</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -978,8 +981,8 @@
             <rect>
              <x>0</x>
              <y>30</y>
-             <width>106</width>
-             <height>199</height>
+             <width>152</width>
+             <height>318</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -1086,8 +1089,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1038</width>
-     <height>22</height>
+     <width>1230</width>
+     <height>34</height>
     </rect>
    </property>
    <widget class="QMenu" name="legsMenu">

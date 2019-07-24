@@ -507,6 +507,13 @@ class TabManager(object):
 
 
 def load_ui(controller=None):
+    # make things bigger for high dpi displays
+    if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+        QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+
+    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+        QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
     app = QApplication(sys.argv)
     MainWindow = QMainWindow()
     #ui = base.Ui_MainWindow()
