@@ -228,10 +228,10 @@ class PS3Joystick(base.Joystick):
             #    if 'type' in e:
             #        self.trigger(e['type'], e)
         # periodically send deadman to prevent deadman timeout
-        if time.time() - self._last_deadman > consts.HEARTBEAT_PERIOD:
-            # only send if deadman is 1
-            if self.buttons.get('deadman', 0):
-                self._report_button('deadman', 1)
+        #if time.time() - self._last_deadman > consts.HEARTBEAT_PERIOD:
+        #    # only send if deadman is 1
+        #    if self.buttons.get('deadman', 0):
+        #        self._report_button('deadman', 1)
         super(PS3Joystick, self).update()
         return evs
 

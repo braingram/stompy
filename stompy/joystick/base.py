@@ -18,7 +18,7 @@ class Joystick(signaler.Signaler):
             'buttons': {},
             'axes': {}
         }
-        self._last_deadman = time.time() - consts.HEARTBEAT_TIMEOUT - 1
+        #self._last_deadman = time.time() - consts.HEARTBEAT_TIMEOUT - 1
 
     def _reset_updates(self):
         self._update = {
@@ -53,13 +53,13 @@ class Joystick(signaler.Signaler):
         #print(button, value)
         self._update['buttons'][button] = value
         self.buttons[button] = value
-        if button == 'deadman':
-            self._last_deadman = time.time()
+        #if button == 'deadman':
+        #    self._last_deadman = time.time()
         if button in self.mapping['buttons']:
             k = self.mapping['buttons'][button]
             self._update['buttons'][k] = value
-            if k == 'deadman':
-                self._last_deadman = time.time()
+            #if k == 'deadman':
+            #    self._last_deadman = time.time()
             self.buttons[k] = value
         self._check_report()
 

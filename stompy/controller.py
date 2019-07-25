@@ -379,7 +379,7 @@ class MultiLeg(signaler.Signaler):
                 self.param['speed.scalar'] - self.param['speed.step'])
         if (
                 buttons.get('allow_select', 0) and
-                ('leg_index_inc' in buttons or 'leg_index_dec' in buttons):
+                ('leg_index_inc' in buttons or 'leg_index_dec' in buttons)):
             di = None
             if buttons.get('leg_index_dec', 0):
                 di = -1
