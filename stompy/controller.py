@@ -107,6 +107,10 @@ class MultiLeg(signaler.Signaler):
 
         self.playback = None
 
+        # start with joystick disabled unless all legs are fake
+        self.param['disable_joystick'] = not self._fake_legs
+        self.param.on('disable_joystick', self.on_disable_joystick)
+
         # if a foot gets within this distance of leg 0, throw an estop
         self.param['min_hip_distance'] = 30.0
         self.param['prevent_leg_xy_when_loaded'] = True
@@ -130,6 +134,7 @@ class MultiLeg(signaler.Signaler):
         self.joy.on('buttons', self.on_buttons)
         self.joy.on('axes', self.on_axes)
         self.deadman = False
+        self.stop_until_deadman_release = False
 
         if 'imu' in bodies:
             self.bodies['imu'].on('heading', self.stance.on_imu_heading)
@@ -249,14 +254,31 @@ class MultiLeg(signaler.Signaler):
         return # TODO work-in-progress
     """
 
+    def on_disable_joystick(self, value):
+        # if deadman was pressed and joystick was disabled
+        if self.deadman and value:
+            self.stop()
+            self.set_deadman(False)
+
+    def set_deadman(self, value):
+        previous = self.deadman
+        self.deadman = value
+        if previous and not value:  # disabled
+            self.stop()
+
+    def remote_stop(self):
+        self.stop()
+        self.stop_until_deadman_release = True
+
     def stop(self):
         log.info({"stop": []})
         # release the deadman
         if self.deadman:
             self.all_legs('set_estop', 1)
             self.all_legs('stop')
-            self.deadman = False
-            self.joy._report_button('deadman', 0)
+            self.set_deadman(False)
+            #self.deadman = False
+            #self.joy._report_button('deadman', 0)
 
     def set_mode(self, mode):
         if mode not in self.modes:
@@ -318,6 +340,8 @@ class MultiLeg(signaler.Signaler):
         self.trigger('set_leg', index)
 
     def on_buttons(self, buttons):
+        if self.param['disable_joystick']:
+            return
         if 'leg_mode_switch' in buttons:
             if buttons['leg_mode_switch']:
                 self.set_mode('leg_body')
@@ -371,16 +395,20 @@ class MultiLeg(signaler.Signaler):
                     i = inds[si]
                 self.set_leg(i)
         if 'deadman' in buttons:
-            if buttons['deadman'] and not self.deadman:
+            if buttons['deadman'] and not self.deadman and not self.stop_until_deadman_release:
+                # deadman pressed
                 self.all_legs('set_estop', 0)
                 if self.mode != 'leg_pwm':
                     self.all_legs('enable_pid', True)
-                self.deadman = True
+                self.set_deadman(True)
                 self.set_target()
-            elif not buttons['deadman'] and self.deadman:
-                self.all_legs('set_estop', 1)
-                self.all_legs('stop')
-                self.deadman = False
+            elif not buttons['deadman']:
+                self.stop_until_deadman_release = False
+                if self.deadman:
+                    # deadman released
+                    self.all_legs('set_estop', 1)
+                    self.all_legs('stop')
+                    self.set_deadman(False)
         if 'restrict_leg' in buttons and self.mode == 'walk':
             # add restriction to current leg
             if self.leg is not None:
@@ -411,6 +439,8 @@ class MultiLeg(signaler.Signaler):
         self.trigger('config_updated')
 
     def on_axes(self, axes):
+        if self.param['disable_joystick']:
+            return
         # check if target vector has changed > some amount
         # if so, read and send new target
         if any((n in axes for n in ('x', 'y', 'z'))):
