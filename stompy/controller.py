@@ -363,7 +363,8 @@ class MultiLeg(signaler.Signaler):
         if buttons.get('use_sliders_switch', 0):
             self._set_speed_by_slider()
             self._set_height_by_slider()
-        if buttons.get('mode_inc', 0):  # advance mode
+        if buttons.get('allow_select', 0) and buttons.get('mode_inc', 0):
+            # advance mode
             mi = self.modes.index(self.mode)
             mi += 1
             if mi == len(self.modes):
@@ -376,7 +377,9 @@ class MultiLeg(signaler.Signaler):
         if buttons.get('speed_dec', 0):
             self.set_speed(
                 self.param['speed.scalar'] - self.param['speed.step'])
-        if 'leg_index_inc' in buttons or 'leg_index_dec' in buttons:
+        if (
+                buttons.get('allow_select', 0) and
+                ('leg_index_inc' in buttons or 'leg_index_dec' in buttons):
             di = None
             if buttons.get('leg_index_dec', 0):
                 di = -1

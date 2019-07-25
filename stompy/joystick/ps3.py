@@ -130,14 +130,19 @@ default_mapping = {
     'buttons': {
         'one_right': 'deadman',
         'one_left': 'sub_mode',
-        'square': 'report_stats',
-        'cross': 'restrict_leg',
-        'triangle': 'reset_stats',
-        'left': 'leg_index_dec',
-        'right': 'leg_index_inc',
+
         'up': 'speed_inc',
         'down': 'speed_dec',
+
+        #'square': 'report_stats',
+        'cross': 'restrict_leg',
+        #'triangle': 'reset_stats',
+        'circle': 'allow_select',
+
+        'left': 'leg_index_dec',
+        'right': 'leg_index_inc',
         'select': 'mode_inc',
+
     },
     'axes': {
         'thumb_left_x': 'x',
