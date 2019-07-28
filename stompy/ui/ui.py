@@ -402,11 +402,12 @@ class BodyTab(Tab):
                 lo, 'angles', lambda a, i=leg_number: self.on_angles(a, i))
             #self.controller.on(
             #    lo, 'xyz', lambda a, i=leg_number: self.on_xyz(a, i))
+            ro = 'res.feet[%i]' % leg_number
             self.controller.on(
-                lo, 'restriction',
+                ro, 'restriction',
                 lambda a, i=leg_number: self.on_restriction(a, i))
             self.controller.on(
-                'res.feet[%i]' % leg_number,
+                ro,
                 'state', lambda a, i=leg_number: self.on_res_state(a, i))
         self.display.set_view('top')
 

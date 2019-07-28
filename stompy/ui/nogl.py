@@ -256,6 +256,8 @@ class LegDisplay(QWidget):
             255 * r, (1 - r) * 255, 0.), 2,
             QtCore.Qt.DashLine)
         painter.setPen(pen)
+        # write out text of restriciton
+        painter.drawText(x, y, 'R:%0.2f' % r)
         if leg.number == getattr(self, 'selected_leg', None):
             brush = QtGui.QBrush(QtGui.QColor(
                 128, 0, 0, 32))
@@ -389,7 +391,7 @@ class LegDisplay(QWidget):
             del self._middle_click_pos
 
     def wheelEvent(self, event):
-        d = event.delta()
+        d = event.angleDelta().y()
         nd = max(-1., min(1., d / 1000.)) + 1.
         self.projection.scalar *= nd
         self.update()
