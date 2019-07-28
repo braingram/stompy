@@ -38,11 +38,17 @@ def launch_dialog(name, value, meta):
     if 'min' in meta:
         ui.doubleSpinBox.setMinimum(meta['min'])
     else:
-        ui.doubleSpinBox.setMinimum(value * 0.1)
+        if value > 0:
+            ui.doubleSpinBox.setMinimum(value * 0.1)
+        else:
+            ui.doubleSpinBox.setMinimum(value * 10.)
     if 'max' in meta:
         ui.doubleSpinBox.setMaximum(meta['max'])
     else:
-        ui.doubleSpinBox.setMaximum(value * 10.)
+        if value > 0:
+            ui.doubleSpinBox.setMaximum(value * 10.)
+        else:
+            ui.doubleSpinBox.setMaximum(value * 0.1)
     if 'step' in meta:
         ui.doubleSpinBox.setSingleStep(meta['step'])
     else:
@@ -51,7 +57,11 @@ def launch_dialog(name, value, meta):
         ui.doubleSpinBox.setDecimals(meta['decimals'])
     else:
         pass
+    #for a in ('minimum', 'maximum', 'singleStep', 'decimals'):
+    #    print(a, getattr(ui.doubleSpinBox, a)())
+    #print("Setting value:", value)
     ui.doubleSpinBox.setValue(value)
+    #print("Value:", ui.doubleSpinBox.value())
     ui.spin_text = ""
 
     def clear_text():
@@ -725,6 +735,7 @@ def load_ui(controller=None):
                 #        f = QInputDialog.getInt
                 #    kwargs = controller.call('param.get_meta', n, {})
                 #    nv, ok = f(MainWindow, n, n, cv, **kwargs)
+                #print(n, cv, meta, value)
                 nv, ok = launch_dialog(n, cv, meta)
                 if ok:
                     controller.set('param["%s"]' % n, nv)

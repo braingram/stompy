@@ -250,6 +250,15 @@ class LegDisplay(QWidget):
         # draw limits
         z = pts[-1][2]
         lpts = leg.geometry.limits_at_z_3d(z)
+
+        # draw leg 'center' point
+        # TODO how to get target calf angle?
+        if 'center' in leg.restriction:
+            cx, cy = self.projection.project_points([leg.restriction['center'], ])[0]
+            painter.setPen(QtGui.QPen(QtGui.QColor('black'), 2))
+            r = 5
+            painter.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+
         # color limits by restriction
         r = max(0., min(1., leg.restriction.get('r', 1.)))
         pen = QtGui.QPen(QtGui.QColor(
