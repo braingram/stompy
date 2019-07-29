@@ -299,6 +299,7 @@ class MultiLeg(signaler.Signaler):
                 # else set to ?
                 self.res.feet[i].set_state('stance')
             self.res.enable(None)
+            #self.res.offset_foot_centers(0, 10.)
             if (
                     self.param['res.set_height_on_mode_select'] and
                     numpy.isfinite(self.height) and

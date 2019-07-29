@@ -170,6 +170,7 @@ class Foot(signaler.Signaler):
         self.xyz = None
         self.angles = None
         self.restriction_modifier = 0.
+        self.center_offset = None  # [dx, dy] or None
 
     #def get_mode_speed(self, mode):
     #    # TODO this is in two places, find a way to get it in 1
@@ -177,18 +178,36 @@ class Foot(signaler.Signaler):
     #        self.param['res.speed.%s' % (mode, )] *
     #        self.param['speed.scalar'])
 
-    def compute_center_x_position(self, z):
+    def compute_center_position(self):
+        # TODO cache this, only needs to change when inputs change
+        c0z = self.param['res.lower_height']
         target_calf_angle = numpy.radians(self.param['res.target_calf_angle'])
         max_calf_angle = numpy.radians(self.param['res.max_calf_angle'])
-        l, r = self.leg.geometry.limits_at_z_2d(z)
+
+
+        # get x limits
+        l, r = self.leg.geometry.limits_at_z_2d(c0z)
+        # if there is a max calf angle limit
         if max_calf_angle is not None:
-            rcalf = self.leg.geometry.x_with_calf_angle(z, max_calf_angle)
+            # check that the 'right' x (positive) limit for this height
+            # doesn't have too extreme a calf angle
+            rcalf = self.leg.geometry.x_with_calf_angle(c0z, max_calf_angle)
             if rcalf < r:
+                # if so, set this as the 'right' x limit
                 r = rcalf
-        c0x = self.leg.geometry.x_with_calf_angle(z, target_calf_angle)
+        # find x position where calf is at this target angle
+        c0x = self.leg.geometry.x_with_calf_angle(c0z, target_calf_angle)
+        # check if x position is out of limits, if so, reset to center
         if c0x <= l or c0x >= r:
-            c0x, _ = self.leg.geometry.xy_center_at_z(z)
-        return c0x
+            c0x, _ = self.leg.geometry.xy_center_at_z(c0z)
+
+        # add optional offsets (x and y?)
+        c0y = 0
+        if self.center_offset is not None:
+            c0x += self.center_offset[0]
+            c0y += self.center_offset[1]
+            # TODO redo range check
+        return c0x, c0y, c0z
 
     def send_plan(self):
         #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
@@ -336,8 +355,8 @@ class Foot(signaler.Signaler):
         else:  # if no previous value, can't calculate dr
             idr = 0.
             dr = 0.
-        c0x = self.compute_center_x_position(xyz['z'])
-        bc = kinematics.body.leg_to_body(self.leg.leg_number, c0x, 0., xyz['z'])
+        c0x, c0y, c0z = self.compute_center_position()
+        bc = kinematics.body.leg_to_body(self.leg.leg_number, c0x, c0y, c0z)
         self.restriction = {
             'time': xyz['time'], 'r': r, 'dr': dr, 'idr': idr,
             'center': bc}

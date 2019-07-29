@@ -119,6 +119,14 @@ class Body(signaler.Signaler):
         # TODO always reset odometer on enable?
         self.odo.reset()
         # TODO set foot states, target?
+        for i in self.feet:
+            self.feet[i].restriction_modifier = 0.
+            self.center_offset = None
+
+    def offset_foot_centers(self, dx, dy):
+        for i in self.feet:
+            ldx, ldy, _ = kinematics.body.body_to_leg_rotation(i, dx, dy, 0.)
+            self.feet[i].center_offset = (ldx, ldy)
 
     #def get_mode_speed(self, mode):
     #    # TODO this is in two places, find a way to get it in 1

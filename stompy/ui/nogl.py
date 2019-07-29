@@ -252,7 +252,6 @@ class LegDisplay(QWidget):
         lpts = leg.geometry.limits_at_z_3d(z)
 
         # draw leg 'center' point
-        # TODO how to get target calf angle?
         if 'center' in leg.restriction:
             cx, cy = self.projection.project_points([leg.restriction['center'], ])[0]
             if numpy.isfinite(cx):
