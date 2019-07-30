@@ -66,7 +66,7 @@ reports = {
     'imu': {
         'feed_pressure': 100,  # ms
         'feed_oil_temp': 500,
-        'heading': 500,
+        #'heading': 500,
         'engine_rpm': 500,
     },
 }
@@ -136,6 +136,17 @@ class TeensyBody(BodyController):
             self.mgr.on(k, make_callback(k))
             # setup reporting periods
             self.mgr.trigger(k, r[k])
+
+        self.mgr.on('heading', self._on_heading)
+        self.mgr.trigger('heading', 500)
+
+    def _on_heading(self, roll, pitch, yaw):
+        r, p, y = (roll.value, pitch.value, yaw.value)
+        # correct for offsets
+        r += 3.3375 # 2.4875
+        p += 4.3  # 2.6375
+        self.log.debug({'heading': (r, p, y)})
+        self.trigger('heading', r, p, y)
 
     def __del__(self):
         if not hasattr(self, 'name'):
