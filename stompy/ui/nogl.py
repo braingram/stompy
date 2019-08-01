@@ -262,12 +262,15 @@ class LegDisplay(QWidget):
 
         # color limits by restriction
         r = max(0., min(1., leg.restriction.get('r', 1.)))
+        rs = leg.restriction.get('state', '')
         pen = QtGui.QPen(QtGui.QColor(
             255 * r, (1 - r) * 255, 0.), 2,
             QtCore.Qt.DashLine)
         painter.setPen(pen)
         # write out text of restriciton
-        painter.drawText(x, y, 'R:%0.2f' % r)
+        painter.drawText(x, y, 'R:%0.2f[%s]' % (r, rs))
+
+        # highlight selected leg
         if leg.number == getattr(self, 'selected_leg', None):
             brush = QtGui.QBrush(QtGui.QColor(
                 128, 0, 0, 32))

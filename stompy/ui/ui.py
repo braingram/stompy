@@ -399,12 +399,14 @@ class BodyTab(Tab):
         self.display = ui.bodyDisplay
         super(BodyTab, self).__init__(ui, controller)
         self.heightLabel = ui.heightLabel
+        self.haltLabel = ui.haltLabel
 
         # attach to all legs
         self.controller.on('stance', 'height', self.on_height)
         self.controller.on('stance', 'COG', self.on_COG)
         self.controller.on('stance', 'support_legs', self.on_support_legs)
         self.controller.on('', 'mode', self.on_mode)
+        self.controller.on('res', 'halt', self.on_halt)
         for leg_number in self.controller.call('legs.keys'):
             self.display.add_leg(leg_number)
             lo = 'legs[%i]' % leg_number
@@ -444,6 +446,14 @@ class BodyTab(Tab):
         self.display.legs[leg_number].restriction = res
         self.display.update()
         return
+
+    def on_halt(self, halted):
+        if halted:
+            self.haltLabel.setText("Halted")
+            self.haltLabel.setStyleSheet("background-color: red;")
+        else:
+            self.haltLabel.setText("unhalted")
+            self.haltLabel.setStyleSheet("background-color: none;")
 
     def on_height(self, height):
         self.heightLabel.setText("Height: %0.2f" % height)

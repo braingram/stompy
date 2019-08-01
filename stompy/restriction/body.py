@@ -112,10 +112,15 @@ class Body(signaler.Signaler):
         print("Feet:", self.feet)
         self.disable()
 
+    def set_halt(self, value):
+        self.halted = value
+        self.trigger('halt', value)
+
     def enable(self, foot_states):
         self.logger.debug("enable")
         self.enabled = True
-        self.halted = False
+        self.set_halt(False)
+        #self.halted = False
         # TODO always reset odometer on enable?
         self.odo.reset()
         # TODO set foot states, target?
@@ -202,7 +207,6 @@ class Body(signaler.Signaler):
 
     def halt(self):
         if not self.halted:
-            print("HALT")
             self.logger.debug({
                 "halt": {
                     'restriction': {
@@ -213,7 +217,7 @@ class Body(signaler.Signaler):
                 }})
             self._pre_halt_target = self.target
             self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
-            self.halted = True
+            self.set_halt(True)
 
     def get_speed_by_restriction(self):
         rmax = max([
@@ -228,6 +232,7 @@ class Body(signaler.Signaler):
     def on_restriction(self, restriction, leg_number):
         if not self.enabled:
             return
+        # only update odometer when not estopped
         self.odo.update()
         # TODO only halt if moving INTO a restricted area
         # TODO unhalt if moving OUT of a restricted area
@@ -238,17 +243,21 @@ class Body(signaler.Signaler):
                 self.halted and
                 (
                     restriction['r'] < self.param['res.r_max'] or
-                    self.feet[leg_number] == 'wait')):
+                    self.feet[leg_number] in ('wait', 'swing', 'lower') or
+                    restriction['nr'] < restriction['r'])):
             # unhalt?
             maxed = False
             for i in self.feet:
                 # make sure foot is not in swing (or lower?)
+                #if self.feet[i].state in ('swing', 'lower', 'wait'):
                 if self.feet[i].state in ('swing', 'lower', 'wait'):
                     continue
-                if self.feet[i].restriction['r'] > self.param['res.r_max']:
+                r = self.feet[i].restriction
+                if r['nr'] < r['r']:  # moving to a less restricted spot
+                    continue
+                if r['r'] > self.param['res.r_max']:
                     maxed = True
             if not maxed:
-                print("Unhalt")
                 self.logger.debug({
                     "unhalt": {
                         'restriction': {
@@ -257,14 +266,16 @@ class Body(signaler.Signaler):
                             i: self.feet[i].state for i in self.feet},
                         '_pre_halt_target': self._pre_halt_target,
                     }})
-                self.halted = False
-                self.set_target(self._pre_halt_target, update_swing=False)
+                self.set_halt(False)
+                self.set_target(self._pre_halt_target, update_swing=True)
+                #self.set_target(self._pre_halt_target, update_swing=False)
                 return
         # TODO also don't halt if in 'lower'?
         if (
                 restriction['r'] > self.param['res.r_max'] and
-                not self.halted and
-                self.feet[leg_number].state != 'wait'):
+                (not self.halted) and
+                (self.feet[leg_number].state not in ('wait', 'swing', 'lower')) and
+                restriction['nr'] >= restriction['r']):
             self.halt()
             return
         # TODO scale stance speed by restriction?

@@ -15,6 +15,7 @@ from .. import transforms
 class Odometer(signaler.Signaler):
     def __init__(self):
         super(Odometer, self).__init__()
+        self.enabled = False
         self.pose_update_distance = 1.
         self.max_pose_points = 100
         self.reset()
@@ -82,6 +83,9 @@ class Odometer(signaler.Signaler):
         t = timestamp
         dt = t - self.last_update
         self.last_update = t
+
+        if not self.enabled:
+            return
 
         # find next position and angle
 
@@ -167,6 +171,7 @@ class FakeTerrain(signaler.Signaler):
             transforms.rotation_2d(pose['angle']) *
             transforms.translation_2d(
                 pose['position'][0], pose['position'][1]))
+
         # update legs with heights computed from pixels
         for ln in legs:
             leg = legs[ln]
@@ -190,3 +195,11 @@ class FakeTerrain(signaler.Signaler):
             leg._loaded_height = self.hf(v) - pose['position'][2]
             #if ln == 1:
             #    print('terrain:', ix, iy, v, leg._loaded_height)
+        # TODO compute local body slope (pitch, roll)
+        ix = min(
+            self.im.shape[1] - 1, max(
+                0, int(numpy.round(pose['position'][0]))))
+        iy = min(
+            self.im.shape[0] - 1, max(
+                0, int(numpy.round(pose['position'][1]))))
+        #print("Pose:", ix, iy)

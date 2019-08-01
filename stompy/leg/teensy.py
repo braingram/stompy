@@ -69,6 +69,7 @@ class LegController(signaler.Signaler):
         self.log = log.make_logger(self.leg_name)
 
         self.estop = None
+        self.plan = None
 
         self.adc = {}
         self.angles = {}
@@ -88,14 +89,15 @@ class LegController(signaler.Signaler):
     def update(self):
         pass
 
-    def _pack_plan(self, *args, **kwargs):
+    def _resolve_plan(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
             plan = plans.stop()
         if len(args) == 1 and isinstance(args[0], plans.Plan):
             plan = args[0]
         else:
             plan = plans.Plan(*args, **kwargs)
-        return plan.packed(self.leg_number)
+        return plan
+        #return plan.packed(self.leg_number)
 
     def set_pwm(self, hip, thigh, knee):
         self.log.info({'set_pwm': {
@@ -103,9 +105,10 @@ class LegController(signaler.Signaler):
         self.trigger('set_pwm', (hip, thigh, knee))
 
     def send_plan(self, *args, **kwargs):
-        pp = self._pack_plan(*args, **kwargs)
-        self.log.info({'plan': pp})
-        self.trigger('plan', pp)
+        self.plan = self._resolve_plan(*args, **kwargs)
+        self._packed_plan = self.plan.packed(self.leg_number)
+        self.log.info({'plan': self._packed_plan})
+        self.trigger('plan', self._packed_plan)
 
     def stop(self):
         """Send stop plan"""
@@ -180,6 +183,76 @@ class FakeTeensy(LegController):
         self._plan = p
 
     def _follow_plan(self, t, dt):
+        self.xyz['time'] = t
+        self.angles['time'] = t
+        if self.estop or self._plan is None:
+            return
+        xyz = [self.xyz['x'], self.xyz['y'], self.xyz['z']]
+        if self._plan.mode == consts.PLAN_MATRIX_MODE:
+            # if matrix mode, split up dt, only pass in full multiple of TICK
+            self._ddt += dt
+            idt, rdt = divmod(self._ddt, consts.PLAN_TICK)
+            if idt > 0:
+                xyz = plans.follow_plan(xyz, self._plan, idt * consts.PLAN_TICK)
+                self._ddt = rdt
+        else:
+            xyz = plans.follow_plan(xyz, self._plan, dt)
+        self.xyz['x'] = xyz[0]
+        self.xyz['y'] = xyz[1]
+        self.xyz['z'] = xyz[2]
+
+        # add noise
+        if self._position_noise != 0.:
+            xyzn = (numpy.random.rand(3) - 0.5) * 2. * self._position_noise
+            self.xyz['x'] += xyzn[0]
+            self.xyz['y'] += xyzn[1]
+            self.xyz['z'] += xyzn[2]
+        hip, thigh, knee = self.geometry.point_to_angles(
+            self.xyz['x'], self.xyz['y'], self.xyz['z'])
+        # check if angles are in limits, if not, stop
+        in_limits = True
+        if hip < self.geometry.hip.min_angle:
+            hip = self.geometry.hip.min_angle
+            in_limits = False
+        if hip > self.geometry.hip.max_angle:
+            hip = self.geometry.hip.max_angle
+            in_limits = False
+        if thigh < self.geometry.thigh.min_angle:
+            thigh = self.geometry.thigh.min_angle
+            in_limits = False
+        if thigh > self.geometry.thigh.max_angle:
+            thigh = self.geometry.thigh.max_angle
+            in_limits = False
+        if knee < self.geometry.knee.min_angle:
+            knee = self.geometry.knee.min_angle
+            in_limits = False
+        if knee > self.geometry.knee.max_angle:
+            knee = self.geometry.knee.max_angle
+            in_limits = False
+        if not in_limits:
+            x, y, z = list(
+                self.geometry.angles_to_points(hip, thigh, knee))[-1]
+            self.xyz['x'] = x
+            self.xyz['y'] = y
+            self.xyz['z'] = z
+            # raise estop
+            self.set_estop(consts.ESTOP_HOLD)
+        # fake calf loading
+        zl = max(
+            self._loaded_height - 5, min(
+                self._loaded_height, self.xyz['z']))
+        calf = -(zl - self._loaded_height) * 400
+        self.angles.update({
+            'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
+        #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
+        # get angles from x, y, z
+        #h, t, k = 0., 0., 0.
+        #x, y, z = list(self.geometry.angles_to_points(h, t, k))
+        #self.xyz.update({'x': x, 'y': y, 'z': z})
+        #self.angles.update({'hip': h, 'thigh': t, 'knee': k})
+
+
+    def _old_follow_plan(self, t, dt):
         self.xyz['time'] = t
         self.angles['time'] = t
         #if self.estop or self._plan is None:
@@ -483,11 +556,8 @@ class Teensy(LegController):
         super(Teensy, self).set_estop(severity.value)
 
     def send_plan(self, *args, **kwargs):
-        pp = self._pack_plan(*args, **kwargs)
-        #print("plan: %s" % pp)
-        self.log.info({'plan': pp})
-        self.trigger('plan', pp)
-        self.mgr.trigger('plan', *pp)
+        super(Teensy, self).send_plan(*args, **kwargs)
+        self.mgr.trigger('plan', *self._packed_plan)
 
     def set_estop(self, value):
         self.mgr.trigger('estop', value)

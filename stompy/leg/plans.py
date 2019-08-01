@@ -13,6 +13,7 @@ import numpy
 
 from .. import consts
 from .. import kinematics
+from .. import transforms
 
 
 class Plan(object):
@@ -91,3 +92,77 @@ class Plan(object):
 
 def stop():
     return Plan(consts.PLAN_STOP_MODE)
+
+
+def follow_plan(xyz, plan, dt=None):
+    if dt is None:
+        dt = consts.PLAN_TICK
+    # TODO xyz as dict or as tuple
+    xyz = list(xyz)[:]
+    # TODO handle estop OUTSIDE this function
+    if plan is None:
+        return xyz
+    if plan.mode == consts.PLAN_STOP_MODE:
+        return xyz
+    if plan.frame != consts.PLAN_LEG_FRAME:
+        # only works for leg frame for right now
+        raise Exception
+    if plan.mode == consts.PLAN_VELOCITY_MODE:
+        lx, ly, lz = plan.linear
+        xyz[0] += lx * dt * plan.speed
+        xyz[1] += ly * dt * plan.speed
+        xyz[2] += lz * dt * plan.speed
+    elif plan.mode == consts.PLAN_TARGET_MODE:
+        tx, ty, tz = plan.linear
+        lx = tx - xyz[0]
+        ly = ty - xyz[1]
+        lz = tz - xyz[2]
+        l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
+        if l < (plan.speed * dt) or l < 0.01:
+            xyz[0] = tx
+            xyz[1] = ty
+            xyz[2] = tz
+        else:
+            lx /= l
+            ly /= l
+            lz /= l
+            xyz[0] += lx * dt * plan.speed
+            xyz[1] += ly * dt * plan.speed
+            xyz[2] += lz * dt * plan.speed
+    elif plan.mode == consts.PLAN_ARC_MODE:
+        lx, ly, lz = plan.linear
+        ax, ay, az = plan.angular
+        #ax *= plan.speed * consts.PLAN_TICK
+        #ay *= plan.speed * consts.PLAN_TICK
+        #az *= plan.speed * consts.PLAN_TICK
+        ax *= plan.speed * dt
+        ay *= plan.speed * dt
+        az *= plan.speed * dt
+        T = transforms.rotation_about_point_3d(
+            lx, ly, lz, ax, ay, az, degrees=False)
+        nx, ny, nz = transforms.transform_3d(
+            T, xyz[0], xyz[1], xyz[2])
+
+        #self._ddt += dt
+        #nx, ny, nz = xyz[0], xyz[1], xyz[2]
+        #while self._ddt >= consts.PLAN_TICK:
+        #    #nx, ny, nz = transforms.transform_3d(
+        #    #    plan.matrix, nx, ny, nz)
+        #    nx, ny, nz = transforms.transform_3d(T, nx, ny, nz)
+        #    self._ddt -= consts.PLAN_TICK
+
+        xyz[0] = nx
+        xyz[1] = ny
+        xyz[2] = nz
+    elif plan.mode == consts.PLAN_MATRIX_MODE:
+        # call many times if dt > 4 ms)
+        #print("_follow_plan:", plan.matrix)
+        nx, ny, nz = xyz[0], xyz[1], xyz[2]
+        while dt > 0:
+            nx, ny, nz = transforms.transform_3d(
+                plan.matrix, nx, ny, nz)
+            dt -= consts.PLAN_TICK
+        xyz[0] = nx
+        xyz[1] = ny
+        xyz[2] = nz
+    return xyz

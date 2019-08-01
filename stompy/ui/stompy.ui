@@ -792,6 +792,20 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_11">
             <item>
+             <widget class="QLabel" name="haltLabel">
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>-- IMU --</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QLabel" name="rollLabel">
               <property name="minimumSize">
                <size>
