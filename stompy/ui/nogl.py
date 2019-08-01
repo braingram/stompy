@@ -186,7 +186,8 @@ class LegDisplay(QWidget):
                 #    self.set_view('left')
                 r = False
             else:
-                print("Gesture event: %s" % (g, ))
+                #print("Gesture event: %s" % (g, ))
+                pass
         return r
 
     def update(self, *args, **kwargs):
