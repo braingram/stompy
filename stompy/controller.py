@@ -118,6 +118,9 @@ class MultiLeg(signaler.Signaler):
         self.param['speed.raw'] = 0.5
         self.param['speed.sensor'] = 1200
         self.param['speed.foot'] = 5.0
+        self.param['speed.swing_scale'] = 2.0
+        self.param['speed.lift_scale'] = 1.2
+        self.param['speed.lower_scale'] = 1.2
         #self.param['speed.leg'] = 6.0
         #self.param['speed.body'] = 6.0
         # assume a foot 120 inches from the rotation point to scale speeds
@@ -263,6 +266,7 @@ class MultiLeg(signaler.Signaler):
     def set_deadman(self, value):
         previous = self.deadman
         self.deadman = value
+        self.res.odo.enabled = value
         if previous and not value:  # disabled
             self.stop()
 
