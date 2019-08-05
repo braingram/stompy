@@ -19,6 +19,7 @@ from .. import kinematics
 from .. import log
 from . import plans
 from .. import signaler
+from .. import simulation
 from .. import transforms
 from .. import utils
 
@@ -125,6 +126,8 @@ class LegController(signaler.Signaler):
 class FakeTeensy(LegController):
     def __init__(self, leg_number):
         super(FakeTeensy, self).__init__(leg_number)
+        self._sim = simulation.get()
+        self._ln = "".join(s[0].lower() for s in self.leg_name.split('-'))
         self._position_noise = 0.05  # in inches
         self._loaded_height = -40
         self.on('plan', self._new_plan)
@@ -140,13 +143,22 @@ class FakeTeensy(LegController):
         self.adc = {
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
         # approximate dolly sitting position?
-        #self.angles = {
-        #    'time': time.time(),
-        #    'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
-        # approximate short stand
         self.angles = {
             'time': time.time(),
-            'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
+            'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
+        # approximate short stand
+        #states = self._sim.get_joint_states()[self._ln]
+        #self.angles = {
+        #    'time': time.time(),
+        #    'hip': states['hip'],
+        #    'thigh': states['thigh'], 'knee': states['knee'], 'calf': 0}
+        #self.angles = {
+        #    'time': time.time(),
+        #    'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
+        ja = {self._ln: {k: self.angles[k]for k in ('hip', 'thigh', 'knee')}}
+        #self._sim.update()
+        self._sim.set_joint_angles(ja)
+
         x, y, z = list(self.geometry.angles_to_points(
             self.angles['hip'], self.angles['thigh'], self.angles['knee']))[-1]
         self.xyz = {
@@ -251,127 +263,6 @@ class FakeTeensy(LegController):
         #self.xyz.update({'x': x, 'y': y, 'z': z})
         #self.angles.update({'hip': h, 'thigh': t, 'knee': k})
 
-
-    def _old_follow_plan(self, t, dt):
-        self.xyz['time'] = t
-        self.angles['time'] = t
-        #if self.estop or self._plan is None:
-        #    return
-        if self._plan is None:
-            return
-        #if self._plan.mode == consts.PLAN_STOP_MODE:
-        #    return
-        if self._plan.frame == consts.PLAN_LEG_FRAME and not self.estop:
-            if self._plan.mode == consts.PLAN_VELOCITY_MODE:
-                lx, ly, lz = self._plan.linear
-                self.xyz['x'] += lx * dt * self._plan.speed
-                self.xyz['y'] += ly * dt * self._plan.speed
-                self.xyz['z'] += lz * dt * self._plan.speed
-            elif self._plan.mode == consts.PLAN_TARGET_MODE:
-                tx, ty, tz = self._plan.linear
-                lx = tx - self.xyz['x']
-                ly = ty - self.xyz['y']
-                lz = tz - self.xyz['z']
-                l = ((lx * lx) + (ly * ly) + (lz * lz)) ** 0.5
-                if l < (self._plan.speed * dt) or l < 0.01:
-                    self.xyz['x'] = tx
-                    self.xyz['y'] = ty
-                    self.xyz['z'] = tz
-                else:
-                    lx /= l
-                    ly /= l
-                    lz /= l
-                    self.xyz['x'] += lx * dt * self._plan.speed
-                    self.xyz['y'] += ly * dt * self._plan.speed
-                    self.xyz['z'] += lz * dt * self._plan.speed
-            elif self._plan.mode == consts.PLAN_ARC_MODE:
-                lx, ly, lz = self._plan.linear
-                ax, ay, az = self._plan.angular
-                #ax *= self._plan.speed * consts.PLAN_TICK
-                #ay *= self._plan.speed * consts.PLAN_TICK
-                #az *= self._plan.speed * consts.PLAN_TICK
-                ax *= self._plan.speed * dt
-                ay *= self._plan.speed * dt
-                az *= self._plan.speed * dt
-                T = transforms.rotation_about_point_3d(
-                    lx, ly, lz, ax, ay, az, degrees=False)
-                nx, ny, nz = transforms.transform_3d(
-                    T, self.xyz['x'], self.xyz['y'], self.xyz['z'])
-
-                #self._ddt += dt
-                #nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-                #while self._ddt >= consts.PLAN_TICK:
-                #    #nx, ny, nz = transforms.transform_3d(
-                #    #    self._plan.matrix, nx, ny, nz)
-                #    nx, ny, nz = transforms.transform_3d(T, nx, ny, nz)
-                #    self._ddt -= consts.PLAN_TICK
-
-                self.xyz['x'] = nx
-                self.xyz['y'] = ny
-                self.xyz['z'] = nz
-            elif self._plan.mode == consts.PLAN_MATRIX_MODE:
-                # call many times if dt > 4 ms)
-                #print("_follow_plan:", self._plan.matrix)
-                self._ddt += dt
-                nx, ny, nz = self.xyz['x'], self.xyz['y'], self.xyz['z']
-                while self._ddt >= consts.PLAN_TICK:
-                    nx, ny, nz = transforms.transform_3d(
-                        self._plan.matrix, nx, ny, nz)
-                    self._ddt -= consts.PLAN_TICK
-                #print("X:", self.xyz['x'], nx)
-                self.xyz['x'] = nx
-                self.xyz['y'] = ny
-                self.xyz['z'] = nz
-        # add noise
-        if self._position_noise != 0.:
-            xyzn = (numpy.random.rand(3) - 0.5) * 2. * self._position_noise
-            self.xyz['x'] += xyzn[0]
-            self.xyz['y'] += xyzn[1]
-            self.xyz['z'] += xyzn[2]
-        hip, thigh, knee = self.geometry.point_to_angles(
-            self.xyz['x'], self.xyz['y'], self.xyz['z'])
-        # check if angles are in limits, if not, stop
-        in_limits = True
-        if hip < self.geometry.hip.min_angle:
-            hip = self.geometry.hip.min_angle
-            in_limits = False
-        if hip > self.geometry.hip.max_angle:
-            hip = self.geometry.hip.max_angle
-            in_limits = False
-        if thigh < self.geometry.thigh.min_angle:
-            thigh = self.geometry.thigh.min_angle
-            in_limits = False
-        if thigh > self.geometry.thigh.max_angle:
-            thigh = self.geometry.thigh.max_angle
-            in_limits = False
-        if knee < self.geometry.knee.min_angle:
-            knee = self.geometry.knee.min_angle
-            in_limits = False
-        if knee > self.geometry.knee.max_angle:
-            knee = self.geometry.knee.max_angle
-            in_limits = False
-        if not in_limits:
-            x, y, z = list(
-                self.geometry.angles_to_points(hip, thigh, knee))[-1]
-            self.xyz['x'] = x
-            self.xyz['y'] = y
-            self.xyz['z'] = z
-            # raise estop
-            self.set_estop(consts.ESTOP_HOLD)
-        # fake calf loading
-        zl = max(
-            self._loaded_height - 5, min(
-                self._loaded_height, self.xyz['z']))
-        calf = -(zl - self._loaded_height) * 400
-        self.angles.update({
-            'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
-        #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
-        # get angles from x, y, z
-        #h, t, k = 0., 0., 0.
-        #x, y, z = list(self.geometry.angles_to_points(h, t, k))
-        #self.xyz.update({'x': x, 'y': y, 'z': z})
-        #self.angles.update({'hip': h, 'thigh': t, 'knee': k})
-
     def update(self):
         t = time.time()
         dt = t - self._last_update
@@ -391,6 +282,13 @@ class FakeTeensy(LegController):
             self.trigger('angles', self.angles)
             self.trigger('xyz', self.xyz)
             self._last_update = t
+            
+            # move joints
+            ja = {self._ln: {k: self.angles[k]for k in ('hip', 'thigh', 'knee')}}
+            self._sim.update()
+            self._sim.set_joint_angles(ja)
+
+            # TODO get calf load
 
 
 class Teensy(LegController):
