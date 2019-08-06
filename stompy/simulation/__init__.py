@@ -111,6 +111,7 @@ class Sim(signaler.Signaler):
     def get_orientation(self):
         _, oriq = pybullet.getBasePositionAndOrientation(self.robot_id)
         ori = [numpy.degrees(a) for a in pybullet.getEulerFromQuaternion(oriq)]
+        ori[1] = -ori[1]
         self.trigger('orientation', ori)
         return ori
 

@@ -143,7 +143,7 @@ class MultiLeg(signaler.Signaler):
         self.deadman = False
         self.stop_until_deadman_release = False
 
-        if 'imu' in bodies:
+        if 'imu' in self.bodies:
             self.bodies['imu'].on('heading', self.stance.on_imu_heading)
 
         # stop all legs
