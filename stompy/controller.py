@@ -80,24 +80,28 @@ class MultiLeg(signaler.Signaler):
         if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
             # all legs are fake
             self._fake_legs = True
+            print(self.bodies)
+            if len(self.bodies) == 0:
+                # make fake imu
+                self.bodies = {'imu': body.FakeIMU()}
 
             # TODO make fake joystick or plan?
             # TODO start playback of fake plans?
             # allow keyboard input
 
             # TODO connect up odometer to fake terrain
-            self._terrain = restriction.odometer.FakeTerrain()
+            #self._terrain = restriction.odometer.FakeTerrain()
             # connect pose callback
 
-            def cbf(pose, l=self.legs, t=self._terrain):
-                t.new_pose(pose, l)
-                # fake roll pitch yaw
-                r = 0.
-                p = 0.
-                y = numpy.degrees(pose['angle'])
-                self.stance.on_imu_heading(r, p, y)
+            #def cbf(pose, l=self.legs, t=self._terrain):
+            #    t.new_pose(pose, l)
+            #    # fake roll pitch yaw
+            #    r = 0.
+            #    p = 0.
+            #    y = numpy.degrees(pose['angle'])
+            #    self.stance.on_imu_heading(r, p, y)
 
-            self.res.odo.on('pose', cbf)
+            #self.res.odo.on('pose', cbf)
         else:
             self._fake_legs = False
         self.leg_index = sorted(legs)[0]
@@ -175,6 +179,8 @@ class MultiLeg(signaler.Signaler):
             self.set_mode('walk')
             self.param['res.max_feet_up'] = 3
             self.param['res.speed.by_restriction'] = True
+            #self.param['res.loaded_weight'] = 10
+            #self.param['res.unloaded_weight'] = 30
 
     def set_speed(self, speed):
         old_speed = self.param['speed.scalar']

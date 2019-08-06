@@ -672,9 +672,9 @@ def load_ui(controller=None):
             lambda v: ui.oilTempLabel.setText("Temp: %0.2f" % v))
 
         def new_heading(roll, pitch, yaw):
-            ui.rollLabel.setText("Roll: %s" % roll)
-            ui.pitchLabel.setText("Pitch: %s" % pitch)
-            ui.yawLabel.setText("Yaw: %s" % yaw)
+            ui.rollLabel.setText("Roll: %0.1f" % roll)
+            ui.pitchLabel.setText("Pitch: %0.1f" % pitch)
+            ui.yawLabel.setText("Yaw: %0.1f" % yaw)
 
         controller.on('bodies["imu"]', 'heading', new_heading)
         #controller.on(

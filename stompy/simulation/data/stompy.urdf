@@ -85,8 +85,7 @@
     <child link="stompy__fl_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <!--<limit effort="10942" lower="0" upper="0.104" velocity="0.0"/>-->
-    <limit effort="0" lower="-0.104" upper="0" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
   <!--
   <joint name="stompy__fl_leg__calf_upper_to_linkage_upper" type="fixed">
@@ -309,7 +308,7 @@
     <child link="stompy__fr_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <limit effort="10942" lower="-0.104" upper="0.104" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
 
   <!--
@@ -529,7 +528,7 @@
     <child link="stompy__ml_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <limit effort="10942" lower="-0.104" upper="0.104" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
 
   <!--
@@ -749,7 +748,7 @@
     <child link="stompy__mr_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <limit effort="10942" lower="-0.104" upper="0.104" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
 
   <!--
@@ -969,7 +968,7 @@
     <child link="stompy__rl_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <limit effort="10942" lower="-0.104" upper="0.104" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
 
   <!--
@@ -1189,7 +1188,7 @@
     <child link="stompy__rr_leg__calf_lower"/>
     <origin rpy="0  0  0" xyz="0.201  0     -0.847"/>
     <axis xyz="0  0  1"/>
-    <limit effort="10942" lower="-0.104" upper="0.104" velocity="0.0"/>
+    <limit effort="5337" lower="0.0" upper="0.104" velocity="0.0"/>
   </joint>
 
   <!--

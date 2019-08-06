@@ -10,6 +10,7 @@ import serial
 
 from . import log
 from . import signaler
+from . import simulation
 from . import utils
 
 
@@ -81,6 +82,28 @@ class BodyController(signaler.Signaler):
     def update(self):
         # fake any sensors here
         pass
+
+
+class FakeIMU(BodyController):
+    def __init__(self):
+        super(FakeIMU, self).__init__('imu')
+        # TODO connect to simulation
+        self._last_report = time.time()
+        self._sim = simulation.get()
+
+    def update(self):
+        # emit:
+        t = time.time()
+        if (t - self._last_report) >= 0.1:
+            # - feed_pressure
+            self.trigger('feed_pressure', 1700)
+            # - engine_rpm
+            self.trigger('engine_rpm', 1500)
+            # - heading [roll, pitch, yaw]
+            # TODO confirm directions
+            ori = self._sim.get_orientation()
+            self.trigger('heading', *ori)
+            self._last_report = t
 
 
 class TeensyBody(BodyController):
@@ -186,8 +209,9 @@ def connect_to_teensies(ports=None):
             raise IOError("Failed to find port for a body teensy")
     if len(ports) == 0:
         # return fake body
-        return {n: BodyController(n) for n in [names[0]]}
-        raise NotImplementedError
+        #return {n: BodyController(n) for n in [names[0]]}
+        return {}
+        #raise NotImplementedError
     teensies = [TeensyBody(p) for p in ports]
     nd = {}
     for t in teensies:

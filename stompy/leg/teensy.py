@@ -129,7 +129,8 @@ class FakeTeensy(LegController):
         self._sim = simulation.get()
         self._ln = "".join(s[0].lower() for s in self.leg_name.split('-'))
         self._position_noise = 0.05  # in inches
-        self._loaded_height = -40
+        #self._loaded_height = -40
+        self._calf_load = 0.
         self.on('plan', self._new_plan)
 
         self.estop = True
@@ -250,12 +251,16 @@ class FakeTeensy(LegController):
             # raise estop
             self.set_estop(consts.ESTOP_HOLD)
         # fake calf loading
-        zl = max(
-            self._loaded_height - 5, min(
-                self._loaded_height, self.xyz['z']))
-        calf = -(zl - self._loaded_height) * 400
+        #zl = max(
+        #    self._loaded_height - 5, min(
+        #        self._loaded_height, self.xyz['z']))
+        #calf = -(zl - self._loaded_height) * 400
+        # get calf load
+        self._calf_load = (
+            -(self._sim.get_joint_states()[self._ln]['calf'] * 0.224809))
+        print(self._ln, self._calf_load)
         self.angles.update({
-            'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': calf})
+            'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': self._calf_load})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)
         # get angles from x, y, z
         #h, t, k = 0., 0., 0.
@@ -287,8 +292,6 @@ class FakeTeensy(LegController):
             ja = {self._ln: {k: self.angles[k]for k in ('hip', 'thigh', 'knee')}}
             self._sim.update()
             self._sim.set_joint_angles(ja)
-
-            # TODO get calf load
 
 
 class Teensy(LegController):
