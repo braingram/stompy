@@ -29,7 +29,8 @@ class Sim(signaler.Signaler):
         pybullet.setGravity(0,0,-9.8)
 
         # TODO load terrain
-        planeId = pybullet.loadURDF("plane.urdf")
+        planeId = pybullet.loadURDF(
+            "plane.urdf", [0, 0, 0], pybullet.getQuaternionFromEuler([-0.1, 0, 0]))
         dolliesId = pybullet.loadURDF("dollies.urdf")
 
         # load stompy

@@ -141,12 +141,6 @@ class Body(signaler.Signaler):
             ldx, ldy, _ = kinematics.body.body_to_leg_rotation(i, dx, dy, 0.)
             self.feet[i].center_offset = (ldx, ldy)
 
-    #def get_mode_speed(self, mode):
-    #    # TODO this is in two places, find a way to get it in 1
-    #    return (
-    #        self.param['res.speed.%s' % (mode, )] *
-    #        self.param['speed.scalar'])
-
     def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms
         speed = mag * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
@@ -161,7 +155,7 @@ class Body(signaler.Signaler):
             if mr is None or r > mr:
                 mr = r
         mr = numpy.sqrt(mr)
-        # TODO account for radius sign
+        # account for radius sign
         rspeed = speed / mr
         max_rspeed = (
             self.param['speed.foot'] / self.param['arc_speed_radius'] *
@@ -242,11 +236,6 @@ class Body(signaler.Signaler):
             return
         # only update odometer when not estopped
         self.odo.update()
-        # TODO only halt if moving INTO a restricted area
-        # TODO unhalt if moving OUT of a restricted area
-        # TODO only unhalt on low-passed r?
-        # TODO unhalt if feet are in 'wait'
-        # TODO also unhalt on lower?
         if (
                 self.halted and
                 (
@@ -278,7 +267,6 @@ class Body(signaler.Signaler):
                 self.set_target(self._pre_halt_target, update_swing=True)
                 #self.set_target(self._pre_halt_target, update_swing=False)
                 return
-        # TODO also don't halt if in 'lower'?
         if (
                 restriction['r'] > self.param['res.r_max'] and
                 (not self.halted) and

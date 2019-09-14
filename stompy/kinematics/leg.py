@@ -34,9 +34,9 @@ default_cfg = {
     'hip': {
         'length': 11.0,
         'rest_angle': 0.,
-        'cylinder_min': 16.0,  # TODO measure this!
-        'cylinder_max': 23.153837,  # TODO measure this!
-        'zero_angle_length': 19.8173,  # TODO measure this!
+        'cylinder_min': 16.0,
+        'cylinder_max': 23.153837,
+        'zero_angle_length': 19.8173,
         'triangle_a': 6.83905,
         'triangle_b': 19.16327,
     },
@@ -62,16 +62,16 @@ default_cfg = {
 per_leg_cfg = {
     2: {
         'hip': {
-            'cylinder_max': 24.0,  # TODO measure this!
-            'zero_angle_length': 20.30,  # TODO measure this!
-            'triangle_b': 19.62051,  # TODO measure this!
+            'cylinder_max': 24.0,
+            'zero_angle_length': 20.30,
+            'triangle_b': 19.62051,
         },
     },
     5: {
         'hip': {
-            'cylinder_max': 24.0,  # TODO measure this!
-            'zero_angle_length': 20.30,  # TODO measure this!
-            'triangle_b': 19.62051,  # TODO measure this!
+            'cylinder_max': 24.0,
+            'zero_angle_length': 20.30,
+            'triangle_b': 19.62051,
         },
     },
 }
@@ -294,7 +294,7 @@ class LegGeometry(object):
         yield x * ch, x * sh, z
 
     def point_to_angles(self, x, y, z):
-        # TODO doesn't work for x < 0
+        # doesn't work for x < 0
         l = (x * x + y * y) ** 0.5
         hip = numpy.arctan2(y, x)
         L = (z * z + (l - self.hip.length) * (l - self.hip.length)) ** 0.5
@@ -400,7 +400,6 @@ class LegGeometry(object):
             self, c, z, min_hip_distance=None, max_calf_angle=None):
         # get 'left' [closest to hip] and 'right' circles
         # get hip limits (sets +-y angle)
-        # TODO account for z translation
         l, r = self.limits_at_z_2d(z)
         # if l is too close to hip, extend it out
         if min_hip_distance is not None:

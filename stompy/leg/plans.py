@@ -97,9 +97,9 @@ def stop():
 def follow_plan(xyz, plan, dt=None):
     if dt is None:
         dt = consts.PLAN_TICK
-    # TODO xyz as dict or as tuple
+    # xyz as dict or as tuple
     xyz = list(xyz)[:]
-    # TODO handle estop OUTSIDE this function
+    # estop handled OUTSIDE this function
     if plan is None:
         return xyz
     if plan.mode == consts.PLAN_STOP_MODE:

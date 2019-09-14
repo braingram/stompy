@@ -27,7 +27,7 @@ default_mapping = {
 class FakeJoystick(base.Joystick):
     def __init__(self):
         super(FakeJoystick, self).__init__()
-        # TODO mapping
+        # add mapping in subclass
 
     def set_button(self, name, value):
         self._report_button(name, value)

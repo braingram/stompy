@@ -41,6 +41,8 @@ class Stance(signaler.Signaler):
             self.leg_positions[leg] = None
             self.leg_states[leg] = None
         self.heading = None
+        self.pose_plane = None
+        self.slope = None
         self.height = None
         self.support_polygon = None
         # TODO probably higher up and some inches back
@@ -69,9 +71,14 @@ class Stance(signaler.Signaler):
             self.update_support_polygon()
 
     def on_imu_heading(self, roll, pitch, yaw):
+        # - roll = left side of body is lower
+        # - pitch = nose is lower
+        # roll -3.3, pitch 1.7
+        # heading (-3.3021730483155509, 1.698265784377885, 0.0069093329155734294)
+        # pose_plane (0.042723203630698529, 0.070985722381526437)
         self.heading = (roll, pitch, yaw)
         self.update_cog()
-        # TODO compute ground flatness
+        self.update_ground_slope()
 
     def update_support_polygon(self):
         self.support_polygon = []
@@ -95,11 +102,74 @@ class Stance(signaler.Signaler):
             self.trigger('height', self.height)
             if self.COG is not None:
                 self.update_stability_margin()
+            if len(self.support_polygon) > 2:
+                self.update_pose_plane()
+
+    def update_pose_plane(self):
+        if self.support_polygon is None or len(self.support_polygon) < 3:
+            return
+        # TODO throttle?
+        # take lowest 3 feet, fit plane, get roll and pitch of plane
+        p = self.support_polygon[self.support_polygon[:, 2].argsort()[:3]]
+        # get furthest forward point (most y positive) = p0
+        inds = [0, 1, 2]
+        p0i = p[:, 1].argmax()
+        inds.remove(p0i)
+        p0 = p[p0i]
+        p1, p2 = p[inds]
+
+        # get leftmost of other 2 points (most x negative) = p1
+        # other is p2
+        if p2[0] < p1[0]:
+            p1, p2 = p2, p1
+
+        # compute normal: normal = numpy.cross(p1 - p0, p2 - p0)
+        n = numpy.cross(p1 - p0, p2 - p0)
+
+        # should go UP
+        if n[2] < 0:
+            print("That's not supposed to happen...[z should be >= 0]:", n)
+            return
+
+        # compute pitch of normal using Z and Y: arctan(Y, Z)
+        # TODO - pitch when front feet are lower
+        pitch = -numpy.arctan2(n[1], n[2])
+
+        # compute roll of normal using Z and X: arctan(X, Z)
+        # TODO + roll when right feet are lower
+        roll = numpy.arctan2(n[0], n[2])
+        self.pose_plane = numpy.degrees(roll), numpy.degrees(pitch)
+        self.trigger('pose_plane', self.pose_plane)
+
+        self.update_ground_slope()
+
+    def update_ground_slope(self):
+        if self.heading is None or self.pose_plane is None:
+            return
+        # TODO throttle?
+        # correct heading pitch and yaw for slope of ground
+        # report ground slope
+        # self.heading (roll, pitch, yaw)
+        # - roll = left side of body is lower
+        # - pitch = nose is lower
+        # self.pose_plane roll, pitch
+        #  -- first test --
+        # roll -3.3, pitch 1.7
+        # heading (-3.3021730483155509, 1.698265784377885, 0.0069093329155734294)
+        # pose_plane (0.070985722381526437, 0.042723203630698529)
+        # pose_plane[degrees] = [4.01, 2.29]
+
+        # ground_slope = roll, pitch
+        self.ground_slope = (
+            self.heading[0] + self.pose_plane[0],
+            self.heading[1] + self.pose_plane[1])
+        self.trigger('ground_slope', self.ground_slope)
 
     def update_cog(self):
         """compute center of gravity using center of mass and roll and pitch"""
         if self.height is None or self.heading is None:
             return
+        # TODO throttle?
         # project COM down by height by pitch and roll
         roll, pitch, yaw = self.heading
         R = transforms.rotation_3d(pitch, roll, 0., degrees=True)
@@ -112,6 +182,7 @@ class Stance(signaler.Signaler):
     def update_stability_margin(self):
         if self.support_polygon is None or len(self.support_polygon) < 3:
             return
+        # TODO throttle?
         if self.COG is None:
             cg = self.COM
         else:

@@ -440,7 +440,6 @@ class Teensy(LegController):
         cal.load0 = load
         cal.old_offset = cal.offset
         cal.compute_offset()
-        # TODO sanity check
         self.log.info({'compute_calf_zero': {
             'value': v,
             'old_offset': cal.old_offset,

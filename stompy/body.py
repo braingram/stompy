@@ -87,8 +87,8 @@ class BodyController(signaler.Signaler):
 class FakeIMU(BodyController):
     def __init__(self):
         super(FakeIMU, self).__init__('imu')
-        # TODO connect to simulation
         self._last_report = time.time()
+        # connect to simulation
         self._sim = simulation.get()
 
     def update(self):

@@ -77,7 +77,6 @@ def filter_events(d, pass_filter, legs=None):
 def plot_events(d, value=None, legs=None):
     if legs is None:
         legs = sorted(d.keys())
-    # TODO colormap
     for l in legs:
         evs = d[l]
         pylab.scatter(

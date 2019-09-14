@@ -147,12 +147,16 @@ class MultiLeg(signaler.Signaler):
             self.bodies['imu'].on('heading', self.stance.on_imu_heading)
 
             # TODO use ground flatness (not imu)
-            def offset_feet(r, p, y):
+            #def offset_feet(r, p, y):
+            def offset_feet(gs):
+                r, p = gs
+                # TODO scaler from config
                 dx = r * 1.
                 dy = p * -1.
                 self.res.offset_foot_centers(dx, dy)
 
-            self.bodies['imu'].on('heading', offset_feet)
+            #self.bodies['imu'].on('heading', offset_feet)
+            self.stance.on('ground_slope', offset_feet)
 
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
@@ -233,44 +237,6 @@ class MultiLeg(signaler.Signaler):
             leg.xyz.get('z', numpy.nan))
         self.stance.on_leg_xyz(bxyz, leg_number)
 
-    """
-    def on_leg_xyz(self, xyz, leg_number):
-        # TODO throttle this? pull into a structure to manage this
-        # find lowest 3 legs (most negative)
-        lzs = {
-            l: self.legs[l].xyz.get('z', numpy.nan) for l in self.legs}
-        legs_by_height = sorted(lzs.keys(), key=lambda l: lzs[l])
-        self.height = -numpy.mean(sorted(lzs.values())[:3])
-        # TODO limit this to only every N updates?
-        self.trigger('height', self.height)
-        # TODO compute support triangle, body level, COM, etc
-        # look at legs in 'stance'
-        # take lowest 3 feet
-        if len(self.legs) < 3:
-            return
-        low_legs = legs_by_height[:3]
-        pts = []
-        for ln in low_legs:
-            leg = self.legs[ln]
-            # get xyz convert to body coordinates
-            bxyz = kinematics.body.leg_to_body(
-                ln, leg.xyz.get('x', numpy.nan),
-                leg.xyz.get('y', numpy.nan),
-                leg.xyz.get('z', numpy.nan))
-            pts.append(bxyz)
-        pts = numpy.array(pts)
-        # make plane, compute pitch and roll
-        # compute plane normal
-        normal = numpy.cross((pts[0] - pts[1]), (pts[0] - pts[2]))
-        if normal[2] < 0:
-            normal *= -1.
-        # theta = arctan2(o, a)
-        pitch = numpy.degrees(numpy.arctan2(normal[0], normal[2]))
-        roll = numpy.degrees(numpy.arctan2(normal[1], normal[2]))
-        # compute COM
-        return # TODO work-in-progress
-    """
-
     def on_disable_joystick(self, value):
         # if deadman was pressed and joystick was disabled
         if self.deadman and value:
@@ -313,7 +279,7 @@ class MultiLeg(signaler.Signaler):
             # TODO integrate this with enable
             for i in self.res.feet:
                 #self.res.feet[i].state = 'stance'
-                # check load, if loaded, set to 'wait'
+                # TODO check load, if loaded, set to 'wait'
                 # else set to ?
                 self.res.feet[i].set_state('stance')
             self.res.enable(None)
@@ -603,6 +569,7 @@ class MultiLeg(signaler.Signaler):
                     self.res.calc_stance_speed((crx, cry), sv)
                     * numpy.sign(crx))
             # add dz
+            # TODO auto-adjust height here?
             # TODO maybe this should be scaled down?
             dz = -xyz[2] * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
             if self.param['res.speed.by_restriction']:
@@ -625,7 +592,7 @@ class MultiLeg(signaler.Signaler):
                         disable_override = False
                 if disable_override:
                     self.param['min_hip_override'] = False
-                    # TODO trigger ui update?
+                    # trigger ui update
                     self.trigger('config_updated')
             else:
                 #

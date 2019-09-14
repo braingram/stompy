@@ -47,12 +47,6 @@ class Foot(signaler.Signaler):
         self.restriction_modifier = 0.
         self.center_offset = None  # [dx, dy] or None
 
-    #def get_mode_speed(self, mode):
-    #    # TODO this is in two places, find a way to get it in 1
-    #    return (
-    #        self.param['res.speed.%s' % (mode, )] *
-    #        self.param['speed.scalar'])
-
     def swing_position_from_intersections(
             self, tc, rspeed, c0, ipts, step_ratio):
         # if len(ipts) == 0, return to center?
@@ -221,7 +215,6 @@ class Foot(signaler.Signaler):
         dx = abs(xyz['x'] - cx)
         dy = abs(xyz['y'] - cy)
         dr = numpy.sqrt(dx * dx + dy * dy)
-        # TODO don't assume 30 inch diameter
         # exp(-log(0.1)/rt * (dr - 30))
         fcr = numpy.exp(
             -numpy.log(self.param['res.center_eps'])/self.param['res.center_inflection'] *
@@ -472,8 +465,7 @@ class Foot(signaler.Signaler):
             if self._is_swing_done(self.xyz):
                 new_state = 'lower'
         elif self.state == 'lower':
-            # TODO check for loaded >L lbs
-            #if self.xyz['z'] < self.lower_height:
+            # check for loaded >L lbs
             if (
                     (
                         (self.xyz['z'] - self.param['res.lower_height']) <

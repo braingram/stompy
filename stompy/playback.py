@@ -305,7 +305,7 @@ def make_rear_playback():
     # - lift N more inches
     # - move to target x, y
     # - lower until loaded more than N
-    # TODO level legs?
+    # level legs?
     # lift body by moving simultaneously down with all legs
     # pitch nose up by N degrees
     # lift front two legs until unloaded
