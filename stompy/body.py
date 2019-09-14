@@ -164,6 +164,8 @@ class TeensyBody(BodyController):
         self.mgr.trigger('heading', 500)
 
     def _on_heading(self, roll, pitch, yaw):
+        # roll + is to the right
+        # pitch + is up
         r, p, y = (roll.value, pitch.value, yaw.value)
         # correct for offsets
         r += 3.3375 # 2.4875

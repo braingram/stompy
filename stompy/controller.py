@@ -146,6 +146,14 @@ class MultiLeg(signaler.Signaler):
         if 'imu' in self.bodies:
             self.bodies['imu'].on('heading', self.stance.on_imu_heading)
 
+            # TODO use ground flatness (not imu)
+            def offset_feet(r, p, y):
+                dx = r * 1.
+                dy = p * -1.
+                self.res.offset_foot_centers(dx, dy)
+
+            self.bodies['imu'].on('heading', offset_feet)
+
         # stop all legs
         self.all_legs('set_estop', consts.ESTOP_DEFAULT)
 

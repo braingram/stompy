@@ -144,18 +144,18 @@ class FakeTeensy(LegController):
         self.adc = {
             'time': time.time(), 'hip': 0, 'thigh': 0, 'knee': 0, 'calf': 0}
         # approximate dolly sitting position?
-        self.angles = {
-            'time': time.time(),
-            'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
+        #self.angles = {
+        #    'time': time.time(),
+        #    'hip': 0, 'thigh': 0.312, 'knee': -0.904, 'calf': 0}
         # approximate short stand
         #states = self._sim.get_joint_states()[self._ln]
         #self.angles = {
         #    'time': time.time(),
         #    'hip': states['hip'],
         #    'thigh': states['thigh'], 'knee': states['knee'], 'calf': 0}
-        #self.angles = {
-        #    'time': time.time(),
-        #    'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
+        self.angles = {
+            'time': time.time(),
+            'hip': 0, 'thigh': 0.912, 'knee': -1.04, 'calf': 0}
         ja = {self._ln: {k: self.angles[k]for k in ('hip', 'thigh', 'knee')}}
         #self._sim.update()
         self._sim.set_joint_angles(ja)
@@ -258,7 +258,7 @@ class FakeTeensy(LegController):
         # get calf load
         self._calf_load = (
             -(self._sim.get_joint_states()[self._ln]['calf'] * 0.224809))
-        print(self._ln, self._calf_load)
+        #print(self._ln, self._calf_load)
         self.angles.update({
             'hip': hip, 'thigh': thigh, 'knee': knee, 'calf': self._calf_load})
         #print(self.leg_number, self._plan.mode, self.angles, self.xyz)

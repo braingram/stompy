@@ -62,9 +62,12 @@ class Sim(signaler.Signaler):
             #print("\t%s" % (info, ))
             if jn is None:
                 # make joint mostly passive
+                #pybullet.setJointMotorControl2(
+                #    self.robot_id, ji, pybullet.VELOCITY_CONTROL,
+                #    force=4)
                 pybullet.setJointMotorControl2(
-                    self.robot_id, ji, pybullet.VELOCITY_CONTROL,
-                    force=2)
+                    self.robot_id, ji, pybullet.POSITION_CONTROL,
+                    targetPosition=0.0, force=4.5)
                 continue
             if ln not in self.legs:
                 self.legs[ln] = {}

@@ -71,6 +71,7 @@ class Stance(signaler.Signaler):
     def on_imu_heading(self, roll, pitch, yaw):
         self.heading = (roll, pitch, yaw)
         self.update_cog()
+        # TODO compute ground flatness
 
     def update_support_polygon(self):
         self.support_polygon = []
