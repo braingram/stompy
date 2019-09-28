@@ -61,6 +61,7 @@ class MultiLeg(signaler.Signaler):
         #'leg_sensor',
         'leg_leg',
         'leg_body',
+        'front_pair',
         #'leg_calibration',
         #'leg_restriction',
         'body',
@@ -494,6 +495,36 @@ class MultiLeg(signaler.Signaler):
                 mode=consts.PLAN_VELOCITY_MODE,
                 frame=consts.PLAN_BODY_FRAME,
                 linear=xyz, speed=speed)
+        elif self.mode == 'front_pair':
+            if (
+                    (consts.LEG_FR not in self.legs) or
+                    (consts.LEG_FL not in self.legs)):
+                return
+            speed = self.param['speed.scalar'] * self.param['speed.foot']
+            if (
+                    self.param['prevent_leg_xy_when_loaded'] and
+                    (
+                        (self.legs[consts.LEG_FR].angles['calf'] >
+                            self.param['res.loaded_weight']) or
+                        (self.legs[consts.LEG_FL].angles['calf'] >
+                            self.param['res.loaded_weight']))):
+                xyz = [0., 0., xyz[2]]
+            if self.joy.buttons.get('sub_mode', 0) == 0:
+                # move the same way
+                lxyz = xyz
+                rxyz = xyz
+            else:
+                # invert X for left leg
+                lxyz = [-xyz[0], xyz[1], xyz[2]]
+                rxyz = xyz
+            self.legs[consts.LEG_FR].send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_BODY_FRAME,
+                linear=rxyz, speed=speed)
+            self.legs[consts.LEG_FL].send_plan(
+                mode=consts.PLAN_VELOCITY_MODE,
+                frame=consts.PLAN_BODY_FRAME,
+                linear=lxyz, speed=speed)
         elif self.mode == 'leg_calibration':
             pass
         elif self.mode == 'sit_stand':

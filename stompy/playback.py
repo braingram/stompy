@@ -300,6 +300,8 @@ def make_rear_playback():
     def above_z(xyz, z):
         return xyz['z'] > z
 
+    # make sure all legs are loaded before starting
+    # make sure total load is within limits
     # from leg 1 to leg 6
     # - lift leg until loaded less than N
     # - lift N more inches
