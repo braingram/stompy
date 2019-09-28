@@ -119,6 +119,8 @@ class MultiLeg(signaler.Signaler):
         self.param['min_hip_distance'] = 30.0
         self.param['prevent_leg_xy_when_loaded'] = True
         self.param['min_hip_override'] = False
+        self.param['foot_center_shift_x'] = 1.
+        self.param['foot_center_shift_y'] = 1.
         self.param['speed.raw'] = 0.5
         self.param['speed.sensor'] = 1200
         self.param['speed.foot'] = 5.0
@@ -146,13 +148,11 @@ class MultiLeg(signaler.Signaler):
         if 'imu' in self.bodies:
             self.bodies['imu'].on('heading', self.stance.on_imu_heading)
 
-            # TODO use ground flatness (not imu)
             #def offset_feet(r, p, y):
             def offset_feet(gs):
                 r, p = gs
-                # TODO scaler from config
-                dx = r * 1.
-                dy = p * -1.
+                dx = r * -1. * self.param['foot_center_shift_x']
+                dy = p * -1. * self.param['foot_center_shift_y']
                 self.res.offset_foot_centers(dx, dy)
 
             #self.bodies['imu'].on('heading', offset_feet)
