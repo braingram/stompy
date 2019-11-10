@@ -217,8 +217,14 @@ class Playback(object):
 
 
 def make_leg_wiggle_playback():
+    leg_number = 2
+    leg_speed = 5
+    #p0 = [90, -10, 10]
+    #p1 = [110, 10, 10]
+    p0 = [70, -10, 0]
+    p1 = [90, 10, 0]
     current = {
-        6: Action(
+        leg_number: Action(
             plan=None,
             state_id=0,
             should_start=True,
@@ -244,35 +250,35 @@ def make_leg_wiggle_playback():
                 'mode': consts.PLAN_VELOCITY_MODE,
                 'frame': consts.PLAN_LEG_FRAME,
                 'linear': [0, 0, 1],
-                'speed': 3
+                'speed': leg_speed,
             },
             state_id=1,
             should_start=True,
-            should_stop=lambda c, p: above_z(c.legs[6].xyz, 0),
+            should_stop=lambda c, p: above_z(c.legs[leg_number].xyz, 0),
             next_action=2,
         ),
         2: Action(  # move to x 70 y 0, z 0
             plan={
                 'mode': consts.PLAN_TARGET_MODE,
                 'frame': consts.PLAN_LEG_FRAME,
-                'linear': [70, 0, 0],
-                'speed': 3,
+                'linear': p0,
+                'speed': leg_speed,
             },
             state_id=2,
             should_start=True,
-            should_stop=lambda c, p: close_enough(c.legs[6].xyz, [70, 0, 0], 1),
+            should_stop=lambda c, p: close_enough(c.legs[leg_number].xyz, p0, 3),
             next_action=3,
         ),
         3: Action(  # move to x 90 y 0 z 0
             plan={
                 'mode': consts.PLAN_TARGET_MODE,
                 'frame': consts.PLAN_LEG_FRAME,
-                'linear': [90, 0, 0],
-                'speed': 3,
+                'linear': p1,
+                'speed': leg_speed,
             },
             state_id=3,
             should_start=True,
-            should_stop=lambda c, p: close_enough(c.legs[6].xyz, [90, 0, 0], 1),
+            should_stop=lambda c, p: close_enough(c.legs[leg_number].xyz, p1, 3),
             next_action=None,
         ),
     }

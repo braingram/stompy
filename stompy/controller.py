@@ -61,7 +61,7 @@ class MultiLeg(signaler.Signaler):
         #'leg_sensor',
         'leg_leg',
         'leg_body',
-        'front_pair',
+        #'front_pair',
         #'leg_calibration',
         #'leg_restriction',
         'body',

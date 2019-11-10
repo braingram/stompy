@@ -59,7 +59,7 @@
          <enum>QTabWidget::East</enum>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="legTab">
          <property name="enabled">
@@ -334,6 +334,9 @@
                   <property name="decimals">
                    <number>4</number>
                   </property>
+                  <property name="minimum">
+                   <double>-99.989999999999995</double>
+                  </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
                   </property>
@@ -355,6 +358,9 @@
                   <property name="decimals">
                    <number>4</number>
                   </property>
+                  <property name="minimum">
+                   <double>-99.989999999999995</double>
+                  </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
                   </property>
@@ -375,6 +381,9 @@
                  <widget class="QDoubleSpinBox" name="pidDSpin">
                   <property name="decimals">
                    <number>4</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-99.989999999999995</double>
                   </property>
                   <property name="singleStep">
                    <double>0.100000000000000</double>
