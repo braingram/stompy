@@ -140,6 +140,15 @@ class JointGeometry(object):
     def joint_angle(self, cylinder_length):
         return self.raw_angle(cylinder_length) - self.zero_angle
 
+    def to_cylinder_length(self, angle):
+        C = angle + self.zero_angle
+        a = self.triangle_a
+        b = self.triangle_b
+        # solve for cylinder length
+        return numpy.sqrt(a * a + b * b - 2 * a * b * numpy.cos(C))
+
+
+
 
 def circle_intersection(c0, c1):
     x0, y0 = c0['center']
