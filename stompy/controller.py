@@ -139,7 +139,8 @@ class MultiLeg(signaler.Signaler):
         self.param.set_meta('speed.scalar', min=0.1, max=2.0, decimals=1)
         self.param['speed.step'] = 0.05
 
-        self.height = numpy.nan
+        #self.height = numpy.nan
+        self._last_walk_set_target = 0.
         self.joy = joystick.base.Joystick()
         self.joy.on('buttons', self.on_buttons)
         self.joy.on('axes', self.on_axes)
@@ -285,13 +286,13 @@ class MultiLeg(signaler.Signaler):
                 self.res.feet[i].set_state('stance')
             self.res.enable(None)
             #self.res.offset_foot_centers(0, 10.)
-            if (
-                    self.param['res.set_height_on_mode_select'] and
-                    numpy.isfinite(self.height) and
-                    (self.param['res.min_lower_height'] < -self.height) and
-                    (-self.height < self.param['res.max_lower_height'])):
-                self.param['res.lower_height'] = -self.height
-                self.trigger('config_updated')
+            #if (
+            #        self.param['res.set_height_on_mode_select'] and
+            #        numpy.isfinite(self.height) and
+            #        (self.param['res.min_lower_height'] < -self.height) and
+            #        (-self.height < self.param['res.max_lower_height'])):
+            #    self.param['res.lower_height'] = -self.height
+            #    self.trigger('config_updated')
             if self.deadman:
                 self.set_target()
         elif self.mode == 'leg_pwm':
@@ -600,11 +601,32 @@ class MultiLeg(signaler.Signaler):
                     self.res.calc_stance_speed((crx, cry), sv)
                     * numpy.sign(crx))
             # add dz
+            if (
+                    (self.stance.height is not None) and
+                    (numpy.isfinite(self.stance.height))):
+                # check auto-adjustment of height
+                # self.param['res.lower_height'] (-, more - is higher)
+                # self.height (+, more + is higher)
+                # h + r.lh: if -, move higher, if +, move lower
+                dh = self.stance.height + self.param['res.lower_height']
+                print("delta height: ", dh)
+                if abs(dh) < 5:
+                    dz = 0.  # no height change
+                else:
+                    mdz = (
+                        self.param['speed.foot'] *
+                        self.param['speed.scalar'])
+                    dz = (
+                        0.5 * numpy.sign(dh) *
+                        max(mdz, abs(dh)) * consts.PLAN_TICK)
+            else:
+                dz = 0.
+            print(crx, cry, rs, dz)
+            ## TODO maybe this should be scaled down?
+            # dz = -xyz[2] * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
+            # if self.param['res.speed.by_restriction']:
+            #     dz *= self.res.get_speed_by_restriction()
             # TODO auto-adjust height here?
-            # TODO maybe this should be scaled down?
-            dz = -xyz[2] * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
-            if self.param['res.speed.by_restriction']:
-                dz *= self.res.get_speed_by_restriction()
             self.res.set_target(
                 restriction.body.BodyTarget((crx, cry), rs, dz))
 
@@ -613,7 +635,12 @@ class MultiLeg(signaler.Signaler):
         self.all_legs('update')
         if self.mode == 'playback' and self.playback is not None:
             self.playback.update(self)
-        elif self.mode in ('body', 'walk', 'playback', 'sit_stand'):
+        if self.mode == 'walk':
+            # update walking target every N ms
+            if (time.time() - self._last_walk_set_target) > 1.0:
+                self.set_target()
+                self._last_walk_set_target = time.time()
+        if self.mode in ('body', 'walk', 'playback', 'sit_stand'):
             if self.param['min_hip_override']:
                 # check if override should be turned off
                 disable_override = True
