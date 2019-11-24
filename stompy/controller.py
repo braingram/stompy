@@ -139,6 +139,8 @@ class MultiLeg(signaler.Signaler):
         self.param.set_meta('speed.scalar', min=0.1, max=2.0, decimals=1)
         self.param['speed.step'] = 0.05
 
+        self.param['autoheight'] = True
+
         #self.height = numpy.nan
         self._last_walk_set_target = 0.
         self.joy = joystick.base.Joystick()
@@ -602,6 +604,8 @@ class MultiLeg(signaler.Signaler):
                     * numpy.sign(crx))
             # add dz
             if (
+                        
+                    self.param['autoheight'] and
                     (self.stance.height is not None) and
                     (numpy.isfinite(self.stance.height))):
                 # check auto-adjustment of height
@@ -635,7 +639,7 @@ class MultiLeg(signaler.Signaler):
         self.all_legs('update')
         if self.mode == 'playback' and self.playback is not None:
             self.playback.update(self)
-        if self.mode == 'walk':
+        if (self.mode == 'walk') and self.param['autoheight']:
             # update walking target every N ms
             if (time.time() - self._last_walk_set_target) > 1.0:
                 self.set_target()
