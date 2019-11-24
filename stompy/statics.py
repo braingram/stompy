@@ -128,8 +128,12 @@ class Stance(signaler.Signaler):
 
         # should go UP
         if n[2] < 0:
-            print("That's not supposed to happen...[z should be >= 0]:", n)
-            return
+            p1, p2 = p2, p1
+            n = numpy.cross(p1 - p0, p2 - p0)
+            if n[2] < 0:
+                print("That's not supposed to happen...[z should be >= 0]:", n)
+                print(p0, p1, p2)
+                return
 
         # compute pitch of normal using Z and Y: arctan(Y, Z)
         # TODO - pitch when front feet are lower
