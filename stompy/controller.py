@@ -120,8 +120,9 @@ class MultiLeg(signaler.Signaler):
         self.param['min_hip_distance'] = 30.0
         self.param['prevent_leg_xy_when_loaded'] = True
         self.param['min_hip_override'] = False
-        self.param['foot_center_shift_x'] = 1.
-        self.param['foot_center_shift_y'] = 1.
+        self.param['foot_center_shift_x'] = 0.01
+        self.param['foot_center_shift_y'] = 0.01
+        self.param['limit_center_x_shifts'] = True
         self.param['speed.raw'] = 0.5
         self.param['speed.sensor'] = 1200
         self.param['speed.foot'] = 5.0
@@ -140,6 +141,7 @@ class MultiLeg(signaler.Signaler):
         self.param['speed.step'] = 0.05
 
         self.param['autoheight'] = True
+        self.param['autoheight_threshold'] = 5.0
 
         #self.height = numpy.nan
         self._last_walk_set_target = 0.
@@ -613,8 +615,7 @@ class MultiLeg(signaler.Signaler):
                 # self.height (+, more + is higher)
                 # h + r.lh: if -, move higher, if +, move lower
                 dh = self.stance.height + self.param['res.lower_height']
-                print("delta height: ", dh)
-                if abs(dh) < 5:
+                if abs(dh) < self.param['autoheight_threshold']:
                     dz = 0.  # no height change
                 else:
                     mdz = (
@@ -625,7 +626,6 @@ class MultiLeg(signaler.Signaler):
                         max(mdz, abs(dh)) * consts.PLAN_TICK)
             else:
                 dz = 0.
-            print(crx, cry, rs, dz)
             ## TODO maybe this should be scaled down?
             # dz = -xyz[2] * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
             # if self.param['res.speed.by_restriction']:

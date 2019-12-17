@@ -24,7 +24,7 @@ parameters = {
     #'speed.swing': 8.,
     #'speed.angular': 0.05,
     'speed_by_restriction': False,
-    'r_thresh': 0.5,
+    'r_thresh': 0.4,
     #'r_max': 0.85,
     'r_max': 0.7,
     'max_feet_up': 1,
@@ -139,6 +139,10 @@ class Body(signaler.Signaler):
     def offset_foot_centers(self, dx, dy):
         for i in self.feet:
             ldx, ldy, _ = kinematics.body.body_to_leg_rotation(i, dx, dy, 0.)
+            # TODO limit to inside limits
+            # don't allow -X offset?
+            if self.param['limit_center_x_shifts'] and ldx < 0:
+                ldx = 0
             self.feet[i].center_offset = (ldx, ldy)
 
     def calc_stance_speed(self, bxy, mag):
