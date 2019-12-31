@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
+import json
 import os
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import sys
 
 import numpy
@@ -172,18 +169,14 @@ def load_calibrations(directory=default_cal_dir, append=False):
         return
     # look for legs
     fns = os.listdir(d)
-    if (sys.version_info > (3, 0)):
-        pkwargs = {'encoding': 'latin1'}
-    else:
-        pkwargs = {}
     for fn in fns:
         # lookup leg number
         if fn not in consts.LEG_NUMBER_BY_NAME:
             continue
         ln = consts.LEG_NUMBER_BY_NAME[fn]
         # load calibration
-        with open(os.path.join(d, fn), 'rb') as f:
-            cal_data = pickle.load(f, **pkwargs)
+        with open(os.path.join(d, fn), 'r') as f:
+            cal_data = json.load(f)
         if append:
             # append old to new
             setup[ln] = setup.get(ln) + cal_data
@@ -202,7 +195,7 @@ def save_calibrations(directory=default_cal_dir):
         leg_name = consts.LEG_NAME_BY_NUMBER[ln]
         fn = os.path.join(d, leg_name)
         with open(fn, 'w') as f:
-            pickle.dump(setup[ln], f)
+            json.dump(setup[ln], f)
 
 
 class CalfCalibrator(object):
