@@ -24,8 +24,7 @@ parameters = {
     #'speed.swing': 8.,
     #'speed.angular': 0.05,
     'speed_by_restriction': False,
-    #'r_thresh': 0.4,
-    'r_thresh': 0.05,
+    'r_thresh': 0.4,
     #'r_max': 0.85,
     #'r_max': 0.7,
     'r_max': 0.6,
@@ -43,7 +42,8 @@ parameters = {
     'center_eps': 0.1,
     'center_inflection': 5.,
     'center_radius': 30.,
-    'zero_by_center': True,
+    #'zero_by_center': False,
+    #'zero_on_lower': True,
 
     #'max_calf_angle': numpy.radians(30),
     'max_calf_angle': 30,
@@ -57,6 +57,7 @@ parameters = {
     'loaded_weight': 400.,
     'swing_slop': 5.0,
     'step_ratio': 0.3,
+    'min_step_size': 6.0,
     #'step_ratio': 0.2,
     #'min_hip_distance': 35.0,
     'min_hip_buffer': 10.0,
@@ -136,8 +137,7 @@ class Body(signaler.Signaler):
         self.odo.reset()
         # TODO set foot states, target?
         for i in self.feet:
-            self.feet[i].restriction_modifier = 0.
-            self.center_offset = None
+            self.feet[i].reset()
 
     def offset_foot_centers(self, dx, dy):
         for i in self.feet:
@@ -339,8 +339,12 @@ class Body(signaler.Signaler):
                     #        "ln_by_lt: %s[%s]" %
                     #        (ln_by_lt, ln_by_lt[:n_can_lift+1]))
                     if leg_number in ln_by_lt[:n_can_lift+1]:
-                        self.feet[leg_number].set_state('lift')
+                        if self.feet[leg_number].should_lift():
+                            self.feet[leg_number].set_state('lift')
                 else:
                     #if self.halted:
                     #    print("lift %s" % leg_number)
-                    self.feet[leg_number].set_state('lift')
+                    # check if should lift based on swing target being
+                    # > N in from current position
+                    if self.feet[leg_number].should_lift():
+                        self.feet[leg_number].set_state('lift')
