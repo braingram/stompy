@@ -250,7 +250,19 @@ class Foot(signaler.Signaler):
             c0x += self.center_offset[0]
             c0y += self.center_offset[1]
             # TODO redo range check
+
         return c0x, c0y, c0z
+
+    def compute_center_restriction(self, c0x, c0y, c0z):
+        # TODO compute lowest restriction at 'center' point
+        c0_angles = self.leg.geometry.point_to_angles(
+            c0x, c0y, c0z)
+        xyz = {'x': c0x, 'y': c0y, 'z': c0z, 'time': 0}
+        angles = {
+            'hip': c0_angles[0], 'thigh': c0_angles[1],
+            'knee': c0_angles[2], 'time': 0}
+        r0 = self._calculate_restriction(xyz, angles)
+        return r0
 
     def send_plan(self):
         #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
@@ -417,6 +429,10 @@ class Foot(signaler.Signaler):
         #    min_hip_distance, self.param['res.min_hip_eps'],
         #    self.leg)
         # add in the 'manual' restriction modifier (set from ui/controller)
+        c0x, c0y, c0z = self.compute_center_position()
+        r0 = self.compute_center_restriction(c0x, c0y, c0z)
+        if self.param['res.zero_by_center']:
+            r = max(0, r - r0)
         r += self.restriction_modifier
         if self.restriction is not None:
             pt = self.restriction['time']
@@ -428,11 +444,11 @@ class Foot(signaler.Signaler):
         else:  # if no previous value, can't calculate dr
             idr = 0.
             dr = 0.
-        c0x, c0y, c0z = self.compute_center_position()
         bc = kinematics.body.leg_to_body(self.leg.leg_number, c0x, c0y, c0z)
         self.restriction = {
             'time': xyz['time'], 'r': r, 'dr': dr, 'idr': idr,
             'nr': nr, 'state': self.state,
+            'r0': r0,
             'center': bc}
         self.logger.debug({'restriction': self.restriction})
         self.trigger('restriction', self.restriction)
