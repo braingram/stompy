@@ -48,6 +48,10 @@ class Foot(signaler.Signaler):
         self.angles = None
         self.restriction_modifier = 0.
         self.center_offset = None  # [dx, dy] or None
+        self.halted = False
+
+    def set_halt(self, value):
+        self.halted = value
 
     def reset(self):
         self.restriction_modifier = 0.
@@ -187,6 +191,8 @@ class Foot(signaler.Signaler):
         return sp[0], sp[1], z
 
     def should_lift(self):
+        if self.restriction_modifier > 0:
+            return True
         # should the leg lift based on swing target > N in from current xyz
         sp = self.calculate_swing_target()
         dx = sp[0] - self.xyz['x']
@@ -476,17 +482,15 @@ class Foot(signaler.Signaler):
         # compute restriction for next location if > next_res_thresh away
         nxyz = plans.follow_plan(
             [xyz['x'], xyz['y'], xyz['z']], self.stance_plan)
-        d2 = abs(xyz['x'] - nxyz[0]) + abs(xyz['y'] - nxyz[1]) + abs(xyz['z'] - nxyz[2])
-        if d2 > self.param['res.next_res_thresh']:
+        if self.halted:
+            nr = r
+        else:
             nangles = self.leg.geometry.point_to_angles(*nxyz)
             nxyz = {'x': nxyz[0], 'y': nxyz[1], 'z': nxyz[2], 'time': xyz['time']}
             nangles = {
                 'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
                 'time': angles['time']}
             nr = self._calculate_restriction(nxyz, nangles)
-        else:
-            print("%f: Not calculating next restriction: %0.2f" % (time.time(), d2))
-            nr = r
         #nr = self._calculate_restriction(
         #    nxyz, nangles, self.limits, self.param['res.eps'],
         #    self.param['res.calf_eps'], mcar,

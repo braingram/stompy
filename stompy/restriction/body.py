@@ -32,7 +32,6 @@ parameters = {
     'height_slop': 3.,
     'dr_smooth': 0.5,
     'wait_dr_thresh': 0.01,
-    'next_res_thresh': 0.1,
 
     'limit_eps': 0.3,
     'limit_range': 0.9,
@@ -127,6 +126,8 @@ class Body(signaler.Signaler):
 
     def set_halt(self, value):
         self.halted = value
+        for i in self.feet:
+            self.feet[i].set_halt(value)
         self.trigger('halt', value)
 
     def enable(self, foot_states):
@@ -226,8 +227,8 @@ class Body(signaler.Signaler):
                     '_pre_halt_target': self.target,
                 }})
             self._pre_halt_target = self.target
-            self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
             self.set_halt(True)
+            self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
 
     def get_speed_by_restriction(self):
         rmax = max([
