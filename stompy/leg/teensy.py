@@ -296,6 +296,7 @@ class FakeTeensy(LegController):
 
 class Teensy(LegController):
     def __init__(self, port):
+        print("Connecting to teensy on port: %s" % port)
         self.port = port
         self._serial = serial.Serial(self.port, 9600)
         # set rising edge of RTS to reset comando

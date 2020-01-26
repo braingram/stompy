@@ -18,6 +18,9 @@ import numpy
 import pylab
 
 
+unicode = str
+
+
 def find_newest_log():
     ld = os.path.expanduser('~/.stompy/logs')
     return sorted([
@@ -100,7 +103,7 @@ def plot_key(
     ld = {l: get_by_key(data[l], key) for l in legs}
     if subkeys is None:
         # get keys from first event
-        e = ld.values()[0][0]
+        e = list(ld.values())[0][0]
         ks = e.keys()
         if 'time' in ks:
             ks.remove('time')

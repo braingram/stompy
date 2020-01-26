@@ -192,6 +192,13 @@ class Foot(signaler.Signaler):
         dx = sp[0] - self.xyz['x']
         dy = sp[1] - self.xyz['z']
         d = numpy.sqrt(dx * dx + dy * dy)
+        self.logger.debug({'should_lift': {
+            'sp': sp,
+            'dxy': (dx, dy),
+            'd': d,
+            'xyz': self.xyz,
+            'return': d >= self.param['res.min_step_size'],
+        }})
         return d >= self.param['res.min_step_size']
 
     #def _calculate_restriction(
