@@ -466,15 +466,20 @@ class Foot(signaler.Signaler):
         #    self.param['res.calf_eps'], mcar,
         #    min_hip_distance, self.param['res.min_hip_eps'],
         #    self.leg)
-        # compute restriction for next location
+        # compute restriction for next location if > next_res_thresh away
         nxyz = plans.follow_plan(
             [xyz['x'], xyz['y'], xyz['z']], self.stance_plan)
-        nangles = self.leg.geometry.point_to_angles(*nxyz)
-        nxyz = {'x': nxyz[0], 'y': nxyz[1], 'z': nxyz[2], 'time': xyz['time']}
-        nangles = {
-            'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
-            'time': angles['time']}
-        nr = self._calculate_restriction(nxyz, nangles)
+        d2 = abs(xyz['x'] - nxyz[0]) + abs(xyz['y'] - nxyz[1]) + abs(xyz['z'] - nxyz[2])
+        if d2 > self.param['res.next_res_thresh']:
+            nangles = self.leg.geometry.point_to_angles(*nxyz)
+            nxyz = {'x': nxyz[0], 'y': nxyz[1], 'z': nxyz[2], 'time': xyz['time']}
+            nangles = {
+                'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
+                'time': angles['time']}
+            nr = self._calculate_restriction(nxyz, nangles)
+        else:
+            print("%f: Not calculating next restriction: %0.2f" % (time.time(), d2))
+            nr = r
         #nr = self._calculate_restriction(
         #    nxyz, nangles, self.limits, self.param['res.eps'],
         #    self.param['res.calf_eps'], mcar,

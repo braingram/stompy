@@ -32,6 +32,7 @@ parameters = {
     'height_slop': 3.,
     'dr_smooth': 0.5,
     'wait_dr_thresh': 0.01,
+    'next_res_thresh': 0.1,
 
     'limit_eps': 0.3,
     'limit_range': 0.9,
