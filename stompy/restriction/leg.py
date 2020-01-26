@@ -190,7 +190,7 @@ class Foot(signaler.Signaler):
         # should the leg lift based on swing target > N in from current xyz
         sp = self.calculate_swing_target()
         dx = sp[0] - self.xyz['x']
-        dy = sp[1] - self.xyz['z']
+        dy = sp[1] - self.xyz['y']
         d = numpy.sqrt(dx * dx + dy * dy)
         return d >= self.param['res.min_step_size']
 
