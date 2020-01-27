@@ -23,43 +23,86 @@ parameters = {
     #'speed.lower': 6.,
     #'speed.swing': 8.,
     #'speed.angular': 0.05,
+
+    # slow down plan proportional to most restricted leg
     'speed_by_restriction': False,
+
+    # threshold at which a leg is considered 'restricted' and could be lifted
     'r_thresh': 0.4,
     #'r_max': 0.85,
     #'r_max': 0.7,
-    'r_max': 0.6,
-    'max_feet_up': 1,
-    'height_slop': 3.,
-    'dr_smooth': 0.5,
-    'wait_dr_thresh': 0.01,
 
+    # if restricted by more than this, halt lateral movement
+    'r_max': 0.6,
+
+    # allow this many feet up at a time
+    'max_feet_up': 1,
+
+    # allow this much slop (in inches) between actual and target body height
+    'height_slop': 3.,
+
+    # delta-restriction smoothing running average parameter
+    # (closer to 1 = smoother)
+    'dr_smooth': 0.5,
+    #'wait_dr_thresh': 0.01,
+
+    # joint limit restriction shape parameters
     'limit_eps': 0.3,
     'limit_range': 0.9,
     'limit_inflection_ratio': 0.4,
+
+    # calf angle restriction shape parameters
     'calf_eps': 0.3,
     'calf_inflection_ratio': 0.4,
+
+    # min distance from foot to hip restriction shape parameter
     'min_hip_eps': 0.15,
+
+    # distance from foot to 'center' restriction shape parameters
     'center_eps': 0.1,
     'center_inflection': 5.,
     'center_radius': 30.,
+
     #'zero_by_center': False,
     #'zero_on_lower': True,
 
     #'max_calf_angle': numpy.radians(30),
+    # maximum angle (degrees from vertical = 0) of leg calf
     'max_calf_angle': 30,
+
+    # angle (degrees from vertical = 0) of calf when foot at center position
     'target_calf_angle': 10.0,
+
+    # lift foot this many inches off the ground
     'lift_height': 12.0,
+
+    # keep body [hip to thigh pins] this many inches off ground
     'lower_height': -40.0,
-    'set_height_on_mode_select': True,
+    #'set_height_on_mode_select': True,
+
+    # min/max lower height setting available on slider
     'min_lower_height': -70,
     'max_lower_height': -40,
+
+    # if leg sees < this many lbs, consider unloaded (during lifted)
     'unloaded_weight': 600.,
+    
+    # if leg sees > this many lbs, consider loaded (during lowering)
     'loaded_weight': 400.,
+
+    # finish swing when within this many inches of target
     'swing_slop': 5.0,
+
+    # ratio of actual step size to maximum step size (1.0)
     'step_ratio': 0.3,
+
+    # if re-locating a leg moves less than many this inches, don't lift
     'min_step_size': 6.0,
+
     #'step_ratio': 0.2,
     #'min_hip_distance': 35.0,
+
+    # max restriction (and avoid) this many inches from the min_hip_distance
     'min_hip_buffer': 10.0,
 }
 
@@ -227,8 +270,8 @@ class Body(signaler.Signaler):
                     '_pre_halt_target': self.target,
                 }})
             self._pre_halt_target = self.target
-            self.set_halt(True)
             self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
+            self.set_halt(True)
 
     def get_speed_by_restriction(self):
         rmax = max([

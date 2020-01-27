@@ -482,15 +482,16 @@ class Foot(signaler.Signaler):
         # compute restriction for next location if > next_res_thresh away
         nxyz = plans.follow_plan(
             [xyz['x'], xyz['y'], xyz['z']], self.stance_plan)
-        if self.halted:
-            nr = r
-        else:
-            nangles = self.leg.geometry.point_to_angles(*nxyz)
-            nxyz = {'x': nxyz[0], 'y': nxyz[1], 'z': nxyz[2], 'time': xyz['time']}
-            nangles = {
-                'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
-                'time': angles['time']}
-            nr = self._calculate_restriction(nxyz, nangles)
+        #if self.halted:
+        #    nr = r
+        #else:
+        # TODO how to avoid 'noise' prediction nr != r
+        nangles = self.leg.geometry.point_to_angles(*nxyz)
+        nxyz = {'x': nxyz[0], 'y': nxyz[1], 'z': nxyz[2], 'time': xyz['time']}
+        nangles = {
+            'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
+            'time': angles['time']}
+        nr = self._calculate_restriction(nxyz, nangles)
         #nr = self._calculate_restriction(
         #    nxyz, nangles, self.limits, self.param['res.eps'],
         #    self.param['res.calf_eps'], mcar,
