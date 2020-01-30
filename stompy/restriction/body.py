@@ -1,5 +1,43 @@
 #!/usr/bin/env python
 """
+I want this to be modular so I can write tests that run in
+a perfect simulated environment (that doesn't require bullet)
+so I can validate changes.
+
+It should also be compatible with bullet to allow for other tests
+
+Things to remove (from body):
+    - odometer
+
+Body needs the following:
+    - halt/unhalt state
+    - current 'walk' target (curve or translate)
+    - current 'halt' target (always stop?)
+    - enable state
+    - feet (for sending plans, attaching callbacks, etc)
+    - foot centers (that might be offset)
+    - arbitrate leg res state changes (lift -> swing etc)
+
+Try to remove from leg:
+    - geometry calc of swing targets etc
+        - swing_position_from_intersections
+        - calculate_arc_swing_target
+        - calculate_translation_swing_target
+        - calculate_swing_target
+
+Leg needs the following
+    - halt/unhalt state
+    - current 'walk' target [in leg coords]
+    - current 'halt' target [in leg coords]
+    - enable?
+    - foot (for sending plans, attaching callbacks, etc)
+    - foot center (possibly offset)
+    - joint info (limits, xyz, etc)
+    - joint configuration (angles, foot xyz)
+    - time since last lift
+    - restriction modifier
+    - loaded/unloaded height
+
 Supply this a stance plan in body coordinates
 it will produce plans in body coordinates
 restriction will be updated with foot coordinates

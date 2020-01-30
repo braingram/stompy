@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 """
+Maybe start with the core computation (calculate_restriction):
+    needs:
+        xyz: foot position
+        angles: joint angles
+        limits: joint limits
+        max_calf_angle
+        min_hip_distance + buffer
+        params for restriction components (eps, inflection)
+        foot center (computed by)
+            - lower height
+            - target calf angle
+            - max calf angle
+            - xyz limits at z
+
 Supply this a stance plan in body coordinates
 it will produce plans in body coordinates
 restriction will be updated with foot coordinates
