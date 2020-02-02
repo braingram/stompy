@@ -80,9 +80,9 @@ class Foot(signaler.Signaler):
             z = self.unloaded_height + self.param['res.lift_height']
         min_hip_distance = (
                 self.param['min_hip_distance'] +
-                self.param['res.min_hip_buffer'])
+                self.param['res.fields.min_hip.buffer'])
         tcar = numpy.radians(self.param['res.target_calf_angle'])
-        mcar = numpy.radians(self.param['res.max_calf_angle'])
+        mcar = numpy.radians(self.param['res.fields.calf_angle.max'])
         rx, ry, rspeed = self.swing_info
         sp = self.leg.geometry.xy_along_arc(
             rx, ry, self.param['res.lower_height'], rspeed,
@@ -111,86 +111,95 @@ class Foot(signaler.Signaler):
         }})
         return d >= self.param['res.min_step_size']
 
-    #def _calculate_restriction(
-    #        self,
-    #        xyz, angles, limits, limit_eps, calf_eps, max_calf_angle,
-    #        min_hip_distance, min_hip_eps, leg):
-    def _calculate_restriction(self, xyz, angles):
-
+    def calculate_joint_angle_restriction(self, angles):
         limits = self.limits
-        max_calf_angle = numpy.radians(self.param['res.max_calf_angle'])
-        leg = self.leg
-        #nr = self._calculate_restriction(
-        #    nxyz, nangles, self.limits, self.param['res.eps'],
-        #    self.param['res.calf_eps'], mcar,
-        #    min_hip_distance, self.param['res.min_hip_eps'],
-        #    self.leg)
-        # TODO log individual restriction values?
-        # use angle limits to compute restriction
-        r = 0
-        #eps = numpy.log(limit_eps)
-        eps = numpy.log(self.param['res.limit_eps'])
+        # TODO pre-compute values
+        eps = numpy.log(self.param['res.fields.joint_angle.eps'])
+        inflection = self.param['res.fields.joint_angle.inflection']
+        jrange = self.param['res.fields.joint_angle.range']
+        r = {}
         for j in ('hip', 'thigh', 'knee'):
             jmin, jmax = limits[j]
+
             # limit to some percent of total limits
-            jrange = (jmax - jmin) * self.param['res.limit_range']
+            #jrange = (jmax - jmin) * self.param['res.limit_range']
+            jrange = (jmax - jmin) * jrange
             jmid = (jmax + jmin) / 2.
             jmin, jmax = jmid - jrange / 2, jmid + jrange / 2
 
             # inflection point
-            ipt = (jmax - jmin) * self.param['res.limit_inflection_ratio']
-            #jabsmax = float(max(
-            #    abs(jmid - jmax), abs(jmin - jmid)))
+            #ipt = (jmax - jmin) * self.param['res.limit_inflection_ratio']
+            ipt = (jmax - jmin) * inflection
             if angles[j] > jmid:
                 jl = angles[j] - jmax
                 ipt *= -1.0
             else:
-                #jl = jmin - angles[j]
                 jl = angles[j] - jmin
             # take 'max' across joint angles, only the worst sets restriction
-            #r = max(min(1.0, numpy.exp(limit_eps * (jl / jabsmax))), r)
-            #print(j, angles[j], (jmin, jmax), ipt, jmid, jl, eps, numpy.exp(eps/ipt * jl))
-            r = max(min(1.0, numpy.exp(eps/ipt * jl)), r)
-            #if self.leg.leg_number == 1:
-            #    print(j, jl, r)
+            r[j] = max(min(1.0, numpy.exp(eps/ipt * jl)), 0.0)
+        r['r'] = max(r.values())
+        return r
 
-        # calf angle, if eps == 0, skip
-        #if calf_eps > 0.001:
-        #    ca = abs(leg.geometry.angles_to_calf_angle(
-        #        angles['hip'], angles['thigh'], angles['knee']))
-        #    cr = numpy.exp(calf_eps * ((ca - max_calf_angle) / max_calf_angle))
-        calf_eps = numpy.log(self.param['res.calf_eps'])
-        ca = abs(leg.geometry.angles_to_calf_angle(
+    def calculate_calf_angle_restriction(self, angles):
+        # TODO pre-compute values
+        #max_calf_angle = numpy.radians(self.param['res.max_calf_angle'])
+        max_calf_angle = numpy.radians(self.param['res.fields.calf_angle.max'])
+        #calf_eps = numpy.log(self.param['res.calf_eps'])
+        calf_eps = numpy.log(self.param['res.fields.calf_angle.eps'])
+        ca = abs(self.leg.geometry.angles_to_calf_angle(
             angles['hip'], angles['thigh'], angles['knee']))
-        ipt = max_calf_angle * self.param['res.calf_inflection_ratio']
+        #ipt = max_calf_angle * self.param['res.calf_inflection_ratio']
+        ipt = max_calf_angle * self.param['res.fields.calf_angle.inflection']
         cr = numpy.exp(calf_eps/ipt * ca)
-        #cr = numpy.exp(calf_eps * ((ca - max_calf_angle) / max_calf_angle))
-        r = max(min(1.0, cr), r)
+        r = max(min(1.0, cr), 0.0)
+        return {'r': r, 'calf_angle': ca}
 
-        # minimum hip distance, if eps == 0, skip
-        #if min_hip_eps > 0.001:
-        #    hr = numpy.exp(
-        #        min_hip_eps * ((min_hip_distance - xyz['x']) / min_hip_distance))
-        #    r = max(min(1.0, hr), r)
+    def calculate_hip_distance_restriction(self, xyz):
+        # TODO pre-compute values
+        #min_hip_distance = (
+        #    self.param['min_hip_distance'] +
+        #    self.param['res.min_hip_buffer'])
         min_hip_distance = (
             self.param['min_hip_distance'] +
-            self.param['res.min_hip_buffer'])
-        hr = numpy.exp(numpy.log(self.param['res.min_hip_eps'])/min_hip_distance * xyz['x'])
-        r = max(min(1.0, hr), r)
+            self.param['res.fields.min_hip.buffer'])
+        #hr = numpy.exp(
+        #    numpy.log(self.param['res.min_hip_eps'])/min_hip_distance
+        #    * xyz['x'])
+        hr = numpy.exp(
+            numpy.log(self.param['res.fields.min_hip.eps'])/min_hip_distance
+            * xyz['x'])
+        r = max(min(1.0, hr), 0.0)
+        return {'r': r}
 
-        # add restriction parameter for distance from foot center
-        cx, cy, cz = self.compute_center_position()
+    def calculate_foot_center_restriction(self, xyz):
+        # TODO pre-compute values
+        cx, cy, cz = self.calculate_center_position()
         dx = abs(xyz['x'] - cx)
         dy = abs(xyz['y'] - cy)
         dr = numpy.sqrt(dx * dx + dy * dy)
         # exp(-log(0.1)/rt * (dr - 30))
+        #fcr = numpy.exp(
+        #    -numpy.log(self.param['res.center_eps'])
+        #    /self.param['res.center_inflection'] *
+        #    (dr - self.param['res.center_radius']))
         fcr = numpy.exp(
-            -numpy.log(self.param['res.center_eps'])/self.param['res.center_inflection'] *
-            (dr - self.param['res.center_radius']))
-        r = max(min(1.0, fcr), r)
-        return r
+            -numpy.log(self.param['res.fields.center.eps'])
+            /self.param['res.fields.center.inflection'] *
+            (dr - self.param['res.fields.center.radius']))
+        r = max(min(1.0, fcr), 0.0)
+        return {'r': r, 'center': (cx, cy, cz)}
+    
+    def calculate_restriction(self, xyz, angles):
+        info = {
+            'joint_angle': self.calculate_joint_angle_restriction(angles),
+            'calf_angle': self.calculate_calf_angle_restriction(angles),
+            'hip_distance': self.calculate_hip_distance_restriction(xyz),
+            'foot_center': self.calculate_foot_center_restriction(xyz),
+        }
+        info['r'] = max([info[k]['r'] for k in info])
+        return info
 
-    def compute_center_position(self):
+    def calculate_center_position(self):
         """
         c0z: center z coordinate
         target_calf_angle (in radians)
@@ -199,7 +208,7 @@ class Foot(signaler.Signaler):
         # TODO cache this, only needs to change when inputs change
         c0z = self.param['res.lower_height']
         target_calf_angle = numpy.radians(self.param['res.target_calf_angle'])
-        max_calf_angle = numpy.radians(self.param['res.max_calf_angle'])
+        max_calf_angle = numpy.radians(self.param['res.fields.calf_angle.max'])
         c0x, c0y = self.leg.geometry.xy_center_at_z(
             c0z, target_calf_angle, max_calf_angle,
             self.center_offset[0], self.center_offset[1])
@@ -284,10 +293,6 @@ class Foot(signaler.Signaler):
         self.send_plan()
 
     def set_state(self, state):
-        if state != self.state and self.restriction is not None:
-            # reset restriction smoothing
-            #print("resetting dr")
-            self.restriction['dr'] = 0.
         self.state = state
         self.logger.debug({'state': state})
         if self.state == 'lift':
@@ -298,25 +303,17 @@ class Foot(signaler.Signaler):
         self.send_plan()
         self.trigger('state', state)
 
-    def calculate_restriction(self, xyz, angles):
+    def update_restriction(self, xyz, angles):
         """Calculate leg restriction
         Result is stored in self.restriction and signaled as 'restriction'
         Result contains:
             - time: time of xyz event
             - r: current calculated restriction
-            - idr: slope of restriction change from last to new value
-            - dr: smoothed idr
         """
-        mcar = numpy.radians(self.param['res.max_calf_angle'])
-        min_hip_distance = (
-            self.param['min_hip_distance'] +
-            self.param['res.min_hip_buffer'])
-        r = self._calculate_restriction(xyz, angles)
-        #r = self._calculate_restriction(
-        #    xyz, angles, self.limits, self.param['res.eps'],
-        #    self.param['res.calf_eps'], mcar,
-        #    min_hip_distance, self.param['res.min_hip_eps'],
-        #    self.leg)
+        # calculate current restriction
+        rinfo = self.calculate_restriction(xyz, angles)
+        r = rinfo['r']
+
         # compute restriction for next location if > next_res_thresh away
         nxyz = plans.follow_plan(
             [xyz['x'], xyz['y'], xyz['z']], self.stance_plan)
@@ -329,31 +326,23 @@ class Foot(signaler.Signaler):
         nangles = {
             'hip': nangles[0], 'thigh': nangles[1], 'knee': nangles[2],
             'time': angles['time']}
-        nr = self._calculate_restriction(nxyz, nangles)
-        #nr = self._calculate_restriction(
-        #    nxyz, nangles, self.limits, self.param['res.eps'],
-        #    self.param['res.calf_eps'], mcar,
-        #    min_hip_distance, self.param['res.min_hip_eps'],
-        #    self.leg)
+        nextrinfo = self.calculate_restriction(nxyz, nangles)
+        nr = nextrinfo['r']
+
         # add in the 'manual' restriction modifier (set from ui/controller)
-        c0x, c0y, c0z = self.compute_center_position()
         r += self.restriction_modifier
-        if self.restriction is not None:
-            pt = self.restriction['time']
-            dt = (xyz['time'] - pt)
-            idr = (r - self.restriction['r']) / dt
-            dr = (
-                self.restriction['dr'] * self.param['res.dr_smooth'] +
-                idr * (1. - self.param['res.dr_smooth']))
-        else:  # if no previous value, can't calculate dr
-            idr = 0.
-            dr = 0.
+        nr += self.restriction_modifier
+
+        # add body center to restriction for display
+        c0x, c0y, c0z = rinfo['foot_center']['center']
+        #c0x, c0y, c0z = self.calculate_center_position()
         bc = kinematics.body.leg_to_body(self.leg.leg_number, c0x, c0y, c0z)
+
         self.restriction = {
-            'time': xyz['time'], 'r': r, 'dr': dr, 'idr': idr,
+            'time': xyz['time'], 'r': r,
             'nr': nr, 'state': self.state,
-            #'rr': self.rr, 'r0': self.r0,
-            'center': bc}
+            'center': bc,
+            'rinfo': rinfo, 'nextrinfo': nextrinfo}
         self.logger.debug({'restriction': self.restriction})
         self.trigger('restriction', self.restriction)
 
@@ -375,7 +364,7 @@ class Foot(signaler.Signaler):
 
     def update(self):
         # TODO if angles['valid'] is False?
-        self.calculate_restriction(self.xyz, self.angles)
+        self.update_restriction(self.xyz, self.angles)
         new_state = None
         if self.state is None:  # restriction control is disabled
             self.xyz = None
@@ -398,11 +387,6 @@ class Foot(signaler.Signaler):
             if self.restriction['nr'] > self.restriction['r']:
                 new_state = 'stance'
                 #self.r0 = 0.
-            #if self.restriction['dr'] > self.param['res.wait_dr_thresh']:
-            #    # print(
-            #    #     "exiting wait[%s]: %s" %
-            #    #     (self.leg.leg_number, self.restriction))
-            #    new_state = 'stance'
         #elif self.state == 'stance'
         elif self.state == 'lift':
             # check for unloaded and >Z inches off ground
