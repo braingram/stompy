@@ -183,6 +183,7 @@ class Body(signaler.Signaler):
         self.halted = value
         for i in self.feet:
             self.feet[i].set_halt(value)
+        self.odo.enabled = not value
         self.trigger('halt', value)
 
     def enable(self, foot_states):
@@ -208,7 +209,7 @@ class Body(signaler.Signaler):
         # scale to pid future time ms
         speed = (
             mag * self.param['speed.foot'] * 
-            elf.param['speed.scalar'] * consts.PLAN_TICK)
+            self.param['speed.scalar'] * consts.PLAN_TICK)
 
         # find furthest foot
         x, y = bxy
@@ -242,10 +243,10 @@ class Body(signaler.Signaler):
             raise ValueError("Body.set_target requires BodyTarget")
         self.logger.debug({"set_target": (target, update_swing)})
         self.target = target
-        #if target.dz != 0.0:
-        #    # TODO update stand height
-        #    self.odo.set_target(self.target)  # TODO fix odometer
-        #    pass
+        if target.dz != 0.0:
+            # TODO update stand height
+            self.odo.set_target(self.target)  # TODO fix odometer
+            pass
         for i in self.feet:
             self.feet[i].set_target(target)
         return
