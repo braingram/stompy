@@ -148,8 +148,6 @@ class JointGeometry(object):
         return numpy.sqrt(a * a + b * b - 2 * a * b * numpy.cos(C))
 
 
-
-
 def circle_intersection(c0, c1):
     x0, y0 = c0['center']
     r0 = c0['radius']
@@ -328,11 +326,6 @@ class LegGeometry(object):
         dz = -(p2[2] - p1[2])
         return numpy.arctan2(dx, dz)
 
-    def xy_center_at_z(self, z):
-        l, r = self.limits_at_z_2d(z)
-        return ((l + r) / 2., 0.)
-
-
     def x_with_calf_angle(self, z, a):
         return (
             numpy.sqrt(1 - (
@@ -340,7 +333,6 @@ class LegGeometry(object):
                 / self.thigh.length) ** 2)
             * self.thigh.length + self.hip.length
             + numpy.sin(a) * self.knee.length)
-
 
     def x_with_vertical_calf(self, z):
         return (
@@ -407,6 +399,11 @@ class LegGeometry(object):
 
     def limit_intersections(
             self, c, z, min_hip_distance=None, max_calf_angle=None):
+        """
+        Find points where a circle c intersects with the
+        boundries of the foot position at a particular height
+        returns list of points (x, y)
+        """
         # get 'left' [closest to hip] and 'right' circles
         # get hip limits (sets +-y angle)
         l, r = self.limits_at_z_2d(z)
@@ -453,3 +450,122 @@ class LegGeometry(object):
                     if hmin <= a <= hmax:
                         ipts.append(p)
         return ipts
+
+    def xy_center_at_z(
+            self, z, target_calf_angle=0, max_calf_angle=None,
+            x_offset=0, y_offset=0):
+        """
+        target_calf_angle = radians
+        max_calf_angle = radians
+        """
+        # get x limits
+        l, r = self.limits_at_z_2d(z)
+        # if there is a max calf angle limit
+        if max_calf_angle is not None:
+            # check that the 'right' x (positive) limit for this height
+            # doesn't have too extreme a calf angle
+            rcalf = self.x_with_calf_angle(z, max_calf_angle)
+            if rcalf < r:
+                #print(r, rcalf)
+                # if so, set this as the 'right' x limit
+                r = rcalf
+            lcalf = self.x_with_calf_angle(z, -max_calf_angle)
+            if lcalf > l:
+                #print(l, lcalf)
+                l = lcalf
+        # find x position where calf is at this target angle
+        c0x = self.x_with_calf_angle(z, target_calf_angle)
+        # check if x position is out of limits, if so, reset to center
+        if c0x < l:
+            c0x = l
+        elif c0x > r:
+            c0x = r
+
+        # add optional offsets (x and y?)
+        # redo range check
+        c0x += x_offset
+        c0y = y_offset
+        v = numpy.array([c0x, c0y])
+        d = numpy.linalg.norm(v)
+        a = numpy.arctan2(c0y, c0x)
+        if a < self.hip.min_angle:
+            a = self.hip.min_angle
+            c0x = None
+        elif a > self.hip.max_angle:
+            a = self.hip.max_angle
+            c0x = None
+        if d < l:
+            d = l
+            c0x = None
+        elif d > r:
+            d = r
+            c0x = None
+        if c0x is None:
+            #print("Limited: %s, %s" % (c0x, c0y))
+            c0x = numpy.cos(a) * d
+            c0y = numpy.sin(a) * d
+
+        return c0x, c0y
+    
+    def xy_along_arc(
+            self, tx, ty, z, rspeed,
+            step_ratio=1.0,
+            min_hip_distance=None,
+            target_calf_angle=0,
+            max_calf_angle=None,
+            x_offset=0, y_offset=0):
+        # compute center foot position
+        c0x, c0y = self.xy_center_at_z(z, target_calf_angle, max_calf_angle, x_offset, y_offset)
+        if rspeed == 0:
+            return c0x, c0y
+        tc = {
+            'center': (tx, ty),
+            'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - c0y) ** 2.),
+        }
+        ipts = self.limit_intersections(
+            tc, z,
+            min_hip_distance=min_hip_distance,
+            max_calf_angle=max_calf_angle)
+        tc = [tx, ty]
+        c0 = [c0x, c0y]
+        # TODO clean up below, this likely doesn't work for
+        # target circles INSIDE the foot limits and falls back to moving to the center
+        # if len(ipts) == 0, return to center?
+        if len(ipts) == 0:
+            return c0
+        # if rspeed > 0: rotating clockwise, find point counterclockwise to 0
+        # if rspeed < 0: rotating counterclockwise, find point clockwise to 0
+        tc = numpy.array(tc)
+        cv = numpy.array(c0) - tc
+        cvn = cv / numpy.linalg.norm(cv)
+        ma = None
+        #mi = None
+        mas = None
+        for i in ipts:
+            iv = numpy.array(i) - tc
+            ivn = iv / numpy.linalg.norm(iv)
+            #a = numpy.arctan2(
+            #    numpy.linalg.norm(numpy.cross(iv, cv)), numpy.dot(iv, cv))
+            angle_sign = numpy.sign(numpy.cross(ivn, cvn))
+            if numpy.sign(rspeed) != angle_sign:
+                continue
+            a = numpy.arccos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
+            if ma is None or a < ma:
+                ma = a
+                #mi = i
+                mas = angle_sign
+            #a = numpy.arccos(
+            #    numpy.dot(iv, cv) /
+            #    (numpy.linalg.norm(iv) * numpy.linalg.norm(cv)))
+            #print(i, a)
+        if ma is None:
+            return c0
+        #return mi
+        pa = -mas * ma * step_ratio
+        # rotate vector from tc to c0 (cv) by angle pa
+        ca = numpy.cos(pa)
+        sa = numpy.sin(pa)
+        x, y = cv
+        return (
+            x * ca - y * sa + tc[0],
+            x * sa + y * ca + tc[1])

@@ -51,7 +51,7 @@ class Foot(signaler.Signaler):
         self.stance_plan = None
         self.body_target = None
         self.swing_target = None
-        self.swing_info = None
+        self.swing_info = (0, 0, 0)
         self.unloaded_height = None
         # stance -> lift -> swing -> lower -> wait
         self.state = None
@@ -61,7 +61,7 @@ class Foot(signaler.Signaler):
         self.xyz = None
         self.angles = None
         self.restriction_modifier = 0.
-        self.center_offset = None  # [dx, dy] or None
+        self.center_offset = (0, 0)
         self.halted = False
 
     def set_halt(self, value):
@@ -71,103 +71,7 @@ class Foot(signaler.Signaler):
         self.restriction_modifier = 0.
         #self.r0 = 0.
         #self.rr = 0.
-        self.center_offset = None
-
-    def swing_position_from_intersections(
-            self, tc, rspeed, c0, ipts, step_ratio):
-        # if len(ipts) == 0, return to center?
-        if len(ipts) == 0:
-            return c0
-        # if rspeed > 0: rotating clockwise, find point counterclockwise to 0
-        # if rspeed < 0: rotating counterclockwise, find point clockwise to 0
-        tc = numpy.array(tc)
-        cv = numpy.array(c0) - tc
-        cvn = cv / numpy.linalg.norm(cv)
-        ma = None
-        #mi = None
-        mas = None
-        for i in ipts:
-            iv = numpy.array(i) - tc
-            ivn = iv / numpy.linalg.norm(iv)
-            #a = numpy.arctan2(
-            #    numpy.linalg.norm(numpy.cross(iv, cv)), numpy.dot(iv, cv))
-            angle_sign = numpy.sign(numpy.cross(ivn, cvn))
-            if numpy.sign(rspeed) != angle_sign:
-                continue
-            a = numpy.arccos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
-            if ma is None or a < ma:
-                ma = a
-                #mi = i
-                mas = angle_sign
-            #a = numpy.arccos(
-            #    numpy.dot(iv, cv) /
-            #    (numpy.linalg.norm(iv) * numpy.linalg.norm(cv)))
-            #print(i, a)
-        if ma is None:
-            return c0
-        #return mi
-        pa = -mas * ma * step_ratio
-        # rotate vector from tc to c0 (cv) by angle pa
-        ca = numpy.cos(pa)
-        sa = numpy.sin(pa)
-        x, y = cv
-        return (
-            x * ca - y * sa + tc[0],
-            x * sa + y * ca + tc[1])
-
-    def calculate_arc_swing_target(
-            self,
-            tx, ty, z, leg, rspeed, step_ratio,
-            min_hip_distance=None, target_calf_angle=0,
-            max_calf_angle=None):
-        ## TODO cache these, they're used >1 time
-        #l, r = leg.geometry.limits_at_z_2d(z)
-        #c0x = leg.geometry.x_with_calf_angle(z, target_calf_angle)
-        #if c0x <= l or c0x >= r:
-        #    c0x, _ = leg.geometry.xy_center_at_z(z)
-        c0x, c0y, c0z = self.compute_center_position()
-
-        # calculate target movement circle using center of tx, ty
-        #tc = target_circle(tx, ty, c0x, 0.)
-        tc = {
-            'center': (tx, ty),
-            #'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - 0.) ** 2.),
-            'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - c0y) ** 2.),
-        }
-        ipts = leg.geometry.limit_intersections(
-            tc, z,
-            min_hip_distance=min_hip_distance,
-            max_calf_angle=max_calf_angle)
-        #sp = self.swing_position_from_intersections(
-        #    [tx, ty], rspeed, [c0x, 0], ipts, step_ratio)
-        sp = self.swing_position_from_intersections(
-            [tx, ty], rspeed, [c0x, c0y], ipts, step_ratio)
-        return sp
-
-    def calculate_translation_swing_target(
-            self,
-            dx, dy, z, leg, rspeed, step_ratio,
-            min_hip_distance=None, target_calf_angle=0,
-            max_calf_angle=None):
-        #l, r = leg.geometry.limits_at_z_2d(z)
-        #if max_calf_angle is not None:
-        #    rcalf = leg.geometry.x_with_calf_angle(z, max_calf_angle)
-        #    if rcalf < r:
-        #        r = rcalf
-        #c0x = leg.geometry.x_with_calf_angle(z, target_calf_angle)
-        #if c0x <= l or c0x >= r:
-        #    c0x, _ = leg.geometry.xy_center_at_z(z)
-        c0x, c0y, c0z = self.compute_center_position()
-
-        # TODO calculate optimal step
-        # TODO limit by max calf angle (or something less)
-        m = max(abs(dx), abs(dy))
-        if m < 0.00001:
-            ndx, ndy = 0, 0
-        else:
-            ndx, ndy = dx / m, dy / m
-        sp = c0x + dx * step_ratio * 12., c0y + dy * step_ratio * 12.
-        return sp
+        self.center_offset = (0, 0)
 
     def calculate_swing_target(self):
         if self.unloaded_height is None:
@@ -179,29 +83,15 @@ class Foot(signaler.Signaler):
                 self.param['res.min_hip_buffer'])
         tcar = numpy.radians(self.param['res.target_calf_angle'])
         mcar = numpy.radians(self.param['res.max_calf_angle'])
-        if self.swing_info is None:  # assume target of 0, 0
-            sp = self.calculate_translation_swing_target(
-                0, 0, self.param['res.lower_height'],
-                self.leg, None, 0.,
-                min_hip_distance=min_hip_distance,
-                target_calf_angle=tcar,
-                max_calf_angle=mcar)
-        elif len(self.swing_info) == 3:  # rotation
-            rx, ry, rspeed = self.swing_info
-            sp = self.calculate_arc_swing_target(
-                rx, ry, self.param['res.lower_height'],
-                self.leg, rspeed, self.param['res.step_ratio'],
-                min_hip_distance=min_hip_distance,
-                target_calf_angle=tcar,
-                max_calf_angle=mcar)
-        else:  # translation
-            lx, ly = self.swing_info
-            sp = self.calculate_translation_swing_target(
-                lx, ly, self.param['res.lower_height'],
-                self.leg, None, self.param['res.step_ratio'],
-                min_hip_distance=min_hip_distance,
-                target_calf_angle=tcar,
-                max_calf_angle=mcar)
+        rx, ry, rspeed = self.swing_info
+        sp = self.leg.geometry.xy_along_arc(
+            rx, ry, self.param['res.lower_height'], rspeed,
+            step_ratio=self.param['res.step_ratio'],
+            min_hip_distance=min_hip_distance,
+            target_calf_angle=tcar,
+            max_calf_angle=mcar,
+            x_offset=self.center_offset[0],
+            y_offset=self.center_offset[1])
         return sp[0], sp[1], z
 
     def should_lift(self):
@@ -301,46 +191,19 @@ class Foot(signaler.Signaler):
         return r
 
     def compute_center_position(self):
+        """
+        c0z: center z coordinate
+        target_calf_angle (in radians)
+        max_calf_angle (in radians)
+        """
         # TODO cache this, only needs to change when inputs change
         c0z = self.param['res.lower_height']
         target_calf_angle = numpy.radians(self.param['res.target_calf_angle'])
         max_calf_angle = numpy.radians(self.param['res.max_calf_angle'])
-
-        # get x limits
-        l, r = self.leg.geometry.limits_at_z_2d(c0z)
-        # if there is a max calf angle limit
-        if max_calf_angle is not None:
-            # check that the 'right' x (positive) limit for this height
-            # doesn't have too extreme a calf angle
-            rcalf = self.leg.geometry.x_with_calf_angle(c0z, max_calf_angle)
-            if rcalf < r:
-                # if so, set this as the 'right' x limit
-                r = rcalf
-        # find x position where calf is at this target angle
-        c0x = self.leg.geometry.x_with_calf_angle(c0z, target_calf_angle)
-        # check if x position is out of limits, if so, reset to center
-        if c0x <= l or c0x >= r:
-            c0x, _ = self.leg.geometry.xy_center_at_z(c0z)
-
-        # add optional offsets (x and y?)
-        c0y = 0
-        if self.center_offset is not None:
-            c0x += self.center_offset[0]
-            c0y += self.center_offset[1]
-            # TODO redo range check
-
+        c0x, c0y = self.leg.geometry.xy_center_at_z(
+            c0z, target_calf_angle, max_calf_angle,
+            self.center_offset[0], self.center_offset[1])
         return c0x, c0y, c0z
-
-    def compute_center_restriction(self, c0x, c0y, c0z):
-        # TODO compute lowest restriction at 'center' point
-        c0_angles = self.leg.geometry.point_to_angles(
-            c0x, c0y, c0z)
-        xyz = {'x': c0x, 'y': c0y, 'z': c0z, 'time': 0}
-        angles = {
-            'hip': c0_angles[0], 'thigh': c0_angles[1],
-            'knee': c0_angles[2], 'time': 0}
-        r0 = self._calculate_restriction(xyz, angles)
-        return r0
 
     def send_plan(self):
         #print("res.send_plan: [%s]%s" % (self.leg.leg_number, self.state))
@@ -369,48 +232,9 @@ class Foot(signaler.Signaler):
                 matrix=T,
                 speed=0)
         elif self.state == 'swing':
-            #z = self.unloaded_height + self.param['res.lift_height']
-            #min_hip_distance = (
-            #        self.param['min_hip_distance'] +
-            #        self.param['res.min_hip_buffer'])
-            #tcar = numpy.radians(self.param['res.target_calf_angle'])
-            #mcar = numpy.radians(self.param['res.max_calf_angle'])
-            #if self.swing_info is None:  # assume target of 0, 0
-            #    sp = self.calculate_translation_swing_target(
-            #        0, 0, self.param['res.lower_height'],
-            #        self.leg, None, 0.,
-            #        min_hip_distance=min_hip_distance,
-            #        target_calf_angle=tcar,
-            #        max_calf_angle=mcar)
-            #elif len(self.swing_info) == 3:  # rotation
-            #    rx, ry, rspeed = self.swing_info
-            #    sp = self.calculate_swing_target(
-            #        rx, ry, self.param['res.lower_height'],
-            #        self.leg, rspeed, self.param['res.step_ratio'],
-            #        min_hip_distance=min_hip_distance,
-            #        target_calf_angle=tcar,
-            #        max_calf_angle=mcar)
-            #else:  # translation
-            #    lx, ly = self.swing_info
-            #    sp = self.calculate_translation_swing_target(
-            #        lx, ly, self.param['res.lower_height'],
-            #        self.leg, None, self.param['res.step_ratio'],
-            #        min_hip_distance=min_hip_distance,
-            #        target_calf_angle=tcar,
-            #        max_calf_angle=mcar)
-            #self.swing_target = sp[0], sp[1]
             self.swing_target = self.calculate_swing_target()
-            # print(self.swing_target, z)
             # TODO check if point is valid
             # TODO error out on invalid
-            #self.leg.send_plan(
-            #    mode=consts.PLAN_TARGET_MODE,
-            #    frame=consts.PLAN_LEG_FRAME,
-            #    linear=(
-            #        sp[0],
-            #        sp[1],
-            #        z),
-            #    speed=self.get_mode_speed('swing'))
             self.leg.send_plan(
                 mode=consts.PLAN_TARGET_MODE,
                 frame=consts.PLAN_LEG_FRAME,
@@ -513,13 +337,6 @@ class Foot(signaler.Signaler):
         #    self.leg)
         # add in the 'manual' restriction modifier (set from ui/controller)
         c0x, c0y, c0z = self.compute_center_position()
-        #if self.param['res.zero_by_center']:
-        #    self.r0 = self.compute_center_restriction(c0x, c0y, c0z)
-        #    r = max(0, r - self.r0)
-        #self.rr = r
-        #if self.param['res.zero_on_lower']:
-        #    r = max(0, r - self.r0)
-        #    nr = max(0, nr - self.r0)
         r += self.restriction_modifier
         if self.restriction is not None:
             pt = self.restriction['time']
