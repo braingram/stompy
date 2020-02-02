@@ -104,6 +104,8 @@ JOINT_INDEX_BY_NAME = {
     'knee': KNEE_JOINT_INDEX,
 }
 
+JOINT_NAMES = ('hip', 'thigh', 'knee')
+
 JOINT_NAME_BY_INDEX = {
     JOINT_INDEX_BY_NAME[k]: k for
     k in JOINT_INDEX_BY_NAME}

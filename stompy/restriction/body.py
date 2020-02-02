@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 """
+One issue is not knowing the non-halt target during halt (because set_target
+is used for both). So legs should have
+    target: path to walk when walking
+    halted: if halted (don't want)
+
 I want this to be modular so I can write tests that run in
 a perfect simulated environment (that doesn't require bullet)
 so I can validate changes.
@@ -17,13 +22,6 @@ Body needs the following:
     - feet (for sending plans, attaching callbacks, etc)
     - foot centers (that might be offset)
     - arbitrate leg res state changes (lift -> swing etc)
-
-Try to remove from leg:
-    - geometry calc of swing targets etc
-        - swing_position_from_intersections
-        - calculate_arc_swing_target
-        - calculate_translation_swing_target
-        - calculate_swing_target
 
 Leg needs the following
     - halt/unhalt state
@@ -73,7 +71,7 @@ parameters = {
 
     # joint limit restriction shape parameters
     'fields.joint_angle.eps': 0.3,
-    'fields.joint_angle.range': 0.9,
+    'fields.joint_angle.range': 0.9,  # limit movement to ratio of total range
     'fields.joint_angle.inflection': 0.4,
 
     # calf angle restriction shape parameters
@@ -244,22 +242,27 @@ class Body(signaler.Signaler):
         if not isinstance(target, BodyTarget):
             raise ValueError("Body.set_target requires BodyTarget")
         self.logger.debug({"set_target": (target, update_swing)})
-        if self.halted:
-            self.logger.debug("set_target while halted")
-            # set new pre_halt target
-            self._pre_halt_target = target
-            # set stance target to stop
-            target = BodyTarget((0., 0.), 0., 0.)
-            # only update non-swing
-            update_swing = False
         self.target = target
-        if target.dz != 0.0:
-            # TODO update stand height
-            pass
-        self.odo.set_target(self.target)
+        #if target.dz != 0.0:
+        #    # TODO update stand height
+        #    self.odo.set_target(self.target)
+        #    pass
         for i in self.feet:
-            self.feet[i].set_target(
-                target, update_swing=update_swing)
+            self.feet[i].set_target(target)
+        return
+        #if self.halted:
+        #    self.logger.debug("set_target while halted")
+        #    # set new pre_halt target
+        #    #self._pre_halt_target = target
+        #    # set stance target to stop
+        #    target = BodyTarget((0., 0.), 0., 0.)
+        #    # only update non-swing
+        #    update_swing = False
+        #self.target = target
+        #self.odo.set_target(self.target)
+        #for i in self.feet:
+        #    self.feet[i].set_target(
+        #        target, update_swing=update_swing)
 
     def disable(self):
         self.logger.debug("disable")
@@ -273,19 +276,19 @@ class Body(signaler.Signaler):
         for i in self.feet:
             self.feet[i].set_state(None)
 
-    def halt(self):
-        if not self.halted:
-            self.logger.debug({
-                "halt": {
-                    'restriction': {
-                        i: self.feet[i].restriction for i in self.feet},
-                    'states': {
-                        i: self.feet[i].state for i in self.feet},
-                    '_pre_halt_target': self.target,
-                }})
-            self._pre_halt_target = self.target
-            self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
-            self.set_halt(True)
+    #def halt(self):
+    #    if not self.halted:
+    #        self.logger.debug({
+    #            "halt": {
+    #                'restriction': {
+    #                    i: self.feet[i].restriction for i in self.feet},
+    #                'states': {
+    #                    i: self.feet[i].state for i in self.feet},
+    #                '_pre_halt_target': self.target,
+    #            }})
+    #        self._pre_halt_target = self.target
+    #        self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
+    #        self.set_halt(True)
 
     def get_speed_by_restriction(self):
         rmax = max([
@@ -327,10 +330,10 @@ class Body(signaler.Signaler):
                             i: self.feet[i].restriction for i in self.feet},
                         'states': {
                             i: self.feet[i].state for i in self.feet},
-                        '_pre_halt_target': self._pre_halt_target,
+                        #'_pre_halt_target': self._pre_halt_target,
                     }})
                 self.set_halt(False)
-                self.set_target(self._pre_halt_target, update_swing=True)
+                #self.set_target(self._pre_halt_target, update_swing=True)
                 #self.set_target(self._pre_halt_target, update_swing=False)
                 return
         if (
@@ -338,7 +341,8 @@ class Body(signaler.Signaler):
                 (not self.halted) and
                 (self.feet[leg_number].state not in ('wait', 'swing', 'lower')) and
                 restriction['nr'] >= restriction['r']):
-            self.halt()
+            #self.halt()
+            self.set_halt(True)
             return
         # TODO scale stance speed by restriction?
         if (
