@@ -189,7 +189,6 @@ class Body(signaler.Signaler):
         self.logger.debug("enable")
         self.enabled = True
         self.set_halt(False)
-        #self.halted = False
         # TODO always reset odometer on enable?
         self.odo.reset()
         # TODO set foot states, target?
@@ -207,8 +206,10 @@ class Body(signaler.Signaler):
 
     def calc_stance_speed(self, bxy, mag):
         # scale to pid future time ms
-        speed = mag * self.param['speed.foot'] * self.param['speed.scalar'] * consts.PLAN_TICK
-        #speed = mag * self.get_mode_speed('stance') * consts.PLAN_TICK
+        speed = (
+            mag * self.param['speed.foot'] * 
+            elf.param['speed.scalar'] * consts.PLAN_TICK)
+
         # find furthest foot
         x, y = bxy
         z = 0.
@@ -224,8 +225,6 @@ class Body(signaler.Signaler):
         max_rspeed = (
             self.param['speed.foot'] / self.param['arc_speed_radius'] *
             self.param['speed.scalar'])
-        #max_rspeed = self.param['res.speed.angular'] * self.param['speed.scalar']
-        #if abs(rspeed) > self.get_mode_speed('angular'):
         if abs(rspeed) > max_rspeed:
             print("Limiting because of angular speed")
             rspeed = math.copysign(max_rspeed, rspeed)
@@ -245,50 +244,17 @@ class Body(signaler.Signaler):
         self.target = target
         #if target.dz != 0.0:
         #    # TODO update stand height
-        #    self.odo.set_target(self.target)
+        #    self.odo.set_target(self.target)  # TODO fix odometer
         #    pass
         for i in self.feet:
             self.feet[i].set_target(target)
         return
-        #if self.halted:
-        #    self.logger.debug("set_target while halted")
-        #    # set new pre_halt target
-        #    #self._pre_halt_target = target
-        #    # set stance target to stop
-        #    target = BodyTarget((0., 0.), 0., 0.)
-        #    # only update non-swing
-        #    update_swing = False
-        #self.target = target
-        #self.odo.set_target(self.target)
-        #for i in self.feet:
-        #    self.feet[i].set_target(
-        #        target, update_swing=update_swing)
 
     def disable(self):
         self.logger.debug("disable")
-        # save poses
-        #import pickle
-        #with open('poses.p', 'wb') as f:
-        #    pickle.dump(self.odo.poses, f)
-        #with open('path.p', 'wb') as f:
-        #    pickle.dump(self.odo.get_path(), f)
         self.enabled = False
         for i in self.feet:
             self.feet[i].set_state(None)
-
-    #def halt(self):
-    #    if not self.halted:
-    #        self.logger.debug({
-    #            "halt": {
-    #                'restriction': {
-    #                    i: self.feet[i].restriction for i in self.feet},
-    #                'states': {
-    #                    i: self.feet[i].state for i in self.feet},
-    #                '_pre_halt_target': self.target,
-    #            }})
-    #        self._pre_halt_target = self.target
-    #        self.set_target(BodyTarget((0., 0.), 0., 0.), update_swing=False)
-    #        self.set_halt(True)
 
     def get_speed_by_restriction(self):
         rmax = max([
@@ -333,15 +299,12 @@ class Body(signaler.Signaler):
                         #'_pre_halt_target': self._pre_halt_target,
                     }})
                 self.set_halt(False)
-                #self.set_target(self._pre_halt_target, update_swing=True)
-                #self.set_target(self._pre_halt_target, update_swing=False)
                 return
         if (
                 restriction['r'] > self.param['res.r_max'] and
                 (not self.halted) and
                 (self.feet[leg_number].state not in ('wait', 'swing', 'lower')) and
                 restriction['nr'] >= restriction['r']):
-            #self.halt()
             self.set_halt(True)
             return
         # TODO scale stance speed by restriction?

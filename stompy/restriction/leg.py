@@ -35,20 +35,6 @@ from .. import transforms
 
 class LegTarget(object):
     def __init__(self, body_target, leg_number):   # make from body target
-        # Take BodyTarget(rotation_center, speed, dz)
-        # turn into:
-        #   - leg_target = leg_matrix
-        #   - swing_info = (rx, ry, speed)
-        # 
-        # swing_info -> swing_target
-        #
-        # if halted
-        # swing_info = same
-        # stance plan = 0
-        # lift plan = 0 + lift
-        # lower plan = 0 + lower
-        # next res calc plan = leg_target
-
         # store ref to body target
         self.body_target = body_target
 
@@ -97,8 +83,6 @@ class Foot(signaler.Signaler):
         # stance -> lift -> swing -> lower -> wait
         self.state = None
         self.restriction = None
-        #self.r0 = 0.
-        #self.rr = 0.
         self.xyz = None
         self.angles = None
         self.restriction_modifier = 0.
@@ -111,8 +95,6 @@ class Foot(signaler.Signaler):
 
     def reset(self):
         self.restriction_modifier = 0.
-        #self.r0 = 0.
-        #self.rr = 0.
         self.center_offset = (0, 0)
 
     def calculate_swing_target(self):
@@ -215,15 +197,10 @@ class Foot(signaler.Signaler):
             ipt = max_calf_angle * self.param['res.fields.calf_angle.inflection']
             v = calf_eps / ipt
             cf = cf(lambda ca, v=v: min(1.0, math.exp(v * ca)))
-        #max_calf_angle = numpy.radians(self.param['res.fields.calf_angle.max'])
-        #calf_eps = numpy.log(self.param['res.fields.calf_angle.eps'])
-        #ipt = max_calf_angle * self.param['res.fields.calf_angle.inflection']
 
         ca = abs(self.leg.geometry.angles_to_calf_angle(
                 angles['hip'], angles['thigh'], angles['knee']))
         r = cf(ca)
-        #cr = numpy.exp(calf_eps / ipt * ca)
-        #r = min(1.0, cr)
         return {'r': r, 'calf_angle': ca}
 
     def calculate_hip_distance_restriction(self, xyz):
@@ -238,10 +215,6 @@ class Foot(signaler.Signaler):
                 self.param['res.fields.min_hip.buffer'])
             v = math.log(self.param['res.fields.min_hip.eps'])/min_hip_distance
             cf = cf(lambda x, v=v: min(1.0, math.exp(v * x)))
-        #hr = numpy.exp(
-        #    numpy.log(self.param['res.fields.min_hip.eps'])/min_hip_distance
-        #    * xyz['x'])
-        #r = min(1.0, hr)
         r = cf(xyz['x'])
         return {'r': r}
 
@@ -261,12 +234,7 @@ class Foot(signaler.Signaler):
         dx = (xyz['x'] - cx)
         dy = (xyz['y'] - cy)
         dr = math.sqrt(dx * dx + dy * dy)
-        #fcr = numpy.exp(
-        #    -numpy.log(self.param['res.fields.center.eps'])
-        #    /self.param['res.fields.center.inflection'] *
-        #    (dr - self.param['res.fields.center.radius']))
         r = cf(dr)
-        #r = min(1.0, fcr)
         return {'r': r, 'center': (cx, cy, cz)}
     
     def calculate_restriction(self, xyz, angles):
@@ -341,89 +309,10 @@ class Foot(signaler.Signaler):
                 matrix=T,
                 speed=0)
         return
-       
-        if self.state in ('stance', 'wait'):
-            self.send_plan(
-                mode=consts.PLAN_MATRIX_MODE,
-                frame=consts.PLAN_LEG_FRAME,
-                matrix=T,
-                speed=0)
-        elif self.state in ('stance', 'wait'):
-            self.leg.send_plan(
-                mode=consts.PLAN_MATRIX_MODE,
-                frame=consts.PLAN_LEG_FRAME,
-                matrix=self.leg_target,
-                speed=0)
-        elif self.state == 'lift':
-            #v = self.get_mode_speed('lift')
-            v = (
-                self.param['speed.foot'] *
-                self.param['speed.scalar'] *
-                self.param['speed.lift_scale'])
-            T = (
-                self.leg_target *
-                transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
-            #print(self.leg_target, T)
-            self.leg.send_plan(
-                mode=consts.PLAN_MATRIX_MODE,
-                frame=consts.PLAN_LEG_FRAME,
-                matrix=T,
-                speed=0)
-        elif self.state == 'swing':
-            self.swing_target = self.calculate_swing_target()
-            # TODO check if point is valid
-            # TODO error out on invalid
-            self.leg.send_plan(
-                mode=consts.PLAN_TARGET_MODE,
-                frame=consts.PLAN_LEG_FRAME,
-                linear=(
-                    self.swing_target[0],
-                    self.swing_target[1],
-                    self.swing_target[2]),
-                speed=(
-                    self.param['speed.foot'] *
-                    self.param['speed.scalar'] *
-                    self.param['speed.swing_scale']))
-        elif self.state == 'lower':
-            #v = -self.get_mode_speed('lower')
-            v = -(
-                self.param['speed.foot'] *
-                self.param['speed.scalar'] *
-                self.param['speed.lower_scale'])
 
-            T = (
-                self.leg_target *
-                transforms.translation_3d(0, 0, v * consts.PLAN_TICK))
-            self.leg.send_plan(
-                mode=consts.PLAN_MATRIX_MODE,
-                frame=consts.PLAN_LEG_FRAME,
-                matrix=T,
-                speed=0)
-
-    #def set_target(self, target, update_swing=True):
     def set_target(self, target):
-        #self.logger.debug({'set_target': (target, update_swing)})
         self.logger.debug({'set_target': target})
         self.leg_target = LegTarget(target, self.leg.leg_number)
-
-        #bx, by = target.rotation_center
-        #rx, ry, rz = kinematics.body.body_to_leg(
-        #    self.leg.leg_number, bx, by, 0)
-        #lT = transforms.rotation_about_point_3d(
-        #    rx, ry, rz, 0, 0, target.speed)
-        ## add z change
-        #if target.dz != 0.0:
-        #    lT = lT * transforms.translation_3d(0, 0, target.dz)
-        #if update_swing:
-        #    self.swing_info = (rx, ry, target.speed)
-        #    self.swing_target = None
-        #self.leg_target = lT
-        #self.stance_plan = plans.Plan(
-        #    mode=consts.PLAN_MATRIX_MODE,
-        #    frame=consts.PLAN_LEG_FRAME,
-        #    matrix=self.leg_target,
-        #    speed=0)
-        #self.send_plan()
         self.send_plan()
 
     def set_state(self, state):
@@ -515,13 +404,9 @@ class Foot(signaler.Signaler):
                         self.param['res.height_slop']) and
                     self.angles['calf'] > self.param['res.loaded_weight']):
                 new_state = 'wait'
-                #if self.param['res.zero_on_lower']:
-                #    self.r0 = self.rr
         elif self.state == 'wait':
             if self.restriction['nr'] > self.restriction['r']:
                 new_state = 'stance'
-                #self.r0 = 0.
-        #elif self.state == 'stance'
         elif self.state == 'lift':
             # check for unloaded and >Z inches off ground
             if (
@@ -533,13 +418,8 @@ class Foot(signaler.Signaler):
                     self.xyz['z'] > (
                         self.unloaded_height + self.param['res.lift_height'])):
                 new_state = 'swing'
-            #if self.xyz['z'] > self.lift_height:
-            #    new_state = 'swing'
         # clear xyz and angles cache
         self.xyz = None
         self.angles = None
         if new_state is not None:
-            #print(
-            #    "setting new state[%s]: %s, %s" % (
-            #        self.leg.leg_number, new_state, self.restriction))
             self.set_state(new_state)
