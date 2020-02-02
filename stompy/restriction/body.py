@@ -45,7 +45,7 @@ restriction will be updated with foot coordinates
 it will produce 'requests' for plans that will be 'accepted'
 """
 
-import numpy
+import math
 
 from .. import consts
 from .. import kinematics
@@ -71,37 +71,22 @@ parameters = {
     # allow this much slop (in inches) between actual and target body height
     'height_slop': 3.,
 
-    # delta-restriction smoothing running average parameter
-    # (closer to 1 = smoother)
-    #'dr_smooth': 0.5,
-
     # joint limit restriction shape parameters
-    #'limit_eps': 0.3,
-    #'limit_range': 0.9,
-    #'limit_inflection_ratio': 0.4,
     'fields.joint_angle.eps': 0.3,
     'fields.joint_angle.range': 0.9,
     'fields.joint_angle.inflection': 0.4,
 
     # calf angle restriction shape parameters
-    #'calf_eps': 0.3,
-    #'calf_inflection_ratio': 0.4,
     'fields.calf_angle.eps': 0.3,
     'fields.calf_angle.inflection': 0.4,
-    # maximum angle (degrees from vertical = 0) of leg calf
-    #'max_calf_angle': numpy.radians(30),
     'fields.calf_angle.max': 30,
 
     # min distance from foot to hip restriction shape parameter
-    #'min_hip_eps': 0.15,
     'fields.min_hip.eps': 0.15,
     # max restriction (and avoid) this many inches from the min_hip_distance
     'fields.min_hip.buffer': 10.0,
 
     # distance from foot to 'center' restriction shape parameters
-    #'center_eps': 0.1,
-    #'center_inflection': 5.,
-    #'center_radius': 30.,
     'fields.center.eps': 0.1,
     'fields.center.inflection': 5.,
     'fields.center.radius': 30.,
@@ -235,17 +220,17 @@ class Body(signaler.Signaler):
             r = tx * tx + ty * ty + tz * tz
             if mr is None or r > mr:
                 mr = r
-        mr = numpy.sqrt(mr)
+        mr = math.sqrt(mr)
         # account for radius sign
         rspeed = speed / mr
         max_rspeed = (
             self.param['speed.foot'] / self.param['arc_speed_radius'] *
             self.param['speed.scalar'])
         #max_rspeed = self.param['res.speed.angular'] * self.param['speed.scalar']
-        #if numpy.abs(rspeed) > self.get_mode_speed('angular'):
-        if numpy.abs(rspeed) > max_rspeed:
+        #if abs(rspeed) > self.get_mode_speed('angular'):
+        if abs(rspeed) > max_rspeed:
             print("Limiting because of angular speed")
-            rspeed = max_rspeed * numpy.sign(rspeed)
+            rspeed = math.copysign(max_rspeed, rspeed)
         # TODO this should adjust speed on times OTHER than set_target
         if self.param['res.speed_by_restriction']:
             rs = self.get_speed_by_restriction()

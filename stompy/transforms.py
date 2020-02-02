@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 import numpy
 
 
@@ -10,9 +12,9 @@ def translation_2d(x, y):
 
 def rotation_2d(a, degrees=False):
     if degrees:
-        a = numpy.radians(a)
-    sa = numpy.sin(a)
-    ca = numpy.cos(a)
+        a = math.radians(a)
+    sa = math.sin(a)
+    ca = math.cos(a)
     return numpy.matrix(
         [[ca, -sa, 0.], [sa, ca, 0.], [0., 0., 1.]])
 
@@ -63,9 +65,9 @@ def rotation_3d(xa, ya, za, degrees=False):
     """Applied as x, y, z"""
     if xa != 0.:
         if degrees:
-            xa = numpy.radians(xa)
-        sx = numpy.sin(xa)
-        cx = numpy.cos(xa)
+            xa = math.radians(xa)
+        sx = math.sin(xa)
+        cx = math.cos(xa)
         rx = numpy.matrix([
             [1.0, 0., 0., 0.],
             [0., cx, -sx, 0.],
@@ -75,9 +77,9 @@ def rotation_3d(xa, ya, za, degrees=False):
         rx = numpy.matrix(numpy.identity(4, dtype='f8'))
     if ya != 0.:
         if degrees:
-            ya = numpy.radians(ya)
-        sy = numpy.sin(ya)
-        cy = numpy.cos(ya)
+            ya = math.radians(ya)
+        sy = math.sin(ya)
+        cy = math.cos(ya)
         ry = numpy.matrix([
             [cy, 0., sy, 0.],
             [0., 1., 0., 0.],
@@ -87,9 +89,9 @@ def rotation_3d(xa, ya, za, degrees=False):
         ry = numpy.matrix(numpy.identity(4, dtype='f8'))
     if za != 0.:
         if degrees:
-            za = numpy.radians(za)
-        sz = numpy.sin(za)
-        cz = numpy.cos(za)
+            za = math.radians(za)
+        sz = math.sin(za)
+        cz = math.cos(za)
         rz = numpy.matrix([
             [cz, -sz, 0., 0.],
             [sz, cz, 0., 0.],

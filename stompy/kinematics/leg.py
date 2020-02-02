@@ -26,6 +26,7 @@ when all joints are computed, also precompute some values for kinematics:
 
 import copy
 import inspect
+import math
 
 import numpy
 
@@ -42,7 +43,7 @@ default_cfg = {
     },
     'thigh': {
         'length': 54.0,
-        'rest_angle': numpy.radians(84.0),  # rest angle
+        'rest_angle': math.radians(84.0),  # rest angle
         'cylinder_min': 24.0,
         'cylinder_max': 38.0,
         'triangle_a': 10.21631,
@@ -50,7 +51,7 @@ default_cfg = {
     },
     'knee': {
         'length': 72.0,
-        'rest_angle': numpy.radians(-83.0),  # rest angle
+        'rest_angle': math.radians(-83.0),  # rest angle
         'cylinder_min': 20.0,
         'cylinder_max': 32.0,
         'triangle_a': 7.4386,
@@ -135,7 +136,7 @@ class JointGeometry(object):
         c = cylinder_length
         # cosine rule, given 3 sides (where c is cylinder)
         # compute angle C (joint angle)
-        return numpy.arccos((a * a + b * b - c * c) / (2 * a * b))
+        return math.acos((a * a + b * b - c * c) / (2 * a * b))
     
     def joint_angle(self, cylinder_length):
         return self.raw_angle(cylinder_length) - self.zero_angle
@@ -145,7 +146,7 @@ class JointGeometry(object):
         a = self.triangle_a
         b = self.triangle_b
         # solve for cylinder length
-        return numpy.sqrt(a * a + b * b - 2 * a * b * numpy.cos(C))
+        return math.sqrt(a * a + b * b - 2 * a * b * math.cos(C))
 
 
 def circle_intersection(c0, c1):
@@ -191,7 +192,7 @@ def circle_line_segment_intersection(c, l0, l1):
     disc = (b * b) - 4 * a * c
     if disc < 0:
         return None, None
-    disc = numpy.sqrt(disc)
+    disc = math.sqrt(disc)
     t0 = (-b + disc) / (2. * a)
     t1 = (-b - disc) / (2. * a)
     if 0 <= t0 <= 1:
@@ -285,33 +286,33 @@ class LegGeometry(object):
     def angles_to_points(self, hip, thigh, knee):
         x = self.hip.length
         z = 0
-        ch = numpy.cos(hip)
-        sh = numpy.sin(hip)
+        ch = math.cos(hip)
+        sh = math.sin(hip)
         yield x * ch, x * sh, z
 
         a = self.thigh.rest_angle - thigh
-        x += self.thigh.length * numpy.cos(a)
-        z += self.thigh.length * numpy.sin(a)
+        x += self.thigh.length * math.cos(a)
+        z += self.thigh.length * math.sin(a)
         yield x * ch, x * sh, z
 
         a = self.knee.rest_angle - knee - thigh
-        x += self.knee.length * numpy.cos(a)
-        z += self.knee.length * numpy.sin(a)
+        x += self.knee.length * math.cos(a)
+        z += self.knee.length * math.sin(a)
 
         yield x * ch, x * sh, z
 
     def point_to_angles(self, x, y, z):
         # doesn't work for x < 0
         l = (x * x + y * y) ** 0.5
-        hip = numpy.arctan2(y, x)
+        hip = math.atan2(y, x)
         L = (z * z + (l - self.hip.length) * (l - self.hip.length)) ** 0.5
-        a1 = numpy.arccos(-z / L)
-        a2 = numpy.arccos((
+        a1 = math.acos(-z / L)
+        a2 = math.acos((
             self.knee.length * self.knee.length
             - self.thigh.length * self.thigh.length - L * L) /
             (-2 * self.thigh.length * L))
         alpha = (a1 + a2)
-        beta = numpy.arccos((
+        beta = math.acos((
             L * L - self.knee.length * self.knee.length -
             self.thigh.length * self.thigh.length) /
             (-2 * self.knee.length * self.thigh.length))
@@ -324,19 +325,19 @@ class LegGeometry(object):
         dx = p2[0] - p1[0]
         # invert dz to fix quadrant
         dz = -(p2[2] - p1[2])
-        return numpy.arctan2(dx, dz)
+        return math.atan2(dx, dz)
 
     def x_with_calf_angle(self, z, a):
         return (
-            numpy.sqrt(1 - (
-                (z + numpy.cos(float(a)) * self.knee.length)
+            math.sqrt(1 - (
+                (z + math.cos(float(a)) * self.knee.length)
                 / self.thigh.length) ** 2)
             * self.thigh.length + self.hip.length
-            + numpy.sin(a) * self.knee.length)
+            + math.sin(a) * self.knee.length)
 
     def x_with_vertical_calf(self, z):
         return (
-            numpy.sqrt(1 - (
+            math.sqrt(1 - (
                 (float(z) + self.knee.length)
                 / self.thigh.length) ** 2)
             * self.thigh.length + self.hip.length)
@@ -388,8 +389,8 @@ class LegGeometry(object):
         angles = numpy.linspace(self.hip.min_angle, self.hip.max_angle, n_slices)
         pts = []
         for a in angles:
-            ch = numpy.cos(a)
-            sh = numpy.sin(a)
+            ch = math.cos(a)
+            sh = math.sin(a)
             pts.append((l * ch, l * sh, z))
             pts.append((r * ch, r * sh, z))
         if wrap:
@@ -419,10 +420,10 @@ class LegGeometry(object):
         # intersection with hip lines
         hmin = self.hip.min_angle
         hmax = self.hip.max_angle
-        camin = numpy.cos(hmin)
-        samin = numpy.sin(hmin)
-        camax = numpy.cos(hmax)
-        samax = numpy.sin(hmax)
+        camin = math.cos(hmin)
+        samin = math.sin(hmin)
+        camax = math.cos(hmax)
+        samax = math.sin(hmax)
         min_lix, min_liy = camin * l, samin * l
         min_rix, min_riy = camin * r, samin * r
         max_lix, max_liy = camax * l, samax * l
@@ -446,7 +447,7 @@ class LegGeometry(object):
                     # calculate angle from 0, 0 to x, y
                     # if angle is withing min/max, keep
                     # tan(theta) = y / x
-                    a = numpy.arctan2(y, x)
+                    a = math.atan2(y, x)
                     if hmin <= a <= hmax:
                         ipts.append(p)
         return ipts
@@ -487,7 +488,7 @@ class LegGeometry(object):
         c0y = y_offset
         v = numpy.array([c0x, c0y])
         d = numpy.linalg.norm(v)
-        a = numpy.arctan2(c0y, c0x)
+        a = math.atan2(c0y, c0x)
         if a < self.hip.min_angle:
             a = self.hip.min_angle
             c0x = None
@@ -502,8 +503,8 @@ class LegGeometry(object):
             c0x = None
         if c0x is None:
             #print("Limited: %s, %s" % (c0x, c0y))
-            c0x = numpy.cos(a) * d
-            c0y = numpy.sin(a) * d
+            c0x = math.cos(a) * d
+            c0y = math.sin(a) * d
 
         return c0x, c0y
     
@@ -520,7 +521,7 @@ class LegGeometry(object):
             return c0x, c0y
         tc = {
             'center': (tx, ty),
-            'radius': numpy.sqrt((tx - c0x) ** 2. + (ty - c0y) ** 2.),
+            'radius': math.sqrt((tx - c0x) ** 2. + (ty - c0y) ** 2.),
         }
         ipts = self.limit_intersections(
             tc, z,
@@ -549,7 +550,7 @@ class LegGeometry(object):
             angle_sign = numpy.sign(numpy.cross(ivn, cvn))
             if numpy.sign(rspeed) != angle_sign:
                 continue
-            a = numpy.arccos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
+            a = math.acos(numpy.clip(numpy.dot(ivn, cvn), -1.0, 1.0))
             if ma is None or a < ma:
                 ma = a
                 #mi = i
@@ -563,8 +564,8 @@ class LegGeometry(object):
         #return mi
         pa = -mas * ma * step_ratio
         # rotate vector from tc to c0 (cv) by angle pa
-        ca = numpy.cos(pa)
-        sa = numpy.sin(pa)
+        ca = math.cos(pa)
+        sa = math.sin(pa)
         x, y = cv
         return (
             x * ca - y * sa + tc[0],

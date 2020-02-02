@@ -16,6 +16,8 @@ For CG need to know:
     - roll & pitch to scale projection of CM onto support triangle
 """
 
+import math
+
 import numpy
 
 from . import signaler
@@ -28,7 +30,7 @@ def point_to_line_2d(pt, l1, l2):
     x2, y2 = l2[0], l2[1]
     return (
         abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / 
-        numpy.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2))
+        math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2))
 
 
 class Stance(signaler.Signaler):
@@ -137,12 +139,12 @@ class Stance(signaler.Signaler):
 
         # compute pitch of normal using Z and Y: arctan(Y, Z)
         # TODO - pitch when front feet are lower
-        pitch = -numpy.arctan2(n[1], n[2])
+        pitch = -math.atan2(n[1], n[2])
 
         # compute roll of normal using Z and X: arctan(X, Z)
         # TODO + roll when right feet are lower
-        roll = numpy.arctan2(n[0], n[2])
-        self.pose_plane = numpy.degrees(roll), numpy.degrees(pitch)
+        roll = math.atan2(n[0], n[2])
+        self.pose_plane = math.degrees(roll), math.degrees(pitch)
         self.trigger('pose_plane', self.pose_plane)
 
         self.update_ground_slope()

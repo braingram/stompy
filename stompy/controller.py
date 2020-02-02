@@ -19,6 +19,7 @@ controls:
     - deadman
 """
 
+import math
 import time
 
 import numpy
@@ -46,12 +47,15 @@ max_radius = 100000.
 
 
 def axis_to_radius(axis):
-    if numpy.abs(axis) < 0.001:  # sign(0.0) == 0.
+    if abs(axis) < 0.001:  # sign(0.0) == 0.
         radius = max_radius
     else:
         radius = (
-            numpy.sign(axis) * max_radius /
-            2. ** (numpy.log2(max_radius) * numpy.abs(axis)))
+            math.copysign(max_radius, axis) /
+            2. ** (math.log2(max_radius) * abs(axis)))
+        #radius = (
+        #    numpy.sign(axis) * max_radius /
+        #    2. ** (numpy.log2(max_radius) * abs(axis)))
     return radius
 
 
@@ -585,9 +589,9 @@ class MultiLeg(signaler.Signaler):
                 # calc direction by lx, ly
                 # rotate 90 for radius
                 #a = numpy.arctan2(-lx, ly)
-                a = numpy.arctan2(-xyz[0], xyz[1])
-                crx = numpy.cos(a) * max_radius
-                cry = numpy.sin(a) * max_radius
+                a = math.atan2(-xyz[0], xyz[1])
+                crx = math.cos(a) * max_radius
+                cry = math.sin(a) * max_radius
                 # set speed by magnitude
                 m = numpy.linalg.norm([xyz[0], xyz[1]])
                 rs = self.res.calc_stance_speed((crx, cry), m)
@@ -598,12 +602,13 @@ class MultiLeg(signaler.Signaler):
                 # use both joystick x and y to determine 'speed'
                 # to allow for turning in place
                 if abs(xyz[0]) > abs(xyz[1]):
-                    sv = abs(xyz[0]) * numpy.sign(xyz[1])
+                    sv = math.copysign(xyz[0], xyz[1])
+                    #sv = abs(xyz[0]) * numpy.sign(xyz[1])
                 else:
                     sv = xyz[1]
-                rs = (
-                    self.res.calc_stance_speed((crx, cry), sv)
-                    * numpy.sign(crx))
+                rs = math.copysign(
+                    self.res.calc_stance_speed((crx, cry), sv),
+                    crx)
             # add dz
             if (
                         
@@ -622,8 +627,11 @@ class MultiLeg(signaler.Signaler):
                         self.param['speed.foot'] *
                         self.param['speed.scalar'])
                     dz = (
-                        0.5 * numpy.sign(dh) *
+                        math.copysign(0.5, dh) *
                         max(mdz, abs(dh)) * consts.PLAN_TICK)
+                    #dz = (
+                    #    0.5 * numpy.sign(dh) *
+                    #    max(mdz, abs(dh)) * consts.PLAN_TICK)
             else:
                 dz = 0.
             ## TODO maybe this should be scaled down?

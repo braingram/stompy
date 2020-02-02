@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import os
 import time
 
@@ -102,8 +103,8 @@ class Odometer(signaler.Signaler):
         pos = [0., 0.]
         for _ in range(iticks):
             pos = transforms.transform_2d(T, *pos)
-        sa = numpy.sin(self.angle)
-        ca = numpy.cos(self.angle)
+        sa = math.sin(self.angle)
+        ca = math.cos(self.angle)
         self.position[0] -= ca * pos[0] - sa * pos[1]
         self.position[1] -= sa * pos[0] + ca * pos[1]
         self.position[2] -= self.target.dz * iticks
