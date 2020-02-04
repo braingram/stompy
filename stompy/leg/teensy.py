@@ -127,6 +127,7 @@ class FakeTeensy(LegController):
     def __init__(self, leg_number):
         super(FakeTeensy, self).__init__(leg_number)
         self._sim = simulation.get()
+        self._sim.register_leg(self)
         self._ln = "".join(s[0].lower() for s in self.leg_name.split('-'))
         self._position_noise = 0.05  # in inches
         #self._loaded_height = -40
