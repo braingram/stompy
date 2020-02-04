@@ -34,6 +34,7 @@ from . import param
 from . import playback
 from . import restriction
 from . import signaler
+from . import simulation
 from . import statics
 
 
@@ -187,10 +188,11 @@ class MultiLeg(signaler.Signaler):
             self.param['speed.sensor'] = 4800
 
         # check if all legs are simulated
-        if all([
-                isinstance(self.legs[k], leg.teensy.FakeTeensy)
-                for k in self.legs]):
-            self.param['speed.foot'] = 12
+        if self._fake_legs:
+            if simulation.get().name == 'nosim':
+                self.param['speed.foot'] = 48
+            else:
+                self.param['speed.foot'] = 12
             #self.param['speed.leg'] = 18
             #self.param['speed.body'] = self.param['speed.leg']
             #self.param['res.speed.stance'] = 12

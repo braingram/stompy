@@ -406,6 +406,12 @@ class Foot(signaler.Signaler):
                 new_state = 'wait'
         elif self.state == 'wait':
             if self.restriction['nr'] > self.restriction['r']:
+                #print(
+                #    "[%s] r: %0.2f; nr: %0.2f; delta: %0.4f" %
+                #    (
+                #        self.leg.leg_number,
+                #        self.restriction['r'], self.restriction['nr'],
+                #        self.restriction['nr'] - self.restriction['r']))
                 new_state = 'stance'
         elif self.state == 'lift':
             # check for unloaded and >Z inches off ground

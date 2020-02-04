@@ -15,6 +15,7 @@ sim = None
 class Sim(signaler.Signaler):
     def __init__(self):
         super(Sim, self).__init__()
+        self.name = 'bullet'
         self.conn = None
         self.legs = {}
         self.build()

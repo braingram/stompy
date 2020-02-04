@@ -14,9 +14,11 @@ sim = None
 class Sim(signaler.Signaler):
     def __init__(self):
         super(Sim, self).__init__()
+        self.name = 'nosim'
         self.legs = {}
         self.geometries = {}
         self.build()
+        self.ground_height = -40
 
     def register_leg(self, leg):
         n = ''.join([s[0].lower() for s in leg.leg_name.split('-')])
@@ -47,7 +49,7 @@ class Sim(signaler.Signaler):
             pts = list(g.angles_to_points(l['hip'], l['thigh'], l['knee']))
             ft = pts[-1]
             z = ft[2]
-            if z < -40:
+            if z < self.ground_height:
                 cv = -4000  # newtons
             else:
                 cv = 0
