@@ -86,7 +86,7 @@ class MultiLeg(signaler.Signaler):
         if all([isinstance(legs[ln], leg.teensy.FakeTeensy) for ln in legs]):
             # all legs are fake
             self._fake_legs = True
-            print(self.bodies)
+            #print(self.bodies)
             if len(self.bodies) == 0:
                 # make fake imu
                 self.bodies = {'imu': body.FakeIMU()}
@@ -414,10 +414,10 @@ class MultiLeg(signaler.Signaler):
             if self.leg is not None:
                 foot = self.res.feet[self.leg.leg_number]
                 foot.restriction_modifier = buttons['restrict_leg']
-        if buttons.get('report_stats', 0):
-            print(self.leg.loop_time_stats)
+        #if buttons.get('report_stats', 0):
+        #    print(self.leg.loop_time_stats)
         if buttons.get('reset_stats', 0):
-            print("Resetting loop time stats")
+            #print("Resetting loop time stats")
             self.leg.loop_time_stats.reset()
 
     def _set_speed_by_slider(self):
@@ -574,7 +574,7 @@ class MultiLeg(signaler.Signaler):
                     'linear': (0, 0, 0),
                     'angular': -numpy.array(xyz),
                     'speed': speed}
-                print("Body rotation plan: %s" % (plan, ))
+                #print("Body rotation plan: %s" % (plan, ))
             self.all_legs('send_plan', **plan)
         elif self.mode == 'body_position_legs':
             pass
@@ -702,10 +702,10 @@ def build():
         raise IOError("No teensies found")
 
     lns = sorted(legs.keys())
-    print("Connected to legs: %s" % (lns, ))
+    #print("Connected to legs: %s" % (lns, ))
 
     bodies = body.connect_to_teensies()
-    print("Connected to bodies: %s" % (sorted(bodies.keys())))
+    #print("Connected to bodies: %s" % (sorted(bodies.keys())))
 
     return MultiLeg(legs, bodies)
 
@@ -713,7 +713,7 @@ def build():
 def run(controller=None):
     if controller is None:
         controller = build()
-    print("Built controller, running in loop [Ctrl-C to exit]")
+    #print("Built controller, running in loop [Ctrl-C to exit]")
     while True:
         try:
             controller.update()

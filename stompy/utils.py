@@ -25,6 +25,7 @@ teensy_serial_by_type = {
         '1890640',  # leg 4
         '2052790',  # leg 5
         '2619770',  # leg 6
+        '2053530',  # leg 1 box 2 (as of 200216)
     ],
     'joystick': [
         '5537750',  # steel

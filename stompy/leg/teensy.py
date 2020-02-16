@@ -129,7 +129,8 @@ class FakeTeensy(LegController):
         self._sim = simulation.get()
         self._sim.register_leg(self)
         self._ln = "".join(s[0].lower() for s in self.leg_name.split('-'))
-        self._position_noise = 0.05  # in inches
+        #self._position_noise = 0.05  # in inches
+        self._position_noise = 0.0  # in inches
         #self._loaded_height = -40
         self._calf_load = 0.
         self.on('plan', self._new_plan)

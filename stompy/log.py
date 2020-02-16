@@ -244,7 +244,7 @@ atexit.register(logger._write_events)
 
 def make_logger(name):
     ldir = os.path.join(log_directory, name)
-    print("Making logger: %s" % ldir)
+    #print("Making logger: %s" % ldir)
     l = Logger(ldir)
     atexit.register(l._write_events)
     return l

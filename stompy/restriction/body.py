@@ -176,7 +176,7 @@ class Body(signaler.Signaler):
                 'restriction', lambda s, ln=i: self.on_restriction(s, ln))
             self.feet[i].on(
                 'state', lambda s, ln=i: self.on_foot_state(s, ln))
-        print("Feet:", self.feet)
+        #print("Feet:", self.feet)
         self.disable()
 
     def set_halt(self, value):
