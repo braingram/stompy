@@ -296,11 +296,23 @@ class FakeTeensy(LegController):
             self._sim.set_joint_angles(ja)
 
 
+def open_port(port, timeout=5.0):
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < timeout:
+        try:
+            s = serial.Serial(port, 9600)
+            return s
+        except serial.serialutil.SerialException:
+            time.sleep(0.01)
+    raise IOError("Failed to connect to teensy on port: %s" % port)
+
+
 class Teensy(LegController):
     def __init__(self, port):
         print("Connecting to teensy on port: %s" % port)
         self.port = port
-        self._serial = serial.Serial(self.port, 9600)
+        #self._serial = serial.Serial(self.port, 9600)
+        self._serial = open_port(self.port)
         # set rising edge of RTS to reset comando
         self._serial.setRTS(0)
         self._serial.flushInput()
@@ -320,6 +332,7 @@ class Teensy(LegController):
         # get leg number
         logger.debug("%s Get leg number" % port)
         ln = self.mgr.blocking_trigger('leg_number')[0].value
+        print("Connected to leg %s on port %s" % (ln, port))
         super(Teensy, self).__init__(ln)
 
         def print_text(txt, leg_number=ln):
@@ -331,6 +344,7 @@ class Teensy(LegController):
         # load calibration setup
         for v in calibration.setup.get(self.leg_number, []):
             self.log.debug({'calibration': v})
+            print("calibration: %s" % v)
             f, args = v
             logger.debug("Calibration: %s, %s" % (f, args))
             self.mgr.trigger(f, *args)
@@ -385,6 +399,7 @@ class Teensy(LegController):
             return {}
         joint_config = {}
         # get pid_config
+        #print("Get pid config: %s" % joint_index)
         r = self.mgr.blocking_trigger('pid_config', joint_index)
         joint_config['pid'] = {
             'p': r[1].value,
