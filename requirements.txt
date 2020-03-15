@@ -1,9 +1,11 @@
 #tornado==3.2
+
 websocket_client
 matplotlib
 numpy
 pyserial
 
-# comando: https://github.com/braingram/comando
-# pyteensyloader: https://github.com/braingram/pyteensyloader
+-e git://github.com/braingram/comando.git
+-e git://github.com/braingram/pyteensyloader.git
+
 # pyqt5
