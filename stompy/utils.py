@@ -39,7 +39,10 @@ teensy_type_by_serial = {
 
 
 def find_teensies_by_type(teensy_type=None):
-    by_serial = teensyloader.find_serial_teensies()
+    try:
+        by_serial = teensyloader.find_serial_teensies()
+    except usb.core.NoBackendError:
+        return {}
     teensies_by_type = {}
     for s in by_serial:
         # make path
