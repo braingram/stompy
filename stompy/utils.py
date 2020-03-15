@@ -4,6 +4,8 @@
 import os
 #import subprocess
 
+import usb.core
+
 import teensyloader
 
 
